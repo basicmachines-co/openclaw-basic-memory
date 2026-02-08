@@ -65,12 +65,8 @@ export default {
       start: async (ctx) => {
         log.info("starting...")
 
-        try {
-          await client.ensureProject(cfg.projectPath)
-          log.info(`project "${cfg.project}" ensured at ${cfg.projectPath}`)
-        } catch (err) {
-          log.warn("failed to ensure project, continuing anyway", err)
-        }
+        await client.ensureProject(cfg.projectPath)
+        log.debug(`project "${cfg.project}" at ${cfg.projectPath}`)
 
         if (fileWatcher) {
           // Use workspace dir from OpenClaw service context (not process.cwd()

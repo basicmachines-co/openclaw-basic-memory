@@ -101,8 +101,10 @@ export class BmClient {
       return stdout.trim()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      log.error(`bm command failed: ${this.bmPath} ${args.join(" ")}`, err)
-      throw new Error(`bm command failed: ${msg}`)
+      log.debug(`bm command failed: ${this.bmPath} ${args.join(" ")} — ${msg}`)
+      throw new Error(
+        `bm command failed: ${this.bmPath} ${args.join(" ")} — ${msg}`,
+      )
     }
   }
 
@@ -136,16 +138,10 @@ export class BmClient {
 
   async ensureProject(projectPath: string): Promise<void> {
     try {
-      // Check if project already exists before trying to add
-      const out = await this.execRaw(["project", "list"])
-      if (out.includes(this.project)) {
-        log.debug(`project "${this.project}" already exists`)
-        return
-      }
       await this.execRaw(["project", "add", this.project, projectPath])
-    } catch (err) {
-      // Non-fatal: project may already exist
-      log.debug("ensureProject failed (non-fatal):", err)
+    } catch {
+      // Silently ignore — most likely the project already exists.
+      // This is expected on every restart after first setup.
     }
   }
 
