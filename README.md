@@ -4,7 +4,7 @@ Local-first knowledge graph plugin for OpenClaw — persistent memory with graph
 
 ## What this plugin does
 
-The `openclaw-basic-memory` plugin integrates [Basic Memory](https://github.com/basicmachine/basic-memory) with OpenClaw to provide sophisticated knowledge management capabilities. It operates in two complementary modes:
+The `openclaw-basic-memory` plugin integrates [Basic Memory](https://github.com/basicmachines-co/basic-memory) with OpenClaw to provide sophisticated knowledge management capabilities. It operates in two complementary modes:
 
 ### Archive Mode (default)
 Runs alongside OpenClaw's built-in memory system:
@@ -25,11 +25,9 @@ Combines archive and agent-memory modes for maximum functionality.
 
 1. **Basic Memory CLI**: Install the `bm` command-line tool
    ```bash
-   # macOS (Homebrew)
-   brew install basicmachine/tap/basic-memory
-   
-   # Or download from releases
-   # https://github.com/basicmachine/basic-memory/releases
+   pip install basic-memory
+   # or with uv:
+   uv pip install basic-memory
    ```
 
 2. **OpenClaw**: This plugin requires OpenClaw with plugin support
@@ -38,23 +36,14 @@ Combines archive and agent-memory modes for maximum functionality.
 
 ### From GitHub (Development)
 
-1. Clone and build:
+1. Clone the repo:
    ```bash
-   git clone https://github.com/basicmachine/openclaw-basic-memory.git
+   git clone https://github.com/basicmachines-co/openclaw-basic-memory.git
    cd openclaw-basic-memory
    bun install
-   bun run build
    ```
 
-2. Install in OpenClaw:
-   ```bash
-   openclaw plugins install ./
-   ```
-
-3. Or for development (symlink):
-   ```bash
-   openclaw plugins install -l ./
-   ```
+2. Add to your OpenClaw config (see Development Setup below)
 
 ### Development Setup
 
@@ -351,7 +340,7 @@ Error: bm command failed: bm tool search-notes
 ```
 
 **Solutions**:
-1. Install Basic Memory CLI: `brew install basicmachine/tap/basic-memory`
+1. Install Basic Memory CLI: `brew install pip install basic-memory`
 2. Verify installation: `which bm`
 3. Set custom path: `"bmPath": "/usr/local/bin/bm"`
 
@@ -359,10 +348,10 @@ Error: bm command failed: bm tool search-notes
 If you see TypeScript/import errors:
 
 ```bash
-# Clear jiti cache
-rm -rf ~/.cache/jiti
-# Or set environment variable
-export JITI_CACHE=false
+# Clear jiti cache (macOS)
+rm -rf /tmp/jiti/ "$TMPDIR/jiti/"
+# Then fully restart the gateway (stop + start, not just SIGUSR1)
+openclaw gateway stop && openclaw gateway start
 ```
 
 ### Project setup issues
@@ -390,11 +379,9 @@ bm project add openclaw-test ~/.basic-memory/openclaw/
 
 ## Development
 
-### Building
+### Type checking and linting
 ```bash
-bun install
-bun run build
-bun run type-check
+bun run check-types
 bun run lint
 ```
 
@@ -445,6 +432,6 @@ MIT License - see LICENSE file for details.
 
 ## Support
 
-- [Basic Memory Documentation](https://github.com/basicmachine/basic-memory)
-- [OpenClaw Plugin Guide](https://docs.openclaw.com/plugins/)
-- [GitHub Issues](https://github.com/basicmachine/openclaw-basic-memory/issues)
+- [Basic Memory Documentation](https://github.com/basicmachines-co/basic-memory)
+- [OpenClaw Plugin Guide](https://docs.openclaw.ai/plugin)
+- [GitHub Issues](https://github.com/basicmachines-co/openclaw-basic-memory/issues)
