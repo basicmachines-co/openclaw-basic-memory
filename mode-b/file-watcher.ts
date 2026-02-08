@@ -9,6 +9,7 @@ import { indexFileIntoBm } from "./archive.ts"
 export class FileWatcher {
   private client: BmClient
   private cfg: BasicMemoryConfig
+  private workspacePath: string | null = null
   private watchers: ReturnType<typeof watch>[] = []
   private indexQueue: Set<string> = new Set()
   private indexTimer: ReturnType<typeof setInterval> | null = null
@@ -20,6 +21,7 @@ export class FileWatcher {
   }
 
   async start(workspacePath: string): Promise<void> {
+    this.workspacePath = workspacePath
     log.info(`starting file watcher for: ${this.cfg.watchPaths.join(", ")}`)
 
     for (const watchPath of this.cfg.watchPaths) {
@@ -105,7 +107,12 @@ export class FileWatcher {
     for (const filePath of files) {
       try {
         const content = await readFile(filePath, "utf-8")
-        await indexFileIntoBm(this.client, filePath, content)
+        await indexFileIntoBm(
+          this.client,
+          filePath,
+          content,
+          this.workspacePath ?? undefined,
+        )
       } catch (err) {
         log.error(`failed to index: ${filePath}`, err)
       }

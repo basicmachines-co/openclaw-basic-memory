@@ -41,6 +41,34 @@ export interface RecentResult {
   created_at: string
 }
 
+/**
+ * Extract JSON from CLI output that may contain non-JSON prefix lines
+ * (warnings, log messages, etc). Finds the first line starting with
+ * '{' or '[' and parses from there.
+ */
+function parseJsonOutput(raw: string): unknown {
+  // Try direct parse first (fast path)
+  try {
+    return JSON.parse(raw)
+  } catch {
+    // Fall through to line-by-line extraction
+  }
+
+  // Strip non-JSON prefix lines (warnings, Rich markup, etc.)
+  const lines = raw.split("\n")
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimStart()
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      const jsonStr = lines.slice(i).join("\n")
+      try {
+        return JSON.parse(jsonStr)
+      } catch {}
+    }
+  }
+
+  throw new Error(`Could not parse JSON from bm output: ${raw.slice(0, 200)}`)
+}
+
 export class BmClient {
   private bmPath: string
   private project: string
@@ -50,6 +78,9 @@ export class BmClient {
     this.project = project
   }
 
+  /**
+   * Run a raw bm command with no automatic flags.
+   */
   private async execRaw(args: string[]): Promise<string> {
     log.debug(`exec: ${this.bmPath} ${args.join(" ")}`)
 
@@ -66,8 +97,31 @@ export class BmClient {
     }
   }
 
-  private async exec(args: string[]): Promise<string> {
-    const fullArgs = [...args, "--project", this.project, "--format", "json"]
+  /**
+   * Run a bm tool command with --project, --local, and --format json flags.
+   *
+   * Arg ordering: bm tool <subcommand> [positional args] --project X --local --format json [options]
+   * The --local flag ensures we always use local routing for low latency,
+   * even if the user has cloud mode enabled.
+   */
+  private async execTool(args: string[]): Promise<string> {
+    const fullArgs = [
+      ...args,
+      "--project",
+      this.project,
+      "--local",
+      "--format",
+      "json",
+    ]
+    return this.execRaw(fullArgs)
+  }
+
+  /**
+   * Run a bm tool command that already outputs JSON natively (no --format flag needed).
+   * Still adds --project and --local.
+   */
+  private async execToolNativeJson(args: string[]): Promise<string> {
+    const fullArgs = [...args, "--project", this.project, "--local"]
     return this.execRaw(fullArgs)
   }
 
@@ -75,25 +129,28 @@ export class BmClient {
     try {
       await this.execRaw(["project", "add", this.project, projectPath])
     } catch (err) {
-      log.error("ensureProject failed (non-fatal):", err)
+      // Non-fatal: project may already exist
+      log.debug("ensureProject failed (non-fatal):", err)
     }
   }
 
   async search(query: string, limit = 10): Promise<SearchResult[]> {
-    const out = await this.exec([
+    // search-notes outputs JSON natively (no --format flag needed)
+    const out = await this.execToolNativeJson([
       "tool",
       "search-notes",
       query,
       "--page-size",
       String(limit),
     ])
-    const parsed = JSON.parse(out)
-    return parsed.results as SearchResult[]
+    const parsed = parseJsonOutput(out)
+    return (parsed as { results: SearchResult[] }).results
   }
 
   async readNote(identifier: string): Promise<NoteResult> {
-    const out = await this.exec(["tool", "read-note", identifier])
-    return JSON.parse(out)
+    // read-note requires --format json (PR #552)
+    const out = await this.execTool(["tool", "read-note", identifier])
+    return parseJsonOutput(out) as NoteResult
   }
 
   async writeNote(
@@ -101,7 +158,8 @@ export class BmClient {
     content: string,
     folder: string,
   ): Promise<NoteResult> {
-    const out = await this.exec([
+    // write-note requires --format json (PR #552)
+    const out = await this.execTool([
       "tool",
       "write-note",
       "--title",
@@ -111,30 +169,58 @@ export class BmClient {
       "--content",
       content,
     ])
-    return JSON.parse(out)
+    return parseJsonOutput(out) as NoteResult
   }
 
   async buildContext(url: string, depth = 1): Promise<ContextResult> {
-    const out = await this.exec([
+    // build-context always outputs JSON natively
+    const out = await this.execToolNativeJson([
       "tool",
       "build-context",
       url,
       "--depth",
       String(depth),
     ])
-    return JSON.parse(out)
+    return parseJsonOutput(out) as ContextResult
   }
 
   async recentActivity(timeframe = "24h"): Promise<RecentResult[]> {
-    const out = await this.execRaw([
+    // recent-activity requires --format json (PR #552)
+    const out = await this.execTool([
       "tool",
       "recent-activity",
       "--timeframe",
       timeframe,
-      "--format",
-      "json",
     ])
-    return JSON.parse(out)
+    return parseJsonOutput(out) as RecentResult[]
+  }
+
+  async editNote(
+    identifier: string,
+    operation: "append" | "prepend" | "find_replace" | "replace_section",
+    content: string,
+    findText?: string,
+    sectionTitle?: string,
+  ): Promise<NoteResult> {
+    const args = [
+      "tool",
+      "edit-note",
+      identifier,
+      "--operation",
+      operation,
+      "--content",
+      content,
+    ]
+
+    if (operation === "find_replace" && findText) {
+      args.push("--find-text", findText)
+    }
+    if (operation === "replace_section" && sectionTitle) {
+      args.push("--heading", sectionTitle)
+    }
+
+    const out = await this.execToolNativeJson(args)
+    return parseJsonOutput(out) as NoteResult
   }
 
   getProject(): string {

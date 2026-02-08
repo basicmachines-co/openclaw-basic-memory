@@ -1,17 +1,18 @@
-import { basename, dirname } from "node:path"
+import { basename, dirname, relative } from "node:path"
 import type { BmClient } from "../bm-client.ts"
 import { log } from "../logger.ts"
 
 /**
  * Index a file into Basic Memory's knowledge graph.
  *
- * Preserves the original file structure — BM notes mirror the workspace layout.
- * The file content is written as a BM note with the same title and folder path.
+ * Preserves the original file structure — folder path is derived from
+ * the file's relative path within the workspace.
  */
 export async function indexFileIntoBm(
   client: BmClient,
   filePath: string,
   content: string,
+  workspacePath?: string,
 ): Promise<void> {
   if (!content.trim()) {
     log.debug(`skipping empty file: ${filePath}`)
@@ -19,7 +20,7 @@ export async function indexFileIntoBm(
   }
 
   const name = basename(filePath, ".md")
-  const folder = deriveFolder(filePath)
+  const folder = deriveFolder(filePath, workspacePath)
 
   log.debug(`indexing: ${name} → folder=${folder}`)
 
@@ -34,8 +35,9 @@ export async function indexFileIntoBm(
 /**
  * Index a conversation turn into the knowledge graph.
  *
- * Creates a timestamped note in the conversations/ folder with the
- * user message and assistant response.
+ * Uses daily batched notes instead of per-turn notes to avoid flooding
+ * the knowledge graph. Each day gets one conversation note that is
+ * appended to throughout the day.
  */
 export async function indexConversation(
   client: BmClient,
@@ -44,38 +46,63 @@ export async function indexConversation(
 ): Promise<void> {
   const now = new Date()
   const dateStr = now.toISOString().split("T")[0]
-  const timeStr = now.toISOString().split("T")[1]?.slice(0, 5).replace(":", "")
-  const title = `conversation-${dateStr}-${timeStr}`
+  const timeStr = now.toTimeString().slice(0, 5)
+  const title = `conversations-${dateStr}`
 
-  const content = [
-    `# Conversation ${dateStr}`,
+  // Format as a timestamped entry to append to the daily note
+  const entry = [
+    `### ${timeStr}`,
     "",
-    "## User",
+    "**User:**",
     userMessage,
     "",
-    "## Assistant",
+    "**Assistant:**",
     assistantResponse,
+    "",
+    "---",
   ].join("\n")
 
   try {
-    await client.writeNote(title, content, "conversations")
-    log.debug(`indexed conversation: ${title}`)
-  } catch (err) {
-    log.error("conversation index failed", err)
+    // Try to append to existing daily note first
+    await client.editNote(title, "append", entry)
+    log.debug(`appended conversation to: ${title}`)
+  } catch {
+    // Note doesn't exist yet — create it
+    const content = [`# Conversations ${dateStr}`, "", entry].join("\n")
+
+    try {
+      await client.writeNote(title, content, "conversations")
+      log.debug(`created conversation note: ${title}`)
+    } catch (err) {
+      log.error("conversation index failed", err)
+    }
   }
 }
 
 /**
  * Derive a BM folder path from a file path.
- * Uses the parent directory name relative to common workspace roots.
+ *
+ * If workspacePath is provided, uses the relative path to preserve
+ * directory structure. Otherwise falls back to the parent directory name.
+ *
+ * Examples:
+ *   memory/2026-02-07.md  →  "memory"
+ *   memory/projects/foo.md  →  "memory/projects"
+ *   MEMORY.md (at root)  →  "memory"
  */
-function deriveFolder(filePath: string): string {
+function deriveFolder(filePath: string, workspacePath?: string): string {
+  if (workspacePath) {
+    const rel = relative(workspacePath, filePath)
+    const dir = dirname(rel)
+    // Root-level files go to "memory" folder
+    if (dir === ".") return "memory"
+    return dir
+  }
+
+  // Fallback: use parent directory name
   const dir = dirname(filePath)
   const dirName = basename(dir)
 
-  // Common OpenClaw memory directories map to BM folders
-  if (dirName === "memory" || dirName === "memories") return "memory"
-  if (dirName === ".") return "agent"
-
-  return `memory/${dirName}`
+  if (dirName === "." || dirName === "") return "memory"
+  return dirName
 }
