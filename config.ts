@@ -80,9 +80,9 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
     watchPaths: Array.isArray(cfg.watchPaths)
       ? (cfg.watchPaths as string[])
       : ["memory/", "MEMORY.md"],
-    indexInterval: (cfg.indexInterval as number) ?? 300,
-    autoCapture: (cfg.autoCapture as boolean) ?? true,
-    debug: (cfg.debug as boolean) ?? false,
+    indexInterval: typeof cfg.indexInterval === "number" ? cfg.indexInterval : 300,
+    autoCapture: typeof cfg.autoCapture === "boolean" ? cfg.autoCapture : true,
+    debug: typeof cfg.debug === "boolean" ? cfg.debug : false,
   }
 }
 

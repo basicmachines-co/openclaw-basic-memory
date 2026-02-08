@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile)
  * BM's read-note --format json includes frontmatter in the content field,
  * but consumers (agent tools, editNote) don't want it duplicated.
  */
-function stripFrontmatter(content: string): string {
+export function stripFrontmatter(content: string): string {
   return content.replace(/^---\n[\s\S]*?\n---\n*/, "").trim()
 }
 
@@ -55,7 +55,7 @@ export interface RecentResult {
  * (warnings, log messages, etc). Finds the first line starting with
  * '{' or '[' and parses from there.
  */
-function parseJsonOutput(raw: string): unknown {
+export function parseJsonOutput(raw: string): unknown {
   // Try direct parse first (fast path)
   try {
     return JSON.parse(raw)

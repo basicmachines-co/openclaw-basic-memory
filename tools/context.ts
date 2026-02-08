@@ -44,6 +44,11 @@ export function registerContextTool(
                   text: `No context found for "${params.url}".`,
                 },
               ],
+              details: {
+                url: params.url,
+                depth,
+                resultCount: 0,
+              },
             }
           }
 

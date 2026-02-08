@@ -138,8 +138,8 @@ describe("search tool", () => {
       const result = await executeFunction("tool-call-id", { query: "test" })
 
       const text = result.content[0].text
-      expect(text).toContain("High Score Note (95%)")
-      expect(text).toContain("Medium Score Note (67%)")
+      expect(text).toContain("**High Score Note** (95%)")
+      expect(text).toContain("**Medium Score Note** (67%)")
     })
 
     it("should handle results without scores", async () => {
