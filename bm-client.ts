@@ -50,97 +50,91 @@ export class BmClient {
     this.project = project
   }
 
-  private async exec(args: string[]): Promise<string> {
-    const fullArgs = [...args, "--project", this.project]
-    log.debug(`exec: ${this.bmPath} ${fullArgs.join(" ")}`)
+  private async execRaw(args: string[]): Promise<string> {
+    log.debug(`exec: ${this.bmPath} ${args.join(" ")}`)
 
     try {
-      const { stdout } = await execFileAsync(this.bmPath, fullArgs, {
+      const { stdout } = await execFileAsync(this.bmPath, args, {
         timeout: 30_000,
         maxBuffer: 10 * 1024 * 1024,
       })
       return stdout.trim()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      log.error(`bm command failed: ${this.bmPath} ${fullArgs.join(" ")}`, err)
+      log.error(`bm command failed: ${this.bmPath} ${args.join(" ")}`, err)
       throw new Error(`bm command failed: ${msg}`)
+    }
+  }
+
+  private async exec(args: string[]): Promise<string> {
+    const fullArgs = [...args, "--project", this.project, "--format", "json"]
+    return this.execRaw(fullArgs)
+  }
+
+  async ensureProject(projectPath: string): Promise<void> {
+    try {
+      await this.execRaw(["project", "add", this.project, projectPath])
+    } catch (err) {
+      log.error("ensureProject failed (non-fatal):", err)
     }
   }
 
   async search(query: string, limit = 10): Promise<SearchResult[]> {
     const out = await this.exec([
-      "tools",
-      "search_notes",
-      "--query",
+      "tool",
+      "search-notes",
       query,
-      "--limit",
+      "--page-size",
       String(limit),
-      "--format",
-      "json",
     ])
-    return JSON.parse(out)
+    const parsed = JSON.parse(out)
+    return parsed.results as SearchResult[]
   }
 
   async readNote(identifier: string): Promise<NoteResult> {
-    const out = await this.exec([
-      "tools",
-      "read_note",
-      "--identifier",
-      identifier,
-      "--format",
-      "json",
-    ])
+    const out = await this.exec(["tool", "read-note", identifier])
     return JSON.parse(out)
   }
 
   async writeNote(
     title: string,
     content: string,
-    folder?: string,
+    folder: string,
   ): Promise<NoteResult> {
-    const args = [
-      "tools",
-      "write_note",
+    const out = await this.exec([
+      "tool",
+      "write-note",
       "--title",
       title,
+      "--folder",
+      folder,
       "--content",
       content,
-      "--format",
-      "json",
-    ]
-    if (folder) args.push("--folder", folder)
-    const out = await this.exec(args)
+    ])
     return JSON.parse(out)
   }
 
   async buildContext(url: string, depth = 1): Promise<ContextResult> {
     const out = await this.exec([
-      "tools",
-      "build_context",
-      "--url",
+      "tool",
+      "build-context",
       url,
       "--depth",
       String(depth),
-      "--format",
-      "json",
     ])
     return JSON.parse(out)
   }
 
   async recentActivity(timeframe = "24h"): Promise<RecentResult[]> {
-    const out = await this.exec([
-      "tools",
-      "recent_activity",
+    const out = await this.execRaw([
+      "tool",
+      "recent-activity",
       "--timeframe",
       timeframe,
       "--format",
       "json",
     ])
     return JSON.parse(out)
-  }
-
-  async sync(): Promise<void> {
-    await this.exec(["sync"])
   }
 
   getProject(): string {

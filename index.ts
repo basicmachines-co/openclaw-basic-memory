@@ -61,6 +61,13 @@ export default {
       start: async () => {
         log.info("starting...")
 
+        try {
+          await client.ensureProject(cfg.projectPath)
+          log.info(`project "${cfg.project}" ensured at ${cfg.projectPath}`)
+        } catch (err) {
+          log.warn("failed to ensure project, continuing anyway", err)
+        }
+
         if (fileWatcher) {
           // Use cwd as workspace root — OpenClaw runs from the workspace
           await fileWatcher.start(process.cwd())

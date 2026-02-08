@@ -4,6 +4,10 @@
 install:
     bun install
 
+# Setup Basic Memory project
+setup:
+    bm project add openclaw ~/.basic-memory/openclaw/
+
 # Type check
 check-types:
     npx tsc --noEmit

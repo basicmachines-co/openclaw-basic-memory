@@ -98,15 +98,6 @@ export function registerCli(
         })
 
       cmd
-        .command("sync")
-        .description("Trigger a Basic Memory sync")
-        .action(async () => {
-          log.debug("cli sync")
-          await client.sync()
-          console.log(`Synced project: ${cfg.project}`)
-        })
-
-      cmd
         .command("status")
         .description("Show plugin status")
         .action(() => {

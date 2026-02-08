@@ -20,21 +20,14 @@ export function registerWriteTool(
         content: Type.String({
           description: "Note content in Markdown format",
         }),
-        folder: Type.Optional(
-          Type.String({
-            description: "Folder to write the note in (default: agent root)",
-          }),
-        ),
+        folder: Type.String({ description: "Folder to write the note in" }),
       }),
       async execute(
         _toolCallId: string,
-        params: { title: string; content: string; folder?: string },
+        params: { title: string; content: string; folder: string },
       ) {
         log.debug(
-          "bm_write: title=" +
-            params.title +
-            " folder=" +
-            (params.folder ?? "(root)"),
+          "bm_write: title=" + params.title + " folder=" + params.folder,
         )
 
         try {

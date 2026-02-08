@@ -1,4 +1,4 @@
-import { hostname } from "node:os"
+import { homedir, hostname } from "node:os"
 
 export type PluginMode = "archive" | "agent-memory" | "both"
 
@@ -8,6 +8,7 @@ export type BasicMemoryConfig = {
   bmPath: string
   watchPaths: string[]
   indexInterval: number
+  projectPath: string
   autoCapture: boolean
   debug: boolean
 }
@@ -18,6 +19,7 @@ const ALLOWED_KEYS = [
   "bmPath",
   "watchPaths",
   "indexInterval",
+  "projectPath",
   "autoCapture",
   "debug",
 ]
@@ -67,6 +69,10 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
       typeof cfg.project === "string" && cfg.project.length > 0
         ? cfg.project
         : defaultProject(),
+    projectPath:
+      typeof cfg.projectPath === "string" && cfg.projectPath.length > 0
+        ? cfg.projectPath
+        : `${homedir()}/.basic-memory/openclaw/`,
     bmPath:
       typeof cfg.bmPath === "string" && cfg.bmPath.length > 0
         ? cfg.bmPath
