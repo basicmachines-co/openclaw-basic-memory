@@ -179,6 +179,18 @@ bm_edit({
 })
 ```
 
+### `bm_delete`
+Delete a note from the knowledge graph.
+```typescript
+bm_delete({ identifier: "notes/old-draft" })
+```
+
+### `bm_move`
+Move a note to a different folder.
+```typescript
+bm_move({ identifier: "notes/my-note", newFolder: "archive" })
+```
+
 ### `bm_context`
 Navigate the knowledge graph using memory:// URLs to discover related concepts.
 ```typescript

@@ -7,8 +7,10 @@ import { buildCaptureHandler } from "./hooks/capture.ts"
 import { initLogger, log } from "./logger.ts"
 import { FileWatcher } from "./mode-b/file-watcher.ts"
 import { registerContextTool } from "./tools/context.ts"
+import { registerDeleteTool } from "./tools/delete.ts"
 import { registerEditTool } from "./tools/edit.ts"
 import { registerMemoryProvider } from "./tools/memory-provider.ts"
+import { registerMoveTool } from "./tools/move.ts"
 import { registerReadTool } from "./tools/read.ts"
 import { registerSearchTool } from "./tools/search.ts"
 import { registerWriteTool } from "./tools/write.ts"
@@ -37,6 +39,8 @@ export default {
     registerWriteTool(api, client)
     registerEditTool(api, client)
     registerContextTool(api, client)
+    registerDeleteTool(api, client, cfg)
+    registerMoveTool(api, client, cfg)
 
     // --- Mode B: Archive ---
     if (cfg.mode === "archive" || cfg.mode === "both") {

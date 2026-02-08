@@ -134,6 +134,34 @@ bm_edit({
 })
 ```
 
+### 🗑️ `bm_delete`
+**Purpose**: Remove notes from the knowledge graph  
+**When to use**: When content is outdated, duplicated, or no longer needed  
+**Returns**: Confirmation of deletion
+
+**Examples**:
+```typescript
+// Remove an old draft
+bm_delete({ identifier: "notes/old-draft" })
+
+// Clean up test notes
+bm_delete({ identifier: "tests/test-1.0" })
+```
+
+### 📦 `bm_move`
+**Purpose**: Move notes between folders for organization  
+**When to use**: When reorganizing knowledge, archiving old content, or correcting folder placement  
+**Returns**: Updated note with new location
+
+**Examples**:
+```typescript
+// Archive a completed project
+bm_move({ identifier: "projects/api-redesign", newFolder: "archive/projects" })
+
+// Reorganize into a better folder
+bm_move({ identifier: "notes/meeting-notes", newFolder: "meetings" })
+```
+
 ### 🧭 `bm_context`
 **Purpose**: Navigate the knowledge graph through semantic connections  
 **When to use**: To explore related concepts, find connected information, or build comprehensive understanding  

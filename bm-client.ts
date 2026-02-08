@@ -281,6 +281,66 @@ export class BmClient {
     return this.writeNote(existing.title, updated, folder)
   }
 
+  /**
+   * Delete a note from the knowledge graph.
+   *
+   * Since there's no `bm tool delete-note` CLI command, we resolve the
+   * note's file path via readNote, then delete the file. BM's file watcher
+   * will pick up the deletion and update the index.
+   */
+  async deleteNote(
+    identifier: string,
+    projectPath: string,
+  ): Promise<{ title: string; permalink: string; file_path: string }> {
+    const { unlink } = await import("node:fs/promises")
+    const { resolve } = await import("node:path")
+
+    // Read the note to get its file path and verify it exists
+    const note = await this.readNote(identifier)
+    const fullPath = resolve(projectPath, note.file_path)
+
+    await unlink(fullPath)
+    log.debug(`deleted file: ${fullPath}`)
+
+    return {
+      title: note.title,
+      permalink: note.permalink,
+      file_path: note.file_path,
+    }
+  }
+
+  /**
+   * Move a note to a new folder.
+   *
+   * Since there's no `bm tool move-note` CLI command, we read the note,
+   * write it to the new folder, then delete the old file.
+   */
+  async moveNote(
+    identifier: string,
+    newFolder: string,
+    projectPath: string,
+  ): Promise<NoteResult> {
+    const { unlink } = await import("node:fs/promises")
+    const { resolve } = await import("node:path")
+
+    // Read existing note
+    const existing = await this.readNote(identifier)
+    const oldPath = resolve(projectPath, existing.file_path)
+
+    // Write to new folder (this creates the note at the new location)
+    const result = await this.writeNote(existing.title, existing.content, newFolder)
+
+    // Delete old file
+    try {
+      await unlink(oldPath)
+      log.debug(`moved: ${existing.file_path} → ${result.file_path}`)
+    } catch {
+      log.debug(`old file already gone: ${oldPath}`)
+    }
+
+    return result
+  }
+
   getProject(): string {
     return this.project
   }

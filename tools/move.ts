@@ -1,0 +1,71 @@
+import { Type } from "@sinclair/typebox"
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
+import type { BmClient } from "../bm-client.ts"
+import type { BasicMemoryConfig } from "../config.ts"
+import { log } from "../logger.ts"
+
+export function registerMoveTool(
+  api: OpenClawPluginApi,
+  client: BmClient,
+  cfg: BasicMemoryConfig,
+): void {
+  api.registerTool(
+    {
+      name: "bm_move",
+      label: "Move Note",
+      description:
+        "Move a note to a different folder in the Basic Memory knowledge graph. " +
+        "The note content is preserved; only the location changes.",
+      parameters: Type.Object({
+        identifier: Type.String({
+          description: "Note title, permalink, or memory:// URL to move",
+        }),
+        newFolder: Type.String({
+          description:
+            "Destination folder (e.g., 'archive', 'projects/completed')",
+        }),
+      }),
+      async execute(
+        _toolCallId: string,
+        params: { identifier: string; newFolder: string },
+      ) {
+        log.debug(
+          `bm_move: identifier="${params.identifier}" → folder="${params.newFolder}"`,
+        )
+
+        try {
+          const result = await client.moveNote(
+            params.identifier,
+            params.newFolder,
+            cfg.projectPath,
+          )
+
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Moved: ${result.title} → ${result.file_path}`,
+              },
+            ],
+            details: {
+              title: result.title,
+              permalink: result.permalink,
+              file_path: result.file_path,
+            },
+          }
+        } catch (err) {
+          log.error("bm_move failed", err)
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Failed to move "${params.identifier}". It may not exist.`,
+              },
+            ],
+          }
+        }
+      },
+    },
+    { name: "bm_move" },
+  )
+}
