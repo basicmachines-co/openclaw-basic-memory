@@ -62,7 +62,7 @@ export default {
     // --- Service lifecycle ---
     api.registerService({
       id: "basic-memory",
-      start: async (ctx) => {
+      start: async (ctx: { config?: unknown; workspaceDir?: string }) => {
         log.info("starting...")
 
         await client.ensureProject(cfg.projectPath)
