@@ -8,6 +8,7 @@ import { initLogger, log } from "./logger.ts"
 import { FileWatcher } from "./mode-b/file-watcher.ts"
 import { registerContextTool } from "./tools/context.ts"
 import { registerEditTool } from "./tools/edit.ts"
+import { registerMemoryProvider } from "./tools/memory-provider.ts"
 import { registerReadTool } from "./tools/read.ts"
 import { registerSearchTool } from "./tools/search.ts"
 import { registerWriteTool } from "./tools/write.ts"
@@ -46,11 +47,12 @@ export default {
       }
     }
 
-    // --- Mode A: Agent Memory (Phase 2 — not yet implemented) ---
+    // --- Mode A: Agent Memory ---
+    // Replaces OpenClaw's built-in memory_search and memory_get tools
+    // with Basic Memory's knowledge graph search and retrieval.
     if (cfg.mode === "agent-memory" || cfg.mode === "both") {
-      log.warn(
-        "agent-memory mode is not yet implemented — running in archive mode",
-      )
+      registerMemoryProvider(api, client)
+      log.info("agent-memory mode: registered memory_search + memory_get")
     }
 
     // --- Commands ---
