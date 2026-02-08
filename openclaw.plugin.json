@@ -1,0 +1,63 @@
+{
+  "id": "basic-memory",
+  "kind": "memory",
+  "uiHints": {
+    "mode": {
+      "label": "Mode",
+      "help": "'archive' runs alongside existing memory (default), 'agent-memory' replaces memory-core, 'both' does both"
+    },
+    "project": {
+      "label": "Project Name",
+      "placeholder": "my-agent",
+      "help": "Basic Memory project name. Created automatically if it doesn't exist."
+    },
+    "bmPath": {
+      "label": "BM CLI Path",
+      "placeholder": "bm",
+      "help": "Path to the basic-memory CLI binary (default: 'bm')",
+      "advanced": true
+    },
+    "watchPaths": {
+      "label": "Watch Paths",
+      "placeholder": "memory/,MEMORY.md",
+      "help": "Comma-separated paths to watch for changes (archive mode)",
+      "advanced": true
+    },
+    "indexInterval": {
+      "label": "Index Interval (seconds)",
+      "placeholder": "300",
+      "help": "Seconds between periodic re-indexing sweeps",
+      "advanced": true
+    },
+    "autoCapture": {
+      "label": "Auto-Capture",
+      "help": "Automatically index conversation content after each turn"
+    },
+    "debug": {
+      "label": "Debug Logging",
+      "help": "Enable verbose debug logs",
+      "advanced": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "mode": {
+        "type": "string",
+        "enum": ["archive", "agent-memory", "both"],
+        "default": "archive"
+      },
+      "project": { "type": "string" },
+      "bmPath": { "type": "string" },
+      "watchPaths": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "indexInterval": { "type": "number", "minimum": 30, "maximum": 3600 },
+      "autoCapture": { "type": "boolean" },
+      "debug": { "type": "boolean" }
+    },
+    "required": []
+  }
+}

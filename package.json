@@ -1,0 +1,27 @@
+{
+  "name": "@basic-memory/openclaw",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Basic Memory plugin for OpenClaw — local-first knowledge graph for agent memory",
+  "license": "MIT",
+  "dependencies": {
+    "@sinclair/typebox": "0.34.47"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.1.29"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "lint": "bunx @biomejs/biome ci .",
+    "lint:fix": "bunx @biomejs/biome check --write ."
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.8",
+    "typescript": "^5.9.3"
+  }
+}

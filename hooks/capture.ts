@@ -1,0 +1,95 @@
+import type { BmClient } from "../bm-client.ts"
+import type { BasicMemoryConfig } from "../config.ts"
+import { log } from "../logger.ts"
+import { indexConversation } from "../mode-b/archive.ts"
+
+/**
+ * Extract text content from a message object.
+ */
+function extractText(msg: Record<string, unknown>): string {
+  const content = msg.content
+  if (typeof content === "string") return content
+
+  if (Array.isArray(content)) {
+    const parts: string[] = []
+    for (const block of content) {
+      if (!block || typeof block !== "object") continue
+      const b = block as Record<string, unknown>
+      if (b.type === "text" && typeof b.text === "string") {
+        parts.push(b.text)
+      }
+    }
+    return parts.join("\n")
+  }
+
+  return ""
+}
+
+/**
+ * Find the last user+assistant turn from the messages array.
+ */
+function getLastTurn(messages: unknown[]): {
+  userText: string
+  assistantText: string
+} {
+  let lastUserIdx = -1
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i]
+    if (
+      msg &&
+      typeof msg === "object" &&
+      (msg as Record<string, unknown>).role === "user"
+    ) {
+      lastUserIdx = i
+      break
+    }
+  }
+
+  if (lastUserIdx < 0) return { userText: "", assistantText: "" }
+
+  let userText = ""
+  let assistantText = ""
+
+  for (let i = lastUserIdx; i < messages.length; i++) {
+    const msg = messages[i] as Record<string, unknown>
+    if (!msg?.role) continue
+    const text = extractText(msg)
+    if (msg.role === "user") userText = text
+    else if (msg.role === "assistant") assistantText = text
+  }
+
+  return { userText, assistantText }
+}
+
+/**
+ * Build the post-turn capture handler for Mode B.
+ *
+ * After each agent turn, extracts the conversation content and indexes it
+ * into the Basic Memory knowledge graph as a conversation note.
+ */
+export function buildCaptureHandler(client: BmClient, _cfg: BasicMemoryConfig) {
+  return async (event: Record<string, unknown>) => {
+    if (
+      !event.success ||
+      !Array.isArray(event.messages) ||
+      event.messages.length === 0
+    ) {
+      return
+    }
+
+    const { userText, assistantText } = getLastTurn(event.messages)
+
+    if (!userText && !assistantText) return
+    if (userText.length < 10 && assistantText.length < 10) return
+
+    log.debug(
+      `capturing conversation: user=${userText.length} chars, assistant=${assistantText.length} chars`,
+    )
+
+    try {
+      await indexConversation(client, userText, assistantText)
+    } catch (err) {
+      log.error("capture failed", err)
+    }
+  }
+}
