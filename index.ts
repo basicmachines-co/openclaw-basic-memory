@@ -62,7 +62,7 @@ export default {
     // --- Service lifecycle ---
     api.registerService({
       id: "basic-memory",
-      start: async () => {
+      start: async (ctx) => {
         log.info("starting...")
 
         try {
@@ -73,8 +73,11 @@ export default {
         }
 
         if (fileWatcher) {
-          // Use cwd as workspace root — OpenClaw runs from the workspace
-          await fileWatcher.start(process.cwd())
+          // Use workspace dir from OpenClaw service context (not process.cwd()
+          // which is "/" for LaunchAgent services)
+          const workspace = ctx.workspaceDir ?? process.cwd()
+          log.info(`workspace for file watcher: ${workspace}`)
+          await fileWatcher.start(workspace)
         }
 
         log.info("connected")

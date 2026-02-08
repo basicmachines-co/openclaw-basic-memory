@@ -29,7 +29,7 @@ export function registerReadTool(
             content: [
               {
                 type: "text" as const,
-                text: `# ${note.title}\n\n${note.content}`,
+                text: note.content,
               },
             ],
             details: {

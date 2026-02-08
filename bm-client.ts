@@ -4,6 +4,15 @@ import { log } from "./logger.ts"
 
 const execFileAsync = promisify(execFile)
 
+/**
+ * Strip YAML frontmatter from note content.
+ * BM's read-note --format json includes frontmatter in the content field,
+ * but consumers (agent tools, editNote) don't want it duplicated.
+ */
+function stripFrontmatter(content: string): string {
+  return content.replace(/^---\n[\s\S]*?\n---\n*/, "").trim()
+}
+
 export interface SearchResult {
   title: string
   permalink: string
@@ -127,6 +136,12 @@ export class BmClient {
 
   async ensureProject(projectPath: string): Promise<void> {
     try {
+      // Check if project already exists before trying to add
+      const out = await this.execRaw(["project", "list"])
+      if (out.includes(this.project)) {
+        log.debug(`project "${this.project}" already exists`)
+        return
+      }
       await this.execRaw(["project", "add", this.project, projectPath])
     } catch (err) {
       // Non-fatal: project may already exist
@@ -150,7 +165,11 @@ export class BmClient {
   async readNote(identifier: string): Promise<NoteResult> {
     // read-note requires --format json (PR #552)
     const out = await this.execTool(["tool", "read-note", identifier])
-    return parseJsonOutput(out) as NoteResult
+    const result = parseJsonOutput(out) as NoteResult
+    // Strip frontmatter — BM includes it in content but we don't want it
+    // leaking into agent-visible output or getting doubled on write-back
+    result.content = stripFrontmatter(result.content)
+    return result
   }
 
   async writeNote(
@@ -195,6 +214,10 @@ export class BmClient {
     return parseJsonOutput(out) as RecentResult[]
   }
 
+  /**
+   * Edit a note using read-modify-write since `bm tool edit-note` doesn't
+   * exist in the CLI yet (only available as an MCP tool).
+   */
   async editNote(
     identifier: string,
     operation: "append" | "prepend" | "find_replace" | "replace_section",
@@ -202,25 +225,64 @@ export class BmClient {
     findText?: string,
     sectionTitle?: string,
   ): Promise<NoteResult> {
-    const args = [
-      "tool",
-      "edit-note",
-      identifier,
-      "--operation",
-      operation,
-      "--content",
-      content,
-    ]
+    // Step 1: Read the existing note
+    const existing = await this.readNote(identifier)
 
-    if (operation === "find_replace" && findText) {
-      args.push("--find-text", findText)
-    }
-    if (operation === "replace_section" && sectionTitle) {
-      args.push("--heading", sectionTitle)
+    // Content is already frontmatter-stripped by readNote()
+    let updated = existing.content
+
+    switch (operation) {
+      case "append":
+        updated = `${updated}\n${content}`
+        break
+      case "prepend":
+        updated = `${content}\n${updated}`
+        break
+      case "find_replace":
+        if (!findText) {
+          throw new Error("find_replace requires findText parameter")
+        }
+        if (!updated.includes(findText)) {
+          throw new Error(
+            `findText not found in note: "${findText.slice(0, 80)}"`,
+          )
+        }
+        updated = updated.replace(findText, content)
+        break
+      case "replace_section": {
+        if (!sectionTitle) {
+          throw new Error("replace_section requires sectionTitle parameter")
+        }
+        // Find the heading and replace everything until the next heading of same or higher level
+        const headingPattern = new RegExp(
+          `^(#{1,6})\\s+${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
+          "m",
+        )
+        const match = headingPattern.exec(updated)
+        if (!match) {
+          throw new Error(`Section "${sectionTitle}" not found in note`)
+        }
+        const level = match[1].length
+        const sectionStart = match.index
+        // Find next heading at same or higher level
+        const rest = updated.slice(sectionStart + match[0].length)
+        const nextHeading = new RegExp(`^#{1,${level}}\\s`, "m")
+        const nextMatch = nextHeading.exec(rest)
+        const sectionEnd = nextMatch
+          ? sectionStart + match[0].length + nextMatch.index
+          : updated.length
+        updated = `${updated.slice(0, sectionStart)}${match[0]}\n${content}${nextMatch ? `\n${updated.slice(sectionEnd)}` : ""}`
+        break
+      }
     }
 
-    const out = await this.execToolNativeJson(args)
-    return parseJsonOutput(out) as NoteResult
+    // Step 2: Extract folder from file_path (e.g., "notes/plugin-test.md" → "notes")
+    const folder = existing.file_path.includes("/")
+      ? existing.file_path.split("/").slice(0, -1).join("/")
+      : ""
+
+    // Step 3: Write back with the same title and folder
+    return this.writeNote(existing.title, updated, folder)
   }
 
   getProject(): string {

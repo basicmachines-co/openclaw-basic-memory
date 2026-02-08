@@ -1,5 +1,5 @@
 {
-  "name": "@basic-memory/openclaw",
+  "name": "@openclaw/basic-memory",
   "version": "0.1.0",
   "type": "module",
   "description": "Basic Memory plugin for OpenClaw — local-first knowledge graph for agent memory",
