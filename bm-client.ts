@@ -147,13 +147,27 @@ export class BmClient {
 
   async search(query: string, limit = 10): Promise<SearchResult[]> {
     // search-notes outputs JSON natively (no --format flag needed)
-    const out = await this.execToolNativeJson([
-      "tool",
-      "search-notes",
-      query,
-      "--page-size",
-      String(limit),
-    ])
+    // Try hybrid search (FTS + vector) first, fall back to FTS if semantic is disabled
+    let out: string
+    try {
+      out = await this.execToolNativeJson([
+        "tool",
+        "search-notes",
+        query,
+        "--hybrid",
+        "--page-size",
+        String(limit),
+      ])
+    } catch {
+      // Hybrid search requires semantic_search_enabled; fall back to FTS
+      out = await this.execToolNativeJson([
+        "tool",
+        "search-notes",
+        query,
+        "--page-size",
+        String(limit),
+      ])
+    }
     const parsed = parseJsonOutput(out)
     return (parsed as { results: SearchResult[] }).results
   }
