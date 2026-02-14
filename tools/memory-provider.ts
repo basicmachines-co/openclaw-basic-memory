@@ -1,33 +1,154 @@
+import { readFile } from "node:fs/promises"
+import { resolve } from "node:path"
+import { readdir, stat } from "node:fs/promises"
+import { join } from "node:path"
 import { Type } from "@sinclair/typebox"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
+import type { BasicMemoryConfig } from "../config.ts"
 import { log } from "../logger.ts"
 
 /**
- * Register memory_search and memory_get tools that replace memory-core.
+ * Search MEMORY.md for lines matching the query.
+ * Returns matching lines with 1 line of surrounding context.
+ */
+async function searchMemoryFile(
+  query: string,
+  workspaceDir: string,
+  memoryFile: string,
+): Promise<string> {
+  try {
+    const filePath = resolve(workspaceDir, memoryFile)
+    const content = await readFile(filePath, "utf-8")
+    const lines = content.split("\n")
+    const queryLower = query.toLowerCase()
+    const terms = queryLower.split(/\s+/).filter((t) => t.length > 0)
+
+    // Find lines that match any search term
+    const matchingIndices = new Set<number>()
+    for (let i = 0; i < lines.length; i++) {
+      const lineLower = lines[i].toLowerCase()
+      if (terms.some((term) => lineLower.includes(term))) {
+        // Add the matching line + 1 line before/after for context
+        if (i > 0) matchingIndices.add(i - 1)
+        matchingIndices.add(i)
+        if (i < lines.length - 1) matchingIndices.add(i + 1)
+      }
+    }
+
+    if (matchingIndices.size === 0) return ""
+
+    // Group consecutive lines into snippets
+    const sorted = [...matchingIndices].sort((a, b) => a - b)
+    const snippets: string[] = []
+    let current: string[] = []
+    let lastIdx = -2
+
+    for (const idx of sorted) {
+      if (idx !== lastIdx + 1 && current.length > 0) {
+        snippets.push(current.join("\n"))
+        current = []
+      }
+      current.push(`- ${lines[idx]}`)
+      lastIdx = idx
+    }
+    if (current.length > 0) snippets.push(current.join("\n"))
+
+    return snippets.join("\n…\n")
+  } catch {
+    return ""
+  }
+}
+
+/**
+ * Search memory/tasks/ for active tasks matching the query.
+ */
+async function searchActiveTasks(
+  query: string,
+  workspaceDir: string,
+  memoryDir: string,
+): Promise<string> {
+  try {
+    const tasksDir = resolve(workspaceDir, memoryDir, "tasks")
+    let entries: import("node:fs").Dirent[]
+    try {
+      entries = await readdir(tasksDir, { withFileTypes: true }) as unknown as import("node:fs").Dirent[]
+    } catch {
+      return ""
+    }
+
+    const queryLower = query.toLowerCase()
+    const terms = queryLower.split(/\s+/).filter((t) => t.length > 0)
+    const matches: string[] = []
+
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith(".md")) continue
+
+      const filePath = join(entry.parentPath ?? tasksDir, entry.name)
+      const content = await readFile(filePath, "utf-8")
+
+      // Check if task is active (not done)
+      const statusMatch = content.match(/status:\s*(\S+)/)
+      const status = statusMatch?.[1] ?? "unknown"
+      if (status === "done") continue
+
+      // Check if content matches query
+      const contentLower = content.toLowerCase()
+      const matchesQuery =
+        terms.length === 0 || terms.some((term) => contentLower.includes(term))
+      if (!matchesQuery) continue
+
+      // Extract title and current_step
+      const titleMatch = content.match(/title:\s*(.+)/)
+      const title = titleMatch?.[1] ?? entry.name.replace(/\.md$/, "")
+      const stepMatch = content.match(/current_step:\s*(\S+)/)
+      const currentStep = stepMatch?.[1] ?? "?"
+
+      // Get a brief context line
+      const contextMatch = content.match(/## Context\s*\n([\s\S]*?)(?=\n##|\n---|$)/)
+      const context = contextMatch?.[1]?.trim().slice(0, 150) ?? ""
+
+      matches.push(
+        `- **${title}** (status: ${status}, step: ${currentStep})\n  ${context}`,
+      )
+    }
+
+    return matches.join("\n")
+  } catch {
+    return ""
+  }
+}
+
+// Store workspace dir for use in memory_search (set during service start)
+let _workspaceDir = ""
+export function setWorkspaceDir(dir: string) {
+  _workspaceDir = dir
+}
+
+/**
+ * Register composited memory_search and memory_get tools.
  *
- * When the plugin runs in agent-memory or both mode, these tools replace
- * OpenClaw's built-in memory tools with Basic Memory's knowledge graph
- * search and retrieval.
+ * memory_search queries 3 sources in parallel:
+ * 1. MEMORY.md — grep/text search
+ * 2. BM knowledge graph — semantic + FTS search
+ * 3. Active tasks — memory/tasks/ files with status != done
  *
- * memory_search → bm tool search-notes (knowledge graph search)
- * memory_get → bm tool read-note (read a specific note by identifier)
+ * memory_get reads a specific note by identifier.
  */
 export function registerMemoryProvider(
   api: OpenClawPluginApi,
   client: BmClient,
+  cfg: BasicMemoryConfig,
 ): void {
-  // --- memory_search replacement ---
-  // Uses Basic Memory's search which includes full-text + semantic search
-  // across the knowledge graph (observations, relations, content)
+  // --- composited memory_search ---
   api.registerTool(
     {
       name: "memory_search",
       label: "Memory Search",
       description:
-        "Semantically search the knowledge graph for relevant notes, facts, and connections. " +
-        "Returns matching notes with titles, content previews, relevance scores, and source paths. " +
-        "Use this to recall information from prior conversations, decisions, preferences, or any stored knowledge.",
+        "Search across all memory sources: MEMORY.md (working memory), " +
+        "Basic Memory knowledge graph (long-term archive), and active tasks. " +
+        "Returns composited results from all sources.",
       parameters: Type.Object({
         query: Type.String({
           description: "Search query — natural language or keywords",
@@ -36,57 +157,74 @@ export function registerMemoryProvider(
       async execute(_toolCallId: string, params: { query: string }) {
         log.debug(`memory_search: query="${params.query}"`)
 
-        try {
-          const results = await client.search(params.query, 6)
+        const workspaceDir = _workspaceDir || process.cwd()
 
-          if (results.length === 0) {
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: "No matches found in the knowledge graph.",
-                },
-              ],
-            }
-          }
+        // Query all 3 sources in parallel
+        const [memoryMd, bmResults, taskResults] = await Promise.all([
+          searchMemoryFile(params.query, workspaceDir, cfg.memoryFile),
+          client
+            .search(params.query, 5)
+            .then((results) => {
+              if (results.length === 0) return ""
+              return results
+                .map((r) => {
+                  const score = r.score ? ` (${r.score.toFixed(2)})` : ""
+                  const preview =
+                    r.content.length > 200
+                      ? `${r.content.slice(0, 200)}…`
+                      : r.content
+                  const source = r.file_path || r.permalink
+                  return `- ${source}${score}\n  > ${preview.replace(/\n/g, "\n  > ")}`
+                })
+                .join("\n\n")
+            })
+            .catch((err) => {
+              log.error("BM search failed in composited search", err)
+              return "(search unavailable)"
+            }),
+          searchActiveTasks(params.query, workspaceDir, cfg.memoryDir),
+        ])
 
-          // Format results similar to OpenClaw's memory_search output:
-          // score, source path, and content snippet
-          const snippets = results.map((r) => {
-            const score = r.score ? r.score.toFixed(3) : "—"
-            const source = r.file_path || r.permalink
-            const preview =
-              r.content.length > 700 ? `${r.content.slice(0, 700)}…` : r.content
-            return `${score} ${source}\n${preview}`
-          })
+        // Build composited result
+        const sections: string[] = []
 
+        if (memoryMd) {
+          sections.push(`## ${cfg.memoryFile}\n${memoryMd}`)
+        }
+
+        if (bmResults) {
+          sections.push(`## Knowledge Graph (${cfg.memoryDir})\n${bmResults}`)
+        }
+
+        if (taskResults) {
+          sections.push(`## Active Tasks\n${taskResults}`)
+        }
+
+        if (sections.length === 0) {
           return {
             content: [
               {
                 type: "text" as const,
-                text: snippets.join("\n\n"),
+                text: "No matches found across memory sources.",
               },
             ],
           }
-        } catch (err) {
-          log.error("memory_search failed", err)
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: "Memory search failed. Is Basic Memory running?",
-              },
-            ],
-          }
+        }
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: sections.join("\n\n"),
+            },
+          ],
         }
       },
     },
     { names: ["memory_search"] },
   )
 
-  // --- memory_get replacement ---
-  // Uses Basic Memory's read-note which returns full note content
-  // with knowledge graph context (observations, relations)
+  // --- memory_get (unchanged) ---
   api.registerTool(
     {
       name: "memory_get",

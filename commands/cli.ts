@@ -101,12 +101,12 @@ export function registerCli(
         .command("status")
         .description("Show plugin status")
         .action(() => {
-          console.log(`Mode: ${cfg.mode}`)
           console.log(`Project: ${cfg.project}`)
           console.log(`BM CLI: ${cfg.bmPath}`)
-          console.log(`Watch paths: ${cfg.watchPaths.join(", ")}`)
-          console.log(`Index interval: ${cfg.indexInterval}s`)
+          console.log(`Memory dir: ${cfg.memoryDir}`)
+          console.log(`Memory file: ${cfg.memoryFile}`)
           console.log(`Auto-capture: ${cfg.autoCapture}`)
+          console.log(`Cloud: ${cfg.cloud ? cfg.cloud.url : "disabled"}`)
           console.log(`Debug: ${cfg.debug}`)
         })
     },

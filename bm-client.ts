@@ -355,6 +355,48 @@ export class BmClient {
     return result
   }
 
+  /**
+   * Index a conversation turn into the knowledge graph.
+   *
+   * Uses daily batched notes instead of per-turn notes to avoid flooding
+   * the knowledge graph. Each day gets one conversation note that is
+   * appended to throughout the day.
+   */
+  async indexConversation(
+    userMessage: string,
+    assistantResponse: string,
+  ): Promise<void> {
+    const now = new Date()
+    const dateStr = now.toISOString().split("T")[0]
+    const timeStr = now.toTimeString().slice(0, 5)
+    const title = `conversations-${dateStr}`
+
+    const entry = [
+      `### ${timeStr}`,
+      "",
+      "**User:**",
+      userMessage,
+      "",
+      "**Assistant:**",
+      assistantResponse,
+      "",
+      "---",
+    ].join("\n")
+
+    try {
+      await this.editNote(title, "append", entry)
+      log.debug(`appended conversation to: ${title}`)
+    } catch {
+      const content = [`# Conversations ${dateStr}`, "", entry].join("\n")
+      try {
+        await this.writeNote(title, content, "conversations")
+        log.debug(`created conversation note: ${title}`)
+      } catch (err) {
+        log.error("conversation index failed", err)
+      }
+    }
+  }
+
   getProject(): string {
     return this.project
   }
