@@ -1,7 +1,5 @@
-import { readFile } from "node:fs/promises"
-import { resolve } from "node:path"
-import { readdir, stat } from "node:fs/promises"
-import { join } from "node:path"
+import { readFile, readdir } from "node:fs/promises"
+import { resolve, join } from "node:path"
 import { Type } from "@sinclair/typebox"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
@@ -61,13 +59,40 @@ async function searchMemoryFile(
 }
 
 /**
- * Search memory/tasks/ for active tasks matching the query.
+ * Search for active tasks via BM knowledge graph.
+ * Uses schema-based querying: searches for notes with type:Task and active status.
+ * Falls back to filesystem scan if BM search fails.
  */
 async function searchActiveTasks(
   query: string,
+  client: BmClient,
   workspaceDir: string,
   memoryDir: string,
 ): Promise<string> {
+  // Try BM knowledge graph query first
+  try {
+    const searchQuery = query
+      ? `type:Task [status] active ${query}`
+      : "type:Task [status] active"
+    const results = await client.search(searchQuery, 10)
+
+    if (results.length > 0) {
+      const matches: string[] = []
+      for (const r of results) {
+        const score = r.score ? ` (${r.score.toFixed(2)})` : ""
+        const preview =
+          r.content.length > 200 ? `${r.content.slice(0, 200)}…` : r.content
+        matches.push(
+          `- **${r.title}**${score} — ${r.file_path}\n  > ${preview.replace(/\n/g, "\n  > ")}`,
+        )
+      }
+      return matches.join("\n\n")
+    }
+  } catch (err) {
+    log.debug("BM task search failed, falling back to filesystem scan", err)
+  }
+
+  // Fallback: filesystem scan for tasks not yet indexed
   try {
     const tasksDir = resolve(workspaceDir, memoryDir, "tasks")
     let entries: import("node:fs").Dirent[]
@@ -87,24 +112,20 @@ async function searchActiveTasks(
       const filePath = join(entry.parentPath ?? tasksDir, entry.name)
       const content = await readFile(filePath, "utf-8")
 
-      // Check if task is active (not done)
       const statusMatch = content.match(/status:\s*(\S+)/)
       const status = statusMatch?.[1] ?? "unknown"
       if (status === "done") continue
 
-      // Check if content matches query
       const contentLower = content.toLowerCase()
       const matchesQuery =
         terms.length === 0 || terms.some((term) => contentLower.includes(term))
       if (!matchesQuery) continue
 
-      // Extract title and current_step
       const titleMatch = content.match(/title:\s*(.+)/)
       const title = titleMatch?.[1] ?? entry.name.replace(/\.md$/, "")
       const stepMatch = content.match(/current_step:\s*(\S+)/)
       const currentStep = stepMatch?.[1] ?? "?"
 
-      // Get a brief context line
       const contextMatch = content.match(/## Context\s*\n([\s\S]*?)(?=\n##|\n---|$)/)
       const context = contextMatch?.[1]?.trim().slice(0, 150) ?? ""
 
@@ -182,7 +203,7 @@ export function registerMemoryProvider(
               log.error("BM search failed in composited search", err)
               return "(search unavailable)"
             }),
-          searchActiveTasks(params.query, workspaceDir, cfg.memoryDir),
+          searchActiveTasks(params.query, client, workspaceDir, cfg.memoryDir),
         ])
 
         // Build composited result
