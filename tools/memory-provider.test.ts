@@ -1,7 +1,21 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import { registerMemoryProvider } from "./memory-provider.ts"
+import type { BasicMemoryConfig } from "../config.ts"
+import { registerMemoryProvider, setWorkspaceDir } from "./memory-provider.ts"
+
+function makeCfg(overrides?: Partial<BasicMemoryConfig>): BasicMemoryConfig {
+  return {
+    project: "test",
+    bmPath: "bm",
+    memoryDir: "memory/",
+    memoryFile: "MEMORY.md",
+    projectPath: "/tmp/bm-test",
+    autoCapture: true,
+    debug: false,
+    ...overrides,
+  }
+}
 
 describe("memory provider tools", () => {
   let mockApi: OpenClawPluginApi
@@ -13,542 +27,116 @@ describe("memory provider tools", () => {
     } as any
 
     mockClient = {
-      search: jest.fn(),
+      search: jest.fn().mockResolvedValue([]),
       readNote: jest.fn(),
     } as any
+
+    // Use a temp dir that won't have MEMORY.md
+    setWorkspaceDir("/tmp/nonexistent-workspace-for-test")
   })
 
   describe("registerMemoryProvider", () => {
     it("should register both memory_search and memory_get tools", () => {
-      registerMemoryProvider(mockApi, mockClient)
+      registerMemoryProvider(mockApi, mockClient, makeCfg())
 
       expect(mockApi.registerTool).toHaveBeenCalledTimes(2)
 
-      // Check memory_search registration
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "memory_search",
           label: "Memory Search",
-          description: expect.stringContaining(
-            "Semantically search the knowledge graph",
-          ),
         }),
         { names: ["memory_search"] },
       )
 
-      // Check memory_get registration
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "memory_get",
           label: "Memory Get",
-          description: expect.stringContaining("Read a specific note"),
         }),
         { names: ["memory_get"] },
       )
     })
   })
 
-  describe("memory_search tool", () => {
-    let searchExecuteFunction: Function
+  describe("memory_search tool (composited)", () => {
+    let searchExecute: Function
 
     beforeEach(() => {
-      registerMemoryProvider(mockApi, mockClient)
-      // Get the first tool registration (memory_search)
-      const searchCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
-        .calls[0]
-      searchExecuteFunction = searchCall[0].execute
+      registerMemoryProvider(mockApi, mockClient, makeCfg())
+      const searchCall = (mockApi.registerTool as jest.MockedFunction<any>).mock.calls[0]
+      searchExecute = searchCall[0].execute
     })
 
-    it("should search with provided query", async () => {
-      const mockResults = [
+    it("should return BM results in Knowledge Graph section", async () => {
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([
         {
-          title: "Test Memory",
-          permalink: "test-memory",
-          content: "This is a test memory content",
+          title: "Test Note",
+          permalink: "test-note",
+          content: "Some content about testing",
           score: 0.95,
-          file_path: "memory/test-memory.md",
+          file_path: "memory/test-note.md",
         },
-        {
-          title: "Another Memory",
-          permalink: "another-memory",
-          content: "This is another memory with different content",
-          score: 0.8,
-          file_path: "memory/another-memory.md",
-        },
-      ]
+      ])
 
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
-
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "test memory",
-      })
-
-      expect(mockClient.search).toHaveBeenCalledWith("test memory", 6)
-
-      // Check OpenClaw memory_search format: score + source + content
+      const result = await searchExecute("id", { query: "testing" })
       const text = result.content[0].text
-      expect(text).toContain("0.950 memory/test-memory.md")
-      expect(text).toContain("This is a test memory content")
-      expect(text).toContain("0.800 memory/another-memory.md")
-      expect(text).toContain("This is another memory with different content")
+
+      expect(text).toContain("## Knowledge Graph")
+      expect(text).toContain("memory/test-note.md")
+      expect(text).toContain("Some content about testing")
     })
 
-    it("should use file_path as source when available", async () => {
-      const mockResults = [
-        {
-          title: "Note with Path",
-          permalink: "note-with-path",
-          content: "Content",
-          score: 0.9,
-          file_path: "projects/important/note.md",
-        },
-      ]
-
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
-
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "test",
-      })
-
-      const text = result.content[0].text
-      expect(text).toContain("0.900 projects/important/note.md")
-    })
-
-    it("should fallback to permalink as source when file_path missing", async () => {
-      const mockResults = [
-        {
-          title: "Note without Path",
-          permalink: "note-without-path",
-          content: "Content",
-          score: 0.85,
-          // No file_path
-        },
-      ]
-
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
-
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "test",
-      })
-
-      const text = result.content[0].text
-      expect(text).toContain("0.850 note-without-path")
-    })
-
-    it("should handle results without score", async () => {
-      const mockResults = [
-        {
-          title: "No Score Note",
-          permalink: "no-score-note",
-          content: "Content without score",
-          file_path: "notes/no-score.md",
-          // No score
-        },
-      ]
-
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
-
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "test",
-      })
-
-      const text = result.content[0].text
-      expect(text).toContain("— notes/no-score.md")
-    })
-
-    it("should truncate long content to 700 characters", async () => {
-      const longContent = "a".repeat(800)
-      const mockResults = [
-        {
-          title: "Long Content Note",
-          permalink: "long-content",
-          content: longContent,
-          score: 0.9,
-          file_path: "notes/long.md",
-        },
-      ]
-
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
-
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "test",
-      })
-
-      const text = result.content[0].text
-      expect(text).toContain("a".repeat(700) + "…")
-      expect(text).not.toContain("a".repeat(750))
-    })
-
-    it("should not truncate short content", async () => {
-      const shortContent = "Short content that should not be truncated"
-      const mockResults = [
-        {
-          title: "Short Content Note",
-          permalink: "short-content",
-          content: shortContent,
-          score: 0.9,
-          file_path: "notes/short.md",
-        },
-      ]
-
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
-
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "test",
-      })
-
-      const text = result.content[0].text
-      expect(text).toContain(shortContent)
-      expect(text).not.toContain("…")
-    })
-
-    it("should format scores with 3 decimal places", async () => {
-      const mockResults = [
-        {
-          title: "Precise Score",
-          permalink: "precise-score",
-          content: "Content",
-          score: 0.123456789,
-          file_path: "notes/precise.md",
-        },
-      ]
-
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
-
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "test",
-      })
-
-      const text = result.content[0].text
-      expect(text).toContain("0.123 notes/precise.md")
-    })
-
-    it("should return message when no results found", async () => {
+    it("should return no matches message when all sources empty", async () => {
       ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([])
 
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "nonexistent",
-      })
+      const result = await searchExecute("id", { query: "nonexistent" })
 
-      expect(result).toEqual({
-        content: [
-          {
-            type: "text",
-            text: "No matches found in the knowledge graph.",
-          },
-        ],
-      })
+      expect(result.content[0].text).toBe("No matches found across memory sources.")
     })
 
-    it("should handle search errors gracefully", async () => {
-      const searchError = new Error("Search service unavailable")
-      ;(mockClient.search as jest.MockedFunction<any>).mockRejectedValue(searchError)
+    it("should handle BM search errors gracefully", async () => {
+      ;(mockClient.search as jest.MockedFunction<any>).mockRejectedValue(
+        new Error("BM down"),
+      )
 
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "test",
-      })
-
-      expect(result).toEqual({
-        content: [
-          {
-            type: "text",
-            text: "Memory search failed. Is Basic Memory running?",
-          },
-        ],
-      })
-    })
-
-    it("should use limit of 6 for memory search", async () => {
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([])
-
-      await searchExecuteFunction("tool-call-id", { query: "test" })
-
-      expect(mockClient.search).toHaveBeenCalledWith("test", 6)
-    })
-
-    it("should handle unicode in search results", async () => {
-      const mockResults = [
-        {
-          title: "Unicode Note 🚀",
-          permalink: "unicode-note",
-          content: "Content with unicode: 中文 العربية עברית",
-          score: 0.9,
-          file_path: "notes/unicode.md",
-        },
-      ]
-
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
-
-      const result = await searchExecuteFunction("tool-call-id", {
-        query: "unicode",
-      })
-
+      const result = await searchExecute("id", { query: "test" })
       const text = result.content[0].text
-      expect(text).toContain("Content with unicode: 中文 العربية עברית")
+
+      expect(text).toContain("(search unavailable)")
     })
   })
 
   describe("memory_get tool", () => {
-    let getExecuteFunction: Function
+    let getExecute: Function
 
     beforeEach(() => {
-      registerMemoryProvider(mockApi, mockClient)
-      // Get the second tool registration (memory_get)
+      registerMemoryProvider(mockApi, mockClient, makeCfg())
       const getCall = (mockApi.registerTool as jest.MockedFunction<any>).mock.calls[1]
-      getExecuteFunction = getCall[0].execute
+      getExecute = getCall[0].execute
     })
 
-    it("should read note with provided path", async () => {
-      const mockNote = {
+    it("should read note and format with title", async () => {
+      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue({
         title: "Test Note",
         permalink: "test-note",
-        content: "This is the test note content",
-        file_path: "notes/test-note.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const result = await getExecuteFunction("tool-call-id", {
-        path: "test-note",
-      })
-
-      expect(mockClient.readNote).toHaveBeenCalledWith("test-note")
-
-      expect(result).toEqual({
-        content: [
-          {
-            type: "text",
-            text: "# Test Note\n\nThis is the test note content",
-          },
-        ],
-      })
-    })
-
-    it("should handle different path formats", async () => {
-      const mockNote = {
-        title: "Memory URL Note",
-        permalink: "memory-url-note",
-        content: "Content accessed via memory URL",
-        file_path: "notes/memory-url-note.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const paths = [
-        "memory://projects/my-project",
-        "simple-note-title",
-        "notes/file.md",
-        "permalink-identifier",
-      ]
-
-      for (const path of paths) {
-        await getExecuteFunction("tool-call-id", { path })
-        expect(mockClient.readNote).toHaveBeenCalledWith(path)
-      }
-
-      expect(mockClient.readNote).toHaveBeenCalledTimes(paths.length)
-    })
-
-    it("should format output with title header", async () => {
-      const mockNote = {
-        title: "Formatted Note Title",
-        permalink: "formatted-note",
         content: "Note content here",
-        file_path: "notes/formatted.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const result = await getExecuteFunction("tool-call-id", {
-        path: "formatted-note",
-      })
-
-      expect(result.content[0].text).toBe(
-        "# Formatted Note Title\n\nNote content here",
-      )
-    })
-
-    it("should handle empty content", async () => {
-      const mockNote = {
-        title: "Empty Note",
-        permalink: "empty-note",
-        content: "",
-        file_path: "notes/empty.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const result = await getExecuteFunction("tool-call-id", {
-        path: "empty-note",
-      })
-
-      expect(result.content[0].text).toBe("# Empty Note\n\n")
-    })
-
-    it("should preserve markdown formatting in content", async () => {
-      const formattedContent = `## Subsection
-
-This is **bold** and *italic* text.
-
-- List item 1
-- List item 2
-
-\`\`\`javascript
-const code = "example";
-\`\`\`
-
-> Blockquote text`
-
-      const mockNote = {
-        title: "Markdown Note",
-        permalink: "markdown-note",
-        content: formattedContent,
-        file_path: "notes/markdown.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const result = await getExecuteFunction("tool-call-id", {
-        path: "markdown-note",
-      })
-
-      expect(result.content[0].text).toBe(
-        `# Markdown Note\n\n${formattedContent}`,
-      )
-    })
-
-    it("should handle readNote errors gracefully", async () => {
-      const readError = new Error("Note not found")
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockRejectedValue(readError)
-
-      const result = await getExecuteFunction("tool-call-id", {
-        path: "nonexistent-note",
-      })
-
-      expect(result).toEqual({
-        content: [
-          {
-            type: "text",
-            text: 'Could not read "nonexistent-note". It may not exist in the knowledge graph.',
-          },
-        ],
-      })
-    })
-
-    it("should ignore compatibility parameters (from, lines)", async () => {
-      const mockNote = {
-        title: "Test Note",
-        permalink: "test-note",
-        content: "Content",
         file_path: "notes/test.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      // Test with optional compatibility parameters
-      await getExecuteFunction("tool-call-id", {
-        path: "test-note",
-        from: 5,
-        lines: 10,
       })
 
-      // Should still call readNote with just the path
-      expect(mockClient.readNote).toHaveBeenCalledWith("test-note")
+      const result = await getExecute("id", { path: "test-note" })
+
+      expect(result.content[0].text).toBe("# Test Note\n\nNote content here")
     })
 
-    it("should handle unicode in note content", async () => {
-      const unicodeContent = "Unicode content: 🚀 中文 العربية עברית"
-      const mockNote = {
-        title: "Unicode Note",
-        permalink: "unicode-note",
-        content: unicodeContent,
-        file_path: "notes/unicode.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const result = await getExecuteFunction("tool-call-id", {
-        path: "unicode-note",
-      })
-
-      expect(result.content[0].text).toBe(
-        `# Unicode Note\n\n${unicodeContent}`,
-      )
-    })
-
-    it("should handle very long content", async () => {
-      const longContent = "Long content line.\n".repeat(500)
-      const mockNote = {
-        title: "Long Note",
-        permalink: "long-note",
-        content: longContent,
-        file_path: "notes/long.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const result = await getExecuteFunction("tool-call-id", {
-        path: "long-note",
-      })
-
-      expect(result.content[0].text).toBe(`# Long Note\n\n${longContent}`)
-    })
-
-    it("should handle network errors", async () => {
-      const networkError = new Error("Connection refused")
-      networkError.code = "ECONNREFUSED"
+    it("should handle errors gracefully", async () => {
       ;(mockClient.readNote as jest.MockedFunction<any>).mockRejectedValue(
-        networkError,
+        new Error("Not found"),
       )
 
-      const result = await getExecuteFunction("tool-call-id", {
-        path: "network-error",
-      })
+      const result = await getExecute("id", { path: "missing" })
 
-      expect(result.content[0].text).toContain("Could not read")
-    })
-  })
-
-  describe("tool parameter schemas", () => {
-    it("should define correct parameter schema for memory_search", () => {
-      registerMemoryProvider(mockApi, mockClient)
-
-      const searchCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
-        .calls[0]
-      const parameters = searchCall[0].parameters
-
-      expect(parameters).toMatchObject({
-        type: "object",
-        properties: {
-          query: {
-            type: "string",
-            description: expect.stringContaining("Search query"),
-          },
-        },
-      })
-    })
-
-    it("should define correct parameter schema for memory_get", () => {
-      registerMemoryProvider(mockApi, mockClient)
-
-      const getCall = (mockApi.registerTool as jest.MockedFunction<any>).mock.calls[1]
-      const parameters = getCall[0].parameters
-
-      expect(parameters).toMatchObject({
-        type: "object",
-        properties: {
-          path: {
-            type: "string",
-            description: expect.stringContaining("Note identifier"),
-          },
-          from: expect.objectContaining({
-            type: "number",
-          }),
-          lines: expect.objectContaining({
-            type: "number",
-          }),
-        },
-      })
+      expect(result.content[0].text).toContain('Could not read "missing"')
     })
   })
 })

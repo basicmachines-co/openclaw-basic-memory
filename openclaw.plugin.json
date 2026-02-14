@@ -2,25 +2,25 @@
   "id": "basic-memory",
   "kind": "memory",
   "uiHints": {
-    "mode": {
-      "label": "Mode",
-      "help": "'archive' runs alongside existing memory (default), 'agent-memory' replaces memory-core, 'both' does both"
-    },
     "project": {
       "label": "Project Name",
       "placeholder": "my-agent",
       "help": "Basic Memory project name. Created automatically if it doesn't exist."
     },
+    "memoryDir": {
+      "label": "Memory Directory",
+      "placeholder": "memory/",
+      "help": "Directory to index into the knowledge graph (relative to workspace)"
+    },
+    "memoryFile": {
+      "label": "Memory File",
+      "placeholder": "MEMORY.md",
+      "help": "Working memory file (searched but not indexed into BM)"
+    },
     "bmPath": {
       "label": "BM CLI Path",
       "placeholder": "bm",
       "help": "Path to the basic-memory CLI binary (default: 'bm')",
-      "advanced": true
-    },
-    "watchPaths": {
-      "label": "Watch Paths",
-      "placeholder": "memory/,MEMORY.md",
-      "help": "Comma-separated paths to watch for changes (archive mode)",
       "advanced": true
     },
     "indexInterval": {
@@ -43,27 +43,32 @@
       "placeholder": "~/.basic-memory/openclaw/",
       "help": "Filesystem path for the Basic Memory project data",
       "advanced": true
+    },
+    "cloud": {
+      "label": "Cloud Backend",
+      "help": "Optional cloud backend config (url + api_key). If present, uses cloud instead of local BM.",
+      "advanced": true
     }
   },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "mode": {
-        "type": "string",
-        "enum": ["archive", "agent-memory", "both"],
-        "default": "archive"
-      },
       "project": { "type": "string" },
+      "memoryDir": { "type": "string" },
+      "memoryFile": { "type": "string" },
       "bmPath": { "type": "string" },
-      "watchPaths": {
-        "type": "array",
-        "items": { "type": "string" }
-      },
       "indexInterval": { "type": "number", "minimum": 30, "maximum": 3600 },
       "autoCapture": { "type": "boolean" },
       "debug": { "type": "boolean" },
-      "projectPath": { "type": "string" }
+      "projectPath": { "type": "string" },
+      "cloud": {
+        "type": "object",
+        "properties": {
+          "url": { "type": "string" },
+          "api_key": { "type": "string" }
+        }
+      }
     },
     "required": []
   }

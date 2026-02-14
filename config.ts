@@ -1,27 +1,32 @@
 import { homedir, hostname } from "node:os"
 
-export type PluginMode = "archive" | "agent-memory" | "both"
+export type CloudConfig = {
+  url: string
+  api_key: string
+}
 
 export type BasicMemoryConfig = {
-  mode: PluginMode
   project: string
   bmPath: string
-  watchPaths: string[]
-  indexInterval: number
+  memoryDir: string
+  memoryFile: string
   projectPath: string
   autoCapture: boolean
   debug: boolean
+  cloud?: CloudConfig
 }
 
 const ALLOWED_KEYS = [
-  "mode",
   "project",
   "bmPath",
-  "watchPaths",
-  "indexInterval",
+  "memoryDir",
+  "memory_dir",
+  "memoryFile",
+  "memory_file",
   "projectPath",
   "autoCapture",
   "debug",
+  "cloud",
 ]
 
 function assertAllowedKeys(
@@ -51,20 +56,30 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
     assertAllowedKeys(cfg, ALLOWED_KEYS, "basic-memory config")
   }
 
-  const mode = cfg.mode as string | undefined
-  if (
-    mode &&
-    mode !== "archive" &&
-    mode !== "agent-memory" &&
-    mode !== "both"
-  ) {
-    throw new Error(
-      `basic-memory: invalid mode "${mode}" — must be "archive", "agent-memory", or "both"`,
-    )
+  // Support both camelCase and snake_case for memory_dir / memory_file
+  const memoryDir =
+    typeof cfg.memoryDir === "string" && cfg.memoryDir.length > 0
+      ? cfg.memoryDir
+      : typeof cfg.memory_dir === "string" && (cfg.memory_dir as string).length > 0
+        ? (cfg.memory_dir as string)
+        : "memory/"
+
+  const memoryFile =
+    typeof cfg.memoryFile === "string" && cfg.memoryFile.length > 0
+      ? cfg.memoryFile
+      : typeof cfg.memory_file === "string" && (cfg.memory_file as string).length > 0
+        ? (cfg.memory_file as string)
+        : "MEMORY.md"
+
+  let cloud: CloudConfig | undefined
+  if (cfg.cloud && typeof cfg.cloud === "object" && !Array.isArray(cfg.cloud)) {
+    const c = cfg.cloud as Record<string, unknown>
+    if (typeof c.url === "string" && typeof c.api_key === "string") {
+      cloud = { url: c.url, api_key: c.api_key }
+    }
   }
 
   return {
-    mode: (mode as PluginMode) ?? "archive",
     project:
       typeof cfg.project === "string" && cfg.project.length > 0
         ? cfg.project
@@ -72,17 +87,16 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
     projectPath:
       typeof cfg.projectPath === "string" && cfg.projectPath.length > 0
         ? cfg.projectPath
-        : `${homedir()}/.basic-memory/openclaw/`,
+        : `${homedir()}/.openclaw/workspace/memory/`,
     bmPath:
       typeof cfg.bmPath === "string" && cfg.bmPath.length > 0
         ? cfg.bmPath
         : "bm",
-    watchPaths: Array.isArray(cfg.watchPaths)
-      ? (cfg.watchPaths as string[])
-      : ["memory/", "MEMORY.md"],
-    indexInterval: typeof cfg.indexInterval === "number" ? cfg.indexInterval : 300,
+    memoryDir,
+    memoryFile,
     autoCapture: typeof cfg.autoCapture === "boolean" ? cfg.autoCapture : true,
     debug: typeof cfg.debug === "boolean" ? cfg.debug : false,
+    cloud,
   }
 }
 

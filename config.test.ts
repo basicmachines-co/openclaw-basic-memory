@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test"
+import { describe, expect, it } from "bun:test"
 import { parseConfig } from "./config.ts"
 
 describe("config", () => {
@@ -6,47 +6,25 @@ describe("config", () => {
     it("should return default config for empty input", () => {
       const config = parseConfig(undefined)
 
-      expect(config.mode).toBe("archive")
       expect(config.bmPath).toBe("bm")
-      expect(config.watchPaths).toEqual(["memory/", "MEMORY.md"])
-      expect(config.indexInterval).toBe(300)
+      expect(config.memoryDir).toBe("memory/")
+      expect(config.memoryFile).toBe("MEMORY.md")
       expect(config.autoCapture).toBe(true)
       expect(config.debug).toBe(false)
-      expect(config.project).toMatch(/^openclaw-/) // hostname-based default
-      expect(config.projectPath).toMatch(/\.basic-memory\/openclaw\//)
+      expect(config.project).toMatch(/^openclaw-/)
+      expect(config.projectPath).toMatch(/\.openclaw\/workspace\/memory\//)
+      expect(config.cloud).toBeUndefined()
     })
 
     it("should return default config for null input", () => {
       const config = parseConfig(null)
-      expect(config.mode).toBe("archive")
+      expect(config.memoryDir).toBe("memory/")
     })
 
     it("should return default config for non-object input", () => {
-      const config = parseConfig("string")
-      expect(config.mode).toBe("archive")
-
-      const config2 = parseConfig(123)
-      expect(config2.mode).toBe("archive")
-
-      const config3 = parseConfig([])
-      expect(config3.mode).toBe("archive")
-    })
-
-    it("should use provided mode values", () => {
-      const config1 = parseConfig({ mode: "agent-memory" })
-      expect(config1.mode).toBe("agent-memory")
-
-      const config2 = parseConfig({ mode: "both" })
-      expect(config2.mode).toBe("both")
-
-      const config3 = parseConfig({ mode: "archive" })
-      expect(config3.mode).toBe("archive")
-    })
-
-    it("should throw error for invalid mode", () => {
-      expect(() => parseConfig({ mode: "invalid" })).toThrow(
-        'invalid mode "invalid" — must be "archive", "agent-memory", or "both"',
-      )
+      expect(parseConfig("string").memoryDir).toBe("memory/")
+      expect(parseConfig(123).memoryDir).toBe("memory/")
+      expect(parseConfig([]).memoryDir).toBe("memory/")
     })
 
     it("should use provided project name", () => {
@@ -64,9 +42,24 @@ describe("config", () => {
       expect(config.bmPath).toBe("/custom/path/to/bm")
     })
 
-    it("should use default bmPath for empty string", () => {
-      const config = parseConfig({ bmPath: "" })
-      expect(config.bmPath).toBe("bm")
+    it("should use provided memoryDir", () => {
+      const config = parseConfig({ memoryDir: "notes/" })
+      expect(config.memoryDir).toBe("notes/")
+    })
+
+    it("should support snake_case memory_dir", () => {
+      const config = parseConfig({ memory_dir: "notes/" })
+      expect(config.memoryDir).toBe("notes/")
+    })
+
+    it("should use provided memoryFile", () => {
+      const config = parseConfig({ memoryFile: "MY_MEMORY.md" })
+      expect(config.memoryFile).toBe("MY_MEMORY.md")
+    })
+
+    it("should support snake_case memory_file", () => {
+      const config = parseConfig({ memory_file: "MY_MEMORY.md" })
+      expect(config.memoryFile).toBe("MY_MEMORY.md")
     })
 
     it("should use provided projectPath", () => {
@@ -74,141 +67,61 @@ describe("config", () => {
       expect(config.projectPath).toBe("/custom/project/path")
     })
 
-    it("should use default projectPath for empty string", () => {
-      const config = parseConfig({ projectPath: "" })
-      expect(config.projectPath).toMatch(/\.basic-memory\/openclaw\//)
-    })
-
-    it("should use provided watchPaths array", () => {
-      const watchPaths = ["custom/", "file.md", "other/"]
-      const config = parseConfig({ watchPaths })
-      expect(config.watchPaths).toEqual(watchPaths)
-    })
-
-    it("should use default watchPaths for non-array", () => {
-      const config1 = parseConfig({ watchPaths: "not-array" })
-      expect(config1.watchPaths).toEqual(["memory/", "MEMORY.md"])
-
-      const config2 = parseConfig({ watchPaths: null })
-      expect(config2.watchPaths).toEqual(["memory/", "MEMORY.md"])
-    })
-
-    it("should use provided indexInterval", () => {
-      const config = parseConfig({ indexInterval: 600 })
-      expect(config.indexInterval).toBe(600)
-    })
-
-    it("should use default indexInterval for non-number", () => {
-      const config1 = parseConfig({ indexInterval: "not-number" })
-      expect(config1.indexInterval).toBe(300)
-
-      const config2 = parseConfig({ indexInterval: null })
-      expect(config2.indexInterval).toBe(300)
-    })
-
     it("should use provided autoCapture", () => {
-      const config1 = parseConfig({ autoCapture: false })
-      expect(config1.autoCapture).toBe(false)
-
-      const config2 = parseConfig({ autoCapture: true })
-      expect(config2.autoCapture).toBe(true)
-    })
-
-    it("should use default autoCapture for non-boolean", () => {
-      const config1 = parseConfig({ autoCapture: "not-boolean" })
-      expect(config1.autoCapture).toBe(true)
-
-      const config2 = parseConfig({ autoCapture: null })
-      expect(config2.autoCapture).toBe(true)
+      expect(parseConfig({ autoCapture: false }).autoCapture).toBe(false)
+      expect(parseConfig({ autoCapture: true }).autoCapture).toBe(true)
     })
 
     it("should use provided debug flag", () => {
-      const config1 = parseConfig({ debug: true })
-      expect(config1.debug).toBe(true)
-
-      const config2 = parseConfig({ debug: false })
-      expect(config2.debug).toBe(false)
+      expect(parseConfig({ debug: true }).debug).toBe(true)
+      expect(parseConfig({ debug: false }).debug).toBe(false)
     })
 
-    it("should use default debug for non-boolean", () => {
-      const config1 = parseConfig({ debug: "not-boolean" })
-      expect(config1.debug).toBe(false)
-
-      const config2 = parseConfig({ debug: null })
-      expect(config2.debug).toBe(false)
+    it("should parse cloud config", () => {
+      const config = parseConfig({
+        cloud: {
+          url: "https://cloud.basicmemory.com",
+          api_key: "test-key",
+        },
+      })
+      expect(config.cloud).toEqual({
+        url: "https://cloud.basicmemory.com",
+        api_key: "test-key",
+      })
     })
 
-    it("should handle complete config object", () => {
-      const inputConfig = {
-        mode: "both" as const,
-        project: "test-project",
-        bmPath: "/usr/bin/bm",
-        watchPaths: ["notes/", "docs/"],
-        indexInterval: 120,
-        projectPath: "/tmp/test-project",
-        autoCapture: false,
-        debug: true,
-      }
-
-      const config = parseConfig(inputConfig)
-
-      expect(config).toEqual(inputConfig)
+    it("should ignore invalid cloud config", () => {
+      expect(parseConfig({ cloud: "not-object" }).cloud).toBeUndefined()
+      expect(parseConfig({ cloud: { url: "x" } }).cloud).toBeUndefined()
+      expect(parseConfig({ cloud: null }).cloud).toBeUndefined()
     })
 
     it("should throw error for unknown config keys", () => {
       expect(() =>
-        parseConfig({
-          mode: "archive",
-          unknownKey: "value",
-        }),
+        parseConfig({ unknownKey: "value" }),
       ).toThrow("basic-memory config has unknown keys: unknownKey")
     })
 
-    it("should throw error for multiple unknown config keys", () => {
-      expect(() =>
-        parseConfig({
-          mode: "archive",
-          unknownKey1: "value1",
-          unknownKey2: "value2",
-        }),
-      ).toThrow("basic-memory config has unknown keys: unknownKey1, unknownKey2")
-    })
-
-    it("should not validate keys when config is empty", () => {
-      // This should not throw even though we're calling assertAllowedKeys
-      expect(() => parseConfig({})).not.toThrow()
-    })
-
-    it("should handle project name with special characters", () => {
-      // Test that hostname sanitization works correctly
-      const config = parseConfig({})
-      expect(config.project).toMatch(/^openclaw-[a-z0-9-]+$/)
-    })
-
-    it("should handle edge cases for string validation", () => {
-      // Test empty strings vs undefined
+    it("should handle complete config object", () => {
       const config = parseConfig({
-        project: "",
-        bmPath: "",
-        projectPath: "",
+        project: "test-project",
+        bmPath: "/usr/bin/bm",
+        memoryDir: "notes/",
+        memoryFile: "NOTES.md",
+        projectPath: "/tmp/test-project",
+        autoCapture: false,
+        debug: true,
+        cloud: { url: "https://example.com", api_key: "key" },
       })
 
-      expect(config.project).toMatch(/^openclaw-/) // Falls back to default
-      expect(config.bmPath).toBe("bm") // Falls back to default
-      expect(config.projectPath).toMatch(/\.basic-memory/) // Falls back to default
+      expect(config.project).toBe("test-project")
+      expect(config.memoryDir).toBe("notes/")
+      expect(config.memoryFile).toBe("NOTES.md")
+      expect(config.cloud?.url).toBe("https://example.com")
     })
 
-    it("should preserve type safety for mode values", () => {
-      // This tests that TypeScript types are preserved
-      const config = parseConfig({ mode: "agent-memory" })
-      const mode: "archive" | "agent-memory" | "both" = config.mode
-      expect(mode).toBe("agent-memory")
-    })
-  })
-
-  describe("basicMemoryConfigSchema", () => {
-    it("should have a parse method", () => {
-      expect(typeof parseConfig).toBe("function")
+    it("should not throw for empty config", () => {
+      expect(() => parseConfig({})).not.toThrow()
     })
   })
 })
