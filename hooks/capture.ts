@@ -1,7 +1,6 @@
 import type { BmClient } from "../bm-client.ts"
 import type { BasicMemoryConfig } from "../config.ts"
 import { log } from "../logger.ts"
-import { indexConversation } from "../mode-b/archive.ts"
 
 /**
  * Extract text content from a message object.
@@ -87,7 +86,7 @@ export function buildCaptureHandler(client: BmClient, _cfg: BasicMemoryConfig) {
     )
 
     try {
-      await indexConversation(client, userText, assistantText)
+      await client.indexConversation(userText, assistantText)
     } catch (err) {
       log.error("capture failed", err)
     }

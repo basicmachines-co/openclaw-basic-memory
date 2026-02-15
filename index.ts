@@ -1,3 +1,5 @@
+import { spawn } from "node:child_process"
+import type { ChildProcess } from "node:child_process"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import { BmClient } from "./bm-client.ts"
 import { registerCli } from "./commands/cli.ts"
@@ -5,11 +7,10 @@ import { registerCommands } from "./commands/slash.ts"
 import { basicMemoryConfigSchema, parseConfig } from "./config.ts"
 import { buildCaptureHandler } from "./hooks/capture.ts"
 import { initLogger, log } from "./logger.ts"
-import { FileWatcher } from "./mode-b/file-watcher.ts"
 import { registerContextTool } from "./tools/context.ts"
 import { registerDeleteTool } from "./tools/delete.ts"
 import { registerEditTool } from "./tools/edit.ts"
-import { registerMemoryProvider } from "./tools/memory-provider.ts"
+import { registerMemoryProvider, setWorkspaceDir } from "./tools/memory-provider.ts"
 import { registerMoveTool } from "./tools/move.ts"
 import { registerReadTool } from "./tools/read.ts"
 import { registerSearchTool } from "./tools/search.ts"
@@ -19,7 +20,7 @@ export default {
   id: "basic-memory",
   name: "Basic Memory",
   description:
-    "Local-first knowledge graph for OpenClaw — persistent memory with graph search and MCP control plane",
+    "Local-first knowledge graph for OpenClaw — persistent memory with graph search and composited memory_search",
   kind: "memory" as const,
   configSchema: basicMemoryConfigSchema,
 
@@ -28,12 +29,11 @@ export default {
 
     initLogger(api.logger, cfg.debug)
 
-    log.info(`mode=${cfg.mode} project=${cfg.project}`)
+    log.info(`project=${cfg.project} memoryDir=${cfg.memoryDir} memoryFile=${cfg.memoryFile}`)
 
     const client = new BmClient(cfg.bmPath, cfg.project)
-    let fileWatcher: FileWatcher | null = null
 
-    // --- Tools (available in all modes) ---
+    // --- BM Tools (always registered) ---
     registerSearchTool(api, client)
     registerReadTool(api, client)
     registerWriteTool(api, client)
@@ -42,21 +42,12 @@ export default {
     registerDeleteTool(api, client, cfg)
     registerMoveTool(api, client, cfg)
 
-    // --- Mode B: Archive ---
-    if (cfg.mode === "archive" || cfg.mode === "both") {
-      fileWatcher = new FileWatcher(client, cfg)
+    // --- Composited memory_search + memory_get (always registered) ---
+    registerMemoryProvider(api, client, cfg)
+    log.info("registered composited memory_search + memory_get")
 
-      if (cfg.autoCapture) {
-        api.on("agent_end", buildCaptureHandler(client, cfg))
-      }
-    }
-
-    // --- Mode A: Agent Memory ---
-    // Replaces OpenClaw's built-in memory_search and memory_get tools
-    // with Basic Memory's knowledge graph search and retrieval.
-    if (cfg.mode === "agent-memory" || cfg.mode === "both") {
-      registerMemoryProvider(api, client)
-      log.info("agent-memory mode: registered memory_search + memory_get")
+    if (cfg.autoCapture) {
+      api.on("agent_end", buildCaptureHandler(client, cfg))
     }
 
     // --- Commands ---
@@ -64,6 +55,8 @@ export default {
     registerCli(api, client, cfg)
 
     // --- Service lifecycle ---
+    let bmWatchProc: ChildProcess | null = null
+
     api.registerService({
       id: "basic-memory",
       start: async (ctx: { config?: unknown; workspaceDir?: string }) => {
@@ -72,19 +65,41 @@ export default {
         await client.ensureProject(cfg.projectPath)
         log.debug(`project "${cfg.project}" at ${cfg.projectPath}`)
 
-        if (fileWatcher) {
-          // Use workspace dir from OpenClaw service context (not process.cwd()
-          // which is "/" for LaunchAgent services)
-          const workspace = ctx.workspaceDir ?? process.cwd()
-          log.info(`workspace for file watcher: ${workspace}`)
-          await fileWatcher.start(workspace)
-        }
+        const workspace = ctx.workspaceDir ?? process.cwd()
+        setWorkspaceDir(workspace)
 
-        log.info("connected")
+        // Start `bm watch` as a long-running child process.
+        // It does an initial sync then watches for file changes.
+        const args = ["watch", "--project", cfg.project]
+        log.info(`spawning: ${cfg.bmPath} ${args.join(" ")}`)
+
+        bmWatchProc = spawn(cfg.bmPath, args, {
+          stdio: ["ignore", "pipe", "pipe"],
+          detached: false,
+        })
+
+        bmWatchProc.stdout?.on("data", (data: Buffer) => {
+          const msg = data.toString().trim()
+          if (msg) log.debug(`[bm watch] ${msg}`)
+        })
+
+        bmWatchProc.stderr?.on("data", (data: Buffer) => {
+          const msg = data.toString().trim()
+          if (msg) log.warn(`[bm watch] ${msg}`)
+        })
+
+        bmWatchProc.on("exit", (code, signal) => {
+          log.warn(`bm watch exited (code=${code}, signal=${signal})`)
+          bmWatchProc = null
+        })
+
+        log.info("connected — bm watch running")
       },
       stop: () => {
-        if (fileWatcher) {
-          fileWatcher.stop()
+        if (bmWatchProc) {
+          log.info("stopping bm watch...")
+          bmWatchProc.kill("SIGTERM")
+          bmWatchProc = null
         }
         log.info("stopped")
       },
