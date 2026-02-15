@@ -11,6 +11,8 @@ The `openclaw-basic-memory` plugin integrates [Basic Memory](https://github.com/
 - **Auto-capture** — records agent conversations as structured daily notes
 - **Graph tools** — search, read, write, edit, delete, move, and navigate notes via `memory://` URLs
 
+For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
+
 ## Requirements
 
 1. **Basic Memory CLI** (`bm`) with `watch` command support:
@@ -127,6 +129,76 @@ Results are formatted into clear sections:
 - **Task Name** (status: active, step: 3)
   context snippet...
 ```
+
+### Memory + Task Management Flow
+
+This plugin works best if you treat memory as three lanes:
+
+1. **Working memory (`MEMORY.md`)** — short-horizon context and current focus.
+2. **Knowledge graph (`memory/**/*.md`)** — long-term notes indexed by Basic Memory.
+3. **Task notes (`memory/tasks/*.md`)** — active execution state for in-flight work.
+
+Typical loop:
+
+1. Capture or update notes/tasks with `bm_write` / `bm_edit`.
+2. `bm watch` syncs markdown updates into the BM project index.
+3. `memory_search` queries:
+   - `MEMORY.md` text snippets
+   - BM search results (semantic + FTS)
+   - active tasks
+4. Drill into one result with `memory_get` or `bm_read`.
+5. Advance tasks by updating `current_step`, checkboxes, and context.
+6. Complete tasks by setting `status: done` (done tasks are excluded from active task results).
+
+```mermaid
+flowchart LR
+    A["Write/Update notes"] --> B["bm watch indexes changes"]
+    B --> C["memory_search(query)"]
+    C --> D["MEMORY.md"]
+    C --> E["Knowledge Graph"]
+    C --> F["Active Tasks"]
+    D --> G["Composited result"]
+    E --> G
+    F --> G
+    G --> H["memory_get / bm_read"]
+    H --> A
+```
+
+### Task Note Shape (Recommended)
+
+`memory_search` task extraction is strongest when task notes include:
+
+- file location: `memory/tasks/*.md`
+- frontmatter fields: `status:` and `current_step:`
+- a `## Context` section for preview snippets
+
+Example:
+
+```markdown
+---
+title: auth-middleware-rollout
+type: Task
+status: active
+current_step: 2
+---
+
+## Context
+Rolling JWT middleware to all API routes. Staging verification is in progress.
+
+## Plan
+- [x] Implement middleware
+- [x] Add refresh-token validation
+- [ ] Roll out to staging
+- [ ] Verify logs and error rates
+```
+
+To mark complete, update:
+
+```yaml
+status: done
+```
+
+Done tasks are filtered out of the `Active Tasks` section in composited `memory_search`.
 
 ### Auto-Capture
 After each agent turn (when `autoCapture: true`), the plugin:
