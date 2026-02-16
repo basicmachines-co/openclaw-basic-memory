@@ -133,3 +133,25 @@ Use `bm_edit` (`find_replace`) to change `status: active` to `status: done`.
 2. Prefer one task note per workstream; update it incrementally instead of rewriting.
 3. Ensure `memoryDir` points to the directory that contains your `tasks/` folder.
 4. If task search looks wrong, verify `bm watch` is running and notes exist in expected paths.
+
+## Companion Skills (Optional)
+
+The companion repo
+[`basic-memory-skills`](https://github.com/basicmachines-co/basic-memory-skills)
+adds workflow-oriented skills that fit this plugin:
+
+- `memory-tasks`: standardized task creation/resume/update flow
+- `memory-reflect`: periodic memory consolidation from recent notes
+- `memory-defrag`: periodic cleanup/reorganization of memory files
+
+Install into your workspace:
+
+```bash
+git clone https://github.com/basicmachines-co/basic-memory-skills.git
+cp -r basic-memory-skills/memory-tasks ~/.openclaw/workspace/skills/
+cp -r basic-memory-skills/memory-reflect ~/.openclaw/workspace/skills/
+cp -r basic-memory-skills/memory-defrag ~/.openclaw/workspace/skills/
+```
+
+Use `~/.openclaw/skills/` instead if you want shared skills across agents/workspaces.
+After installing, start a new session so OpenClaw reloads the skill snapshot.
