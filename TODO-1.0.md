@@ -3,9 +3,9 @@
 ## ✅ Working
 - [x] Plugin loads via `plugins.load.paths`
 - [x] `bm_search` — search knowledge graph
-- [x] `bm_read` — read notes (frontmatter stripped)
+- [x] `bm_read` — read notes (body-only by default, optional raw frontmatter mode)
 - [x] `bm_write` — create/update notes
-- [x] `bm_edit` — append/prepend/find_replace/replace_section (read-modify-write)
+- [x] `bm_edit` — append/prepend/find_replace/replace_section (native `bm tool edit-note`)
 - [x] `bm_context` — graph navigation via memory:// URLs
 - [x] `bm_delete` — delete notes
 - [x] `bm_move` — move notes between folders
@@ -15,7 +15,7 @@
 - [x] Workspace path — uses ctx.workspaceDir (not process.cwd())
 - [x] Package name — @openclaw/basic-memory (matches manifest ID)
 - [x] Slash commands — /remember and /recall
-- [x] CLI commands — openclaw basic-memory search/read/context/recent/status
+- [x] CLI commands — openclaw basic-memory search/read/edit/context/recent/status
 - [x] **v2: Single mode** — removed archive/agent-memory/both mode split
 - [x] **v2: Simplified config** — project, memoryDir, memoryFile, optional cloud block
 - [x] **v2: Composited memory_search** — queries MEMORY.md + BM graph + active tasks in parallel
@@ -31,7 +31,7 @@
 
 ## 🎯 Nice to have for 1.0
 - [ ] `bm project list --format json` for reliable ensureProject check
-- [ ] CLI `edit-note` in basic-memory (upstream PR) to replace read-modify-write
+- [x] CLI `edit-note` in basic-memory (native command available)
 - [ ] Publish to npm as @openclaw/basic-memory
 - [ ] OpenClaw `plugins install @openclaw/basic-memory` support
 

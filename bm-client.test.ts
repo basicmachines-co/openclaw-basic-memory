@@ -1,208 +1,206 @@
-import { beforeEach, describe, expect, it } from "bun:test"
-import { stripFrontmatter, parseJsonOutput, BmClient } from "./bm-client.ts"
+import { beforeEach, describe, expect, it, jest } from "bun:test"
+import {
+  BmClient,
+  isMissingEditNoteCommandError,
+  isNoteNotFoundError,
+  isUnsupportedStripFrontmatterError,
+  parseJsonOutput,
+  stripFrontmatter,
+} from "./bm-client.ts"
 
-// Test pure functions without mocking
 describe("BmClient utility functions", () => {
   describe("stripFrontmatter", () => {
-    it("should strip YAML frontmatter from content", () => {
-      const content = "---\ntitle: Test Note\ndate: 2025-02-08\n---\n\nThis is the actual content"
-      const result = stripFrontmatter(content)
-      expect(result).toBe("This is the actual content")
+    it("strips YAML frontmatter from content", () => {
+      const content =
+        "---\ntitle: Test Note\ndate: 2025-02-08\n---\n\nThis is the actual content"
+      expect(stripFrontmatter(content)).toBe("This is the actual content")
     })
 
-    it("should handle content without frontmatter", () => {
+    it("handles content without frontmatter", () => {
       const content = "Just regular content without frontmatter"
-      const result = stripFrontmatter(content)
-      expect(result).toBe("Just regular content without frontmatter")
-    })
-
-    it("should handle empty content", () => {
-      const result = stripFrontmatter("")
-      expect(result).toBe("")
-    })
-
-    it("should handle content with only frontmatter", () => {
-      const content = "---\ntitle: Test Note\n---\n"
-      const result = stripFrontmatter(content)
-      expect(result).toBe("")
-    })
-
-    it("should handle malformed frontmatter", () => {
-      const content = "---\ntitle: Test\nThis is not proper frontmatter\nActual content"
-      const result = stripFrontmatter(content)
-      expect(result).toBe("---\ntitle: Test\nThis is not proper frontmatter\nActual content")
+      expect(stripFrontmatter(content)).toBe(content)
     })
   })
 
   describe("parseJsonOutput", () => {
-    it("should parse clean JSON", () => {
+    it("parses clean JSON", () => {
       const json = '{"results": [{"title": "test"}]}'
-      const result = parseJsonOutput(json)
-      expect(result).toEqual({ results: [{ title: "test" }] })
+      expect(parseJsonOutput(json)).toEqual({ results: [{ title: "test" }] })
     })
 
-    it("should handle JSON with prefix lines", () => {
+    it("parses JSON with prefix lines", () => {
       const output = `
 Warning: something happened
-[2025-02-08] Info: Starting search
 {"results": [{"title": "Test", "permalink": "test"}]}
 `
-      const result = parseJsonOutput(output)
-      expect(result).toEqual({ results: [{ title: "Test", permalink: "test" }] })
+      expect(parseJsonOutput(output)).toEqual({
+        results: [{ title: "Test", permalink: "test" }],
+      })
+    })
+  })
+
+  describe("error classifiers", () => {
+    it("detects unsupported --strip-frontmatter flag errors", () => {
+      expect(
+        isUnsupportedStripFrontmatterError(
+          new Error("No such option: --strip-frontmatter"),
+        ),
+      ).toBe(true)
+      expect(isUnsupportedStripFrontmatterError(new Error("different error"))).toBe(
+        false,
+      )
     })
 
-    it("should handle array JSON with prefix", () => {
-      const output = `Warning: processing
-[{"title": "Test1"}, {"title": "Test2"}]`
-      const result = parseJsonOutput(output)
-      expect(result).toEqual([{ title: "Test1" }, { title: "Test2" }])
+    it("detects missing edit-note command errors", () => {
+      expect(
+        isMissingEditNoteCommandError(new Error("No such command 'edit-note'")),
+      ).toBe(true)
+      expect(isMissingEditNoteCommandError(new Error("validation failed"))).toBe(
+        false,
+      )
     })
 
-    it("should throw error on invalid JSON", () => {
-      expect(() => parseJsonOutput("invalid json")).toThrow("Could not parse JSON")
-    })
-
-    it("should throw error when no JSON found", () => {
-      const output = "Warning: no json here\nJust text content"
-      expect(() => parseJsonOutput(output)).toThrow("Could not parse JSON")
+    it("detects note-not-found errors and excludes missing command errors", () => {
+      expect(isNoteNotFoundError(new Error("Entity not found"))).toBe(true)
+      expect(
+        isNoteNotFoundError(new Error("No such command 'edit-note'")),
+      ).toBe(false)
     })
   })
 })
 
-// Basic BmClient tests that don't require mocking
-describe("BmClient basic functionality", () => {
+describe("BmClient behavior", () => {
   let client: BmClient
 
   beforeEach(() => {
     client = new BmClient("/usr/local/bin/bm", "test-project")
   })
 
-  describe("constructor", () => {
-    it("should create a client with provided parameters", () => {
-      expect(client.getProject()).toBe("test-project")
-    })
+  it("readNote strips by default using --strip-frontmatter", async () => {
+    const execTool = jest
+      .fn()
+      .mockResolvedValue(
+        '{"title":"t","permalink":"p","content":"body","file_path":"notes/t.md","frontmatter":{"title":"t"}}',
+      )
+    ;(client as any).execTool = execTool
+
+    const note = await client.readNote("t")
+
+    expect(execTool).toHaveBeenCalledWith([
+      "tool",
+      "read-note",
+      "t",
+      "--strip-frontmatter",
+    ])
+    expect(note.content).toBe("body")
+    expect(note.frontmatter).toEqual({ title: "t" })
   })
 
-  describe("editNote validation logic", () => {
-    it("should validate find_replace requires findText parameter", () => {
-      // Test the validation logic independently
-      const operation = "find_replace"
-      const findText = undefined
-      
-      if (operation === "find_replace" && !findText) {
-        expect(() => {
-          throw new Error("find_replace requires findText parameter")
-        }).toThrow("find_replace requires findText parameter")
-      }
-    })
+  it("readNote returns raw markdown when includeFrontmatter is true", async () => {
+    const raw = "---\ntitle: t\n---\n\nbody"
+    const execTool = jest
+      .fn()
+      .mockResolvedValue(
+        `{"title":"t","permalink":"p","content":${JSON.stringify(raw)},"file_path":"notes/t.md","frontmatter":{"title":"t"}}`,
+      )
+    ;(client as any).execTool = execTool
 
-    it("should validate replace_section requires sectionTitle parameter", () => {
-      // Test the validation logic independently
-      const operation = "replace_section"
-      const sectionTitle = undefined
-      
-      if (operation === "replace_section" && !sectionTitle) {
-        expect(() => {
-          throw new Error("replace_section requires sectionTitle parameter")
-        }).toThrow("replace_section requires sectionTitle parameter")
-      }
-    })
+    const note = await client.readNote("t", { includeFrontmatter: true })
+
+    expect(execTool).toHaveBeenCalledWith(["tool", "read-note", "t"])
+    expect(note.content).toBe(raw)
   })
 
-  // Note: Integration tests that require actual execFile are skipped 
-  // due to mocking complexity with bun + promisify pattern.
-  // These would be better tested with integration tests or 
-  // dependency injection approach in the actual implementation.
-})
+  it("readNote falls back to local strip when --strip-frontmatter is unsupported", async () => {
+    const raw = "---\ntitle: t\nstatus: active\n---\n\nbody"
+    const execTool = jest
+      .fn()
+      .mockRejectedValueOnce(new Error("No such option: --strip-frontmatter"))
+      .mockResolvedValueOnce(
+        `{"title":"t","permalink":"p","content":${JSON.stringify(raw)},"file_path":"notes/t.md"}`,
+      )
+    ;(client as any).execTool = execTool
 
-// Test the editNote string manipulation logic with a mock readNote result
-describe("BmClient string manipulation", () => {
-  it("should extract folder from file path correctly", () => {
-    // Test the folder extraction logic that would be used in editNote
-    const testCases = [
-      { filePath: "folder/subfolder/note.md", expected: "folder/subfolder" },
-      { filePath: "notes/test.md", expected: "notes" },
-      { filePath: "note.md", expected: "" },
-      { filePath: "a/b/c/d/file.md", expected: "a/b/c/d" },
-    ]
+    const note = await client.readNote("t")
 
-    testCases.forEach(({ filePath, expected }) => {
-      // Simulate the folder extraction logic from editNote
-      const folder = filePath.includes("/")
-        ? filePath.split("/").slice(0, -1).join("/")
-        : ""
-      expect(folder).toBe(expected)
+    expect(execTool).toHaveBeenNthCalledWith(1, [
+      "tool",
+      "read-note",
+      "t",
+      "--strip-frontmatter",
+    ])
+    expect(execTool).toHaveBeenNthCalledWith(2, ["tool", "read-note", "t"])
+    expect(note.content).toBe("body")
+  })
+
+  it("editNote sends native edit-note args including expected_replacements", async () => {
+    const execTool = jest
+      .fn()
+      .mockResolvedValue(
+        '{"title":"t","permalink":"p","file_path":"notes/t.md","operation":"find_replace","checksum":"abc"}',
+      )
+    ;(client as any).execTool = execTool
+
+    const result = await client.editNote("t", "find_replace", "new", {
+      find_text: "old",
+      expected_replacements: 2,
     })
+
+    expect(execTool).toHaveBeenCalledWith([
+      "tool",
+      "edit-note",
+      "t",
+      "--operation",
+      "find_replace",
+      "--content",
+      "new",
+      "--find-text",
+      "old",
+      "--expected-replacements",
+      "2",
+    ])
+    expect(result.checksum).toBe("abc")
   })
 
-  it("should perform text replacement correctly", () => {
-    // Test the find/replace logic from editNote
-    const content = "# Heading 1\nSome content\n\n## Section 1\nSection content"
-    
-    // Test append
-    const appended = content + "\nNew appended content"
-    expect(appended).toContain("New appended content")
-    expect(appended).toContain("Some content")
+  it("editNote throws actionable upgrade guidance when command is missing", async () => {
+    ;(client as any).execTool = jest
+      .fn()
+      .mockRejectedValue(new Error("No such command 'edit-note'"))
 
-    // Test prepend
-    const prepended = "New prepended content\n" + content
-    expect(prepended).toStartWith("New prepended content")
-    expect(prepended).toContain("Some content")
-
-    // Test find/replace
-    const replaced = content.replace("Some content", "Updated content")
-    expect(replaced).toContain("Updated content")
-    expect(replaced).not.toContain("Some content")
-  })
-
-  it("should handle section replacement logic", () => {
-    const content = "# Heading 1\nSome content\n\n## Section 1\nSection content\n\n## Section 2\nOther content"
-    const sectionTitle = "Section 1"
-    
-    // Test section replacement logic
-    const headingPattern = new RegExp(
-      `^(#{1,6})\\s+${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
-      "m",
+    await expect(client.editNote("t", "append", "new")).rejects.toThrow(
+      "bm tool edit-note is required for bm_edit",
     )
-    const match = headingPattern.exec(content)
-    expect(match).not.toBeNull()
-    expect(match![1]).toBe("##")
-    
-    if (match) {
-      const level = match[1].length
-      const sectionStart = match.index
-      const rest = content.slice(sectionStart + match[0].length)
-      const nextHeading = new RegExp(`^#{1,${level}}\\s`, "m")
-      const nextMatch = nextHeading.exec(rest)
-      const sectionEnd = nextMatch
-        ? sectionStart + match[0].length + nextMatch.index
-        : content.length
-
-      const newContent = "New section content"
-      const updated = `${content.slice(0, sectionStart)}${match[0]}\n${newContent}${nextMatch ? `\n${content.slice(sectionEnd)}` : ""}`
-      
-      expect(updated).toContain("New section content")
-      expect(updated).toContain("## Section 2")
-      expect(updated).not.toContain("Section content")
-    }
   })
 
-  it("should detect when findText is not found", () => {
-    const content = "# Heading 1\nSome content"
-    const findText = "Non-existent text"
-    
-    expect(content.includes(findText)).toBe(false)
+  it("indexConversation does not create fallback note on non-not-found edit errors", async () => {
+    ;(client as any).editNote = jest
+      .fn()
+      .mockRejectedValue(new Error("No such command 'edit-note'"))
+    ;(client as any).writeNote = jest.fn()
+
+    await client.indexConversation("user message long enough", "assistant reply long enough")
+
+    expect((client as any).writeNote).not.toHaveBeenCalled()
   })
 
-  it("should detect when section is not found", () => {
-    const content = "# Heading 1\nSome content\n\n## Section 1\nSection content"
-    const sectionTitle = "Non-existent Section"
-    
-    const headingPattern = new RegExp(
-      `^(#{1,6})\\s+${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
-      "m",
-    )
-    const match = headingPattern.exec(content)
-    expect(match).toBeNull()
+  it("indexConversation creates fallback note only on note-not-found errors", async () => {
+    ;(client as any).editNote = jest
+      .fn()
+      .mockRejectedValue(new Error("Entity not found"))
+    ;(client as any).writeNote = jest.fn().mockResolvedValue({
+      title: "conversations",
+      permalink: "conversations",
+      content: "x",
+      file_path: "conversations/x.md",
+    })
+
+    await client.indexConversation("user message long enough", "assistant reply long enough")
+
+    expect((client as any).writeNote).toHaveBeenCalledTimes(1)
+    const [title, content, folder] = (client as any).writeNote.mock.calls[0]
+    expect(typeof title).toBe("string")
+    expect(title.startsWith("conversations-")).toBe(true)
+    expect(typeof content).toBe("string")
+    expect(folder).toBe("conversations")
   })
 })

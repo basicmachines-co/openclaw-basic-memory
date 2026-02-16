@@ -35,15 +35,20 @@ export function registerEditTool(
         content: Type.String({
           description: "New content to add or replace with",
         }),
-        findText: Type.Optional(
+        find_text: Type.Optional(
           Type.String({
-            description: "Text to find (required for find_replace operation)",
+            description: "Text to find (required for find_replace)",
           }),
         ),
-        sectionTitle: Type.Optional(
+        section: Type.Optional(
           Type.String({
+            description: "Section heading to replace (required for replace_section)",
+          }),
+        ),
+        expected_replacements: Type.Optional(
+          Type.Number({
             description:
-              "Section heading to replace (required for replace_section operation)",
+              "Expected replacement count for find_replace (default: 1)",
           }),
         ),
       }),
@@ -53,8 +58,9 @@ export function registerEditTool(
           identifier: string
           operation: "append" | "prepend" | "find_replace" | "replace_section"
           content: string
-          findText?: string
-          sectionTitle?: string
+          find_text?: string
+          section?: string
+          expected_replacements?: number
         },
       ) {
         log.debug(`bm_edit: id="${params.identifier}" op=${params.operation}`)
@@ -64,8 +70,11 @@ export function registerEditTool(
             params.identifier,
             params.operation,
             params.content,
-            params.findText,
-            params.sectionTitle,
+            {
+              find_text: params.find_text,
+              section: params.section,
+              expected_replacements: params.expected_replacements,
+            },
           )
 
           return {
@@ -80,6 +89,7 @@ export function registerEditTool(
               permalink: note.permalink,
               file_path: note.file_path,
               operation: params.operation,
+              checksum: note.checksum ?? null,
             },
           }
         } catch (err) {

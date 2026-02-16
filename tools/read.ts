@@ -18,12 +18,23 @@ export function registerReadTool(
         identifier: Type.String({
           description: "Note title, permalink, or memory:// URL to read",
         }),
+        include_frontmatter: Type.Optional(
+          Type.Boolean({
+            description:
+              "If true, returns raw note content including YAML frontmatter.",
+          }),
+        ),
       }),
-      async execute(_toolCallId: string, params: { identifier: string }) {
+      async execute(
+        _toolCallId: string,
+        params: { identifier: string; include_frontmatter?: boolean },
+      ) {
         log.debug(`bm_read: identifier="${params.identifier}"`)
 
         try {
-          const note = await client.readNote(params.identifier)
+          const note = await client.readNote(params.identifier, {
+            includeFrontmatter: params.include_frontmatter === true,
+          })
 
           return {
             content: [
@@ -36,6 +47,7 @@ export function registerReadTool(
               title: note.title,
               permalink: note.permalink,
               file_path: note.file_path,
+              frontmatter: note.frontmatter ?? null,
             },
           }
         } catch (err) {

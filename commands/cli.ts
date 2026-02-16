@@ -46,16 +46,72 @@ export function registerCli(
       cmd
         .command("read")
         .argument("<identifier>", "Note title, permalink, or memory:// URL")
-        .action(async (identifier: string) => {
+        .option("--raw", "Return raw markdown including frontmatter", false)
+        .action(async (identifier: string, opts: { raw?: boolean }) => {
           log.debug(`cli read: identifier="${identifier}"`)
 
-          const note = await client.readNote(identifier)
+          const note = await client.readNote(identifier, {
+            includeFrontmatter: opts.raw === true,
+          })
           console.log(`# ${note.title}`)
           console.log(`permalink: ${note.permalink}`)
           console.log(`file: ${note.file_path}`)
           console.log("")
           console.log(note.content)
         })
+
+      cmd
+        .command("edit")
+        .argument("<identifier>", "Note title, permalink, or memory:// URL")
+        .requiredOption(
+          "--operation <operation>",
+          "Edit operation: append|prepend|find_replace|replace_section",
+        )
+        .requiredOption("--content <content>", "Edit content")
+        .option("--find-text <text>", "Text to find for find_replace")
+        .option("--section <heading>", "Section heading for replace_section")
+        .option(
+          "--expected-replacements <n>",
+          "Expected replacement count for find_replace",
+          "1",
+        )
+        .action(
+          async (
+            identifier: string,
+            opts: {
+              operation: "append" | "prepend" | "find_replace" | "replace_section"
+              content: string
+              findText?: string
+              section?: string
+              expectedReplacements: string
+            },
+          ) => {
+            const expectedReplacements =
+              Number.parseInt(opts.expectedReplacements, 10) || 1
+            log.debug(
+              `cli edit: identifier="${identifier}" op=${opts.operation} expected_replacements=${expectedReplacements}`,
+            )
+
+            const result = await client.editNote(
+              identifier,
+              opts.operation,
+              opts.content,
+              {
+                find_text: opts.findText,
+                section: opts.section,
+                expected_replacements: expectedReplacements,
+              },
+            )
+
+            console.log(`Edited: ${result.title}`)
+            console.log(`permalink: ${result.permalink}`)
+            console.log(`file: ${result.file_path}`)
+            console.log(`operation: ${result.operation}`)
+            if (result.checksum) {
+              console.log(`checksum: ${result.checksum}`)
+            }
+          },
+        )
 
       cmd
         .command("context")

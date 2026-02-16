@@ -38,6 +38,9 @@ bm_read({ identifier: "memory://agents/decisions/auth-strategy" })
 
 // Read by exact title
 bm_read({ identifier: "Weekly Review 2024-02-01" })
+
+// Read raw markdown including YAML frontmatter
+bm_read({ identifier: "projects/api-redesign", include_frontmatter: true })
 ```
 
 ### ✍️ `bm_write`
@@ -117,7 +120,7 @@ Next: Deploy to staging environment.`
 bm_edit({
   identifier: "weekly-review",
   operation: "replace_section",
-  sectionTitle: "This Week",
+  section: "## This Week",
   content: `## This Week
 - ✅ Completed API authentication
 - ✅ Client meeting went well
@@ -129,8 +132,9 @@ bm_edit({
 bm_edit({
   identifier: "team-contacts",
   operation: "find_replace",
-  findText: "sarah@oldcompany.com",
-  content: "sarah@newcompany.com"
+  find_text: "sarah@oldcompany.com",
+  content: "sarah@newcompany.com",
+  expected_replacements: 1
 })
 ```
 
@@ -332,7 +336,7 @@ If users maintain review notes, help them:
 bm_edit({
   identifier: "weekly-review",
   operation: "replace_section", 
-  sectionTitle: "This Week",
+  section: "## This Week",
   content: "Updated accomplishments and next steps"
 })
 ```

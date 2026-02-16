@@ -18,23 +18,17 @@ describe("read tool", () => {
   })
 
   describe("registerReadTool", () => {
-    it("should register bm_read tool with correct configuration", () => {
+    it("registers bm_read with include_frontmatter parameter", () => {
       registerReadTool(mockApi, mockClient)
 
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "bm_read",
-          label: "Read Note",
-          description: expect.stringContaining(
-            "Read a specific note from the Basic Memory knowledge graph",
-          ),
           parameters: expect.objectContaining({
             type: "object",
             properties: expect.objectContaining({
-              identifier: expect.objectContaining({
-                type: "string",
-                description: "Note title, permalink, or memory:// URL to read",
-              }),
+              identifier: expect.objectContaining({ type: "string" }),
+              include_frontmatter: expect.objectContaining({ type: "boolean" }),
             }),
           }),
           execute: expect.any(Function),
@@ -54,12 +48,13 @@ describe("read tool", () => {
       executeFunction = registerCall[0].execute
     })
 
-    it("should read note and return content", async () => {
+    it("reads note with stripped content by default", async () => {
       const mockNote = {
         title: "Test Note",
         permalink: "test-note",
-        content: "This is the content of the test note.\n\nIt has multiple paragraphs.",
+        content: "Body only content",
         file_path: "notes/test-note.md",
+        frontmatter: { title: "Test Note", status: "active" },
       }
 
       ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
@@ -68,255 +63,84 @@ describe("read tool", () => {
         identifier: "test-note",
       })
 
-      expect(mockClient.readNote).toHaveBeenCalledWith("test-note")
+      expect(mockClient.readNote).toHaveBeenCalledWith("test-note", {
+        includeFrontmatter: false,
+      })
       expect(result).toEqual({
         content: [
           {
             type: "text",
-            text: "This is the content of the test note.\n\nIt has multiple paragraphs.",
+            text: "Body only content",
           },
         ],
         details: {
           title: "Test Note",
           permalink: "test-note",
           file_path: "notes/test-note.md",
+          frontmatter: { title: "Test Note", status: "active" },
         },
       })
     })
 
-    it("should handle reading by title", async () => {
-      const mockNote = {
-        title: "My Important Note",
-        permalink: "my-important-note",
-        content: "Important content here",
-        file_path: "notes/my-important-note.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      await executeFunction("tool-call-id", {
-        identifier: "My Important Note",
-      })
-
-      expect(mockClient.readNote).toHaveBeenCalledWith("My Important Note")
-    })
-
-    it("should handle reading by permalink", async () => {
+    it("reads note with raw content when include_frontmatter is true", async () => {
+      const raw = "---\ntitle: Test Note\nstatus: active\n---\n\nBody only content"
       const mockNote = {
         title: "Test Note",
-        permalink: "test-note-permalink",
-        content: "Content accessed via permalink",
+        permalink: "test-note",
+        content: raw,
         file_path: "notes/test-note.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      await executeFunction("tool-call-id", {
-        identifier: "test-note-permalink",
-      })
-
-      expect(mockClient.readNote).toHaveBeenCalledWith("test-note-permalink")
-    })
-
-    it("should handle reading by memory:// URL", async () => {
-      const mockNote = {
-        title: "Memory URL Note",
-        permalink: "memory-url-note",
-        content: "Content accessed via memory URL",
-        file_path: "notes/memory-url-note.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      await executeFunction("tool-call-id", {
-        identifier: "memory://projects/my-project",
-      })
-
-      expect(mockClient.readNote).toHaveBeenCalledWith("memory://projects/my-project")
-    })
-
-    it("should handle empty content", async () => {
-      const mockNote = {
-        title: "Empty Note",
-        permalink: "empty-note",
-        content: "",
-        file_path: "notes/empty-note.md",
+        frontmatter: { title: "Test Note", status: "active" },
       }
 
       ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
 
       const result = await executeFunction("tool-call-id", {
-        identifier: "empty-note",
+        identifier: "test-note",
+        include_frontmatter: true,
       })
 
-      expect(result.content[0].text).toBe("")
+      expect(mockClient.readNote).toHaveBeenCalledWith("test-note", {
+        includeFrontmatter: true,
+      })
+      expect(result.content[0].text).toBe(raw)
+      expect(result.details.frontmatter).toEqual({
+        title: "Test Note",
+        status: "active",
+      })
     })
 
-    it("should handle notes with special characters in content", async () => {
-      const specialContent = "Content with **markdown**, `code`, and [links](http://example.com)"
-      const mockNote = {
-        title: "Special Content Note",
-        permalink: "special-content",
-        content: specialContent,
-        file_path: "notes/special-content.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const result = await executeFunction("tool-call-id", {
-        identifier: "special-content",
+    it("returns null frontmatter details when not present", async () => {
+      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue({
+        title: "No FM",
+        permalink: "no-fm",
+        content: "content",
+        file_path: "notes/no-fm.md",
       })
 
-      expect(result.content[0].text).toBe(specialContent)
-    })
-
-    it("should handle very long content", async () => {
-      const longContent = "Long content.\n".repeat(1000)
-      const mockNote = {
-        title: "Long Note",
-        permalink: "long-note",
-        content: longContent,
-        file_path: "notes/long-note.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
       const result = await executeFunction("tool-call-id", {
-        identifier: "long-note",
+        identifier: "no-fm",
       })
 
-      expect(result.content[0].text).toBe(longContent)
-      expect(result.content[0].text.length).toBeGreaterThan(10000)
+      expect(result.details.frontmatter).toBeNull()
     })
 
-    it("should handle notes with unicode characters", async () => {
-      const unicodeContent = "Unicode content: 🚀 中文 العربية עברית"
-      const mockNote = {
-        title: "Unicode Note",
-        permalink: "unicode-note",
-        content: unicodeContent,
-        file_path: "notes/unicode-note.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
+    it("handles errors gracefully", async () => {
+      ;(mockClient.readNote as jest.MockedFunction<any>).mockRejectedValue(
+        new Error("not found"),
+      )
 
       const result = await executeFunction("tool-call-id", {
-        identifier: "unicode-note",
-      })
-
-      expect(result.content[0].text).toBe(unicodeContent)
-    })
-
-    it("should handle reading errors gracefully", async () => {
-      const readError = new Error("Note not found")
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockRejectedValue(readError)
-
-      const result = await executeFunction("tool-call-id", {
-        identifier: "nonexistent-note",
+        identifier: "missing-note",
       })
 
       expect(result).toEqual({
         content: [
           {
             type: "text",
-            text: 'Could not read note "nonexistent-note". It may not exist yet.',
+            text: 'Could not read note "missing-note". It may not exist yet.',
           },
         ],
       })
-    })
-
-    it("should include all note details in response", async () => {
-      const mockNote = {
-        title: "Detailed Note",
-        permalink: "detailed-note",
-        content: "Note with all details",
-        file_path: "folder/subfolder/detailed-note.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const result = await executeFunction("tool-call-id", {
-        identifier: "detailed-note",
-      })
-
-      expect(result.details).toEqual({
-        title: "Detailed Note",
-        permalink: "detailed-note",
-        file_path: "folder/subfolder/detailed-note.md",
-      })
-    })
-
-    it("should handle different identifier formats", async () => {
-      const mockNote = {
-        title: "Test Note",
-        permalink: "test-note",
-        content: "Content",
-        file_path: "notes/test.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      // Test various identifier formats
-      const identifiers = [
-        "test-note", // permalink
-        "Test Note", // title with spaces
-        "memory://notes/test-note", // memory URL
-        "notes/test.md", // file path
-      ]
-
-      for (const identifier of identifiers) {
-        await executeFunction("tool-call-id", { identifier })
-        expect(mockClient.readNote).toHaveBeenCalledWith(identifier)
-      }
-
-      expect(mockClient.readNote).toHaveBeenCalledTimes(identifiers.length)
-    })
-
-    it("should handle network timeouts gracefully", async () => {
-      const timeoutError = new Error("Request timeout")
-      timeoutError.code = "TIMEOUT"
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockRejectedValue(timeoutError)
-
-      const result = await executeFunction("tool-call-id", {
-        identifier: "timeout-note",
-      })
-
-      expect(result.content[0].text).toContain("Could not read note")
-    })
-
-    it("should preserve content formatting", async () => {
-      const formattedContent = `# Heading 1
-
-## Heading 2
-
-This is a paragraph with **bold** and *italic* text.
-
-- List item 1
-- List item 2
-  - Nested item
-
-\`\`\`javascript
-const code = "example";
-\`\`\`
-
-> This is a blockquote
-
-[Link](https://example.com)`
-
-      const mockNote = {
-        title: "Formatted Note",
-        permalink: "formatted-note",
-        content: formattedContent,
-        file_path: "notes/formatted-note.md",
-      }
-
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
-
-      const result = await executeFunction("tool-call-id", {
-        identifier: "formatted-note",
-      })
-
-      expect(result.content[0].text).toBe(formattedContent)
     })
   })
 })

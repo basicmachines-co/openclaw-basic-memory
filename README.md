@@ -15,7 +15,9 @@ For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
 
 ## Requirements
 
-1. **Basic Memory CLI** (`bm`) with `watch` command support:
+1. **Basic Memory CLI** (`bm`) with `watch` command support and native tool commands:
+   - `bm tool read-note --strip-frontmatter`
+   - `bm tool edit-note --format json`
    ```bash
    pip install basic-memory
    # or with uv:
@@ -32,6 +34,29 @@ git clone https://github.com/basicmachines-co/openclaw-basic-memory.git
 cd openclaw-basic-memory
 bun install
 ```
+
+### Optional: Install Companion Skills
+
+You can pair this plugin with skills from
+[`basic-memory-skills`](https://github.com/basicmachines-co/basic-memory-skills):
+
+- `memory-tasks` — structured task tracking that survives compaction
+- `memory-reflect` — periodic consolidation of recent notes into durable memory
+- `memory-defrag` — periodic cleanup/reorganization of memory files
+
+Install (workspace-local):
+
+```bash
+git clone https://github.com/basicmachines-co/basic-memory-skills.git
+cp -r basic-memory-skills/memory-tasks ~/.openclaw/workspace/skills/
+cp -r basic-memory-skills/memory-reflect ~/.openclaw/workspace/skills/
+cp -r basic-memory-skills/memory-defrag ~/.openclaw/workspace/skills/
+```
+
+If you want these skills available to multiple workspaces/agents on the same machine,
+install to `~/.openclaw/skills/` instead.
+
+After installation, start a new OpenClaw session so the refreshed skill set is loaded.
 
 Add to your OpenClaw config:
 ```json5
@@ -218,6 +243,7 @@ bm_search({ query: "API design", limit: 5 })
 Read a note by title, permalink, or `memory://` URL.
 ```typescript
 bm_read({ identifier: "memory://projects/api-redesign" })
+bm_read({ identifier: "memory://projects/api-redesign", include_frontmatter: true }) // raw markdown + YAML
 ```
 
 ### `bm_write`
@@ -230,6 +256,19 @@ bm_write({ title: "Auth Strategy", content: "## Overview\n...", folder: "decisio
 Edit an existing note (`append`, `prepend`, `find_replace`, `replace_section`).
 ```typescript
 bm_edit({ identifier: "weekly-review", operation: "append", content: "\n## Update\nDone." })
+bm_edit({
+  identifier: "weekly-review",
+  operation: "find_replace",
+  find_text: "status: active",
+  content: "status: done",
+  expected_replacements: 1,
+})
+bm_edit({
+  identifier: "weekly-review",
+  operation: "replace_section",
+  section: "## This Week",
+  content: "- ✅ Done\n- 🔄 Next",
+})
 ```
 
 ### `bm_delete`
@@ -260,6 +299,8 @@ bm_context({ url: "memory://projects/api-redesign", depth: 2 })
 ```bash
 openclaw basic-memory search "auth patterns" --limit 5
 openclaw basic-memory read "projects/api-redesign"
+openclaw basic-memory read "projects/api-redesign" --raw
+openclaw basic-memory edit "projects/api-redesign" --operation append --content $'\n## Update\nDone.'
 openclaw basic-memory context "memory://projects/api-redesign" --depth 2
 openclaw basic-memory recent --timeframe 24h
 openclaw basic-memory status
@@ -274,6 +315,10 @@ bm --version          # Check version
 bm watch --help       # Verify watch command exists
 ```
 If `bm watch` doesn't exist, update Basic Memory to the latest version.
+
+### `bm_edit` says `edit-note` is required
+Your installed `basic-memory` version is missing native `tool edit-note`.
+Upgrade `basic-memory` and rerun.
 
 ### Jiti cache issues
 ```bash
@@ -324,5 +369,6 @@ MIT — see LICENSE file.
 ## Links
 
 - [Basic Memory](https://github.com/basicmachines-co/basic-memory)
+- [Basic Memory Skills](https://github.com/basicmachines-co/basic-memory-skills)
 - [OpenClaw](https://docs.openclaw.ai)
 - [Issues](https://github.com/basicmachines-co/openclaw-basic-memory/issues)

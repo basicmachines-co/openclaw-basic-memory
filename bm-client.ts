@@ -26,6 +26,25 @@ export interface NoteResult {
   permalink: string
   content: string
   file_path: string
+  frontmatter?: Record<string, unknown> | null
+}
+
+export interface EditNoteResult {
+  title: string
+  permalink: string
+  file_path: string
+  operation: "append" | "prepend" | "find_replace" | "replace_section"
+  checksum?: string | null
+}
+
+interface ReadNoteOptions {
+  includeFrontmatter?: boolean
+}
+
+interface EditNoteOptions {
+  find_text?: string
+  section?: string
+  expected_replacements?: number
 }
 
 export interface ContextResult {
@@ -76,6 +95,43 @@ export function parseJsonOutput(raw: string): unknown {
   }
 
   throw new Error(`Could not parse JSON from bm output: ${raw.slice(0, 200)}`)
+}
+
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+export function isUnsupportedStripFrontmatterError(err: unknown): boolean {
+  const msg = getErrorMessage(err).toLowerCase()
+  return (
+    msg.includes("strip-frontmatter") &&
+    (msg.includes("no such option") ||
+      msg.includes("unknown option") ||
+      msg.includes("unrecognized arguments") ||
+      msg.includes("unexpected option"))
+  )
+}
+
+export function isMissingEditNoteCommandError(err: unknown): boolean {
+  const msg = getErrorMessage(err).toLowerCase()
+  return (
+    msg.includes("edit-note") &&
+    (msg.includes("no such command") ||
+      msg.includes("unknown command") ||
+      msg.includes("invalid choice"))
+  )
+}
+
+export function isNoteNotFoundError(err: unknown): boolean {
+  const msg = getErrorMessage(err).toLowerCase()
+  if (isMissingEditNoteCommandError(err)) return false
+  return (
+    msg.includes("entity not found") ||
+    msg.includes("note not found") ||
+    msg.includes("resource not found") ||
+    msg.includes("could not find note matching") ||
+    msg.includes("404")
+  )
 }
 
 export class BmClient {
@@ -172,14 +228,37 @@ export class BmClient {
     return (parsed as { results: SearchResult[] }).results
   }
 
-  async readNote(identifier: string): Promise<NoteResult> {
-    // read-note requires --format json (PR #552)
+  async readNote(
+    identifier: string,
+    options: ReadNoteOptions = {},
+  ): Promise<NoteResult> {
+    const includeFrontmatter = options.includeFrontmatter === true
+
+    // Prefer native frontmatter stripping support in BM CLI.
+    if (!includeFrontmatter) {
+      try {
+        const out = await this.execTool([
+          "tool",
+          "read-note",
+          identifier,
+          "--strip-frontmatter",
+        ])
+        return parseJsonOutput(out) as NoteResult
+      } catch (err) {
+        // Backward compatibility for older BM versions that do not support
+        // --strip-frontmatter yet: read raw content and strip locally.
+        if (!isUnsupportedStripFrontmatterError(err)) {
+          throw err
+        }
+        const fallbackOut = await this.execTool(["tool", "read-note", identifier])
+        const fallbackResult = parseJsonOutput(fallbackOut) as NoteResult
+        fallbackResult.content = stripFrontmatter(fallbackResult.content)
+        return fallbackResult
+      }
+    }
+
     const out = await this.execTool(["tool", "read-note", identifier])
-    const result = parseJsonOutput(out) as NoteResult
-    // Strip frontmatter — BM includes it in content but we don't want it
-    // leaking into agent-visible output or getting doubled on write-back
-    result.content = stripFrontmatter(result.content)
-    return result
+    return parseJsonOutput(out) as NoteResult
   }
 
   async writeNote(
@@ -225,74 +304,52 @@ export class BmClient {
   }
 
   /**
-   * Edit a note using read-modify-write since `bm tool edit-note` doesn't
-   * exist in the CLI yet (only available as an MCP tool).
+   * Edit a note using BM's native CLI edit-note command.
    */
   async editNote(
     identifier: string,
     operation: "append" | "prepend" | "find_replace" | "replace_section",
     content: string,
-    findText?: string,
-    sectionTitle?: string,
-  ): Promise<NoteResult> {
-    // Step 1: Read the existing note
-    const existing = await this.readNote(identifier)
+    options: EditNoteOptions = {},
+  ): Promise<EditNoteResult> {
+    const args = [
+      "tool",
+      "edit-note",
+      identifier,
+      "--operation",
+      operation,
+      "--content",
+      content,
+    ]
 
-    // Content is already frontmatter-stripped by readNote()
-    let updated = existing.content
-
-    switch (operation) {
-      case "append":
-        updated = `${updated}\n${content}`
-        break
-      case "prepend":
-        updated = `${content}\n${updated}`
-        break
-      case "find_replace":
-        if (!findText) {
-          throw new Error("find_replace requires findText parameter")
-        }
-        if (!updated.includes(findText)) {
-          throw new Error(
-            `findText not found in note: "${findText.slice(0, 80)}"`,
-          )
-        }
-        updated = updated.replace(findText, content)
-        break
-      case "replace_section": {
-        if (!sectionTitle) {
-          throw new Error("replace_section requires sectionTitle parameter")
-        }
-        // Find the heading and replace everything until the next heading of same or higher level
-        const headingPattern = new RegExp(
-          `^(#{1,6})\\s+${sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
-          "m",
-        )
-        const match = headingPattern.exec(updated)
-        if (!match) {
-          throw new Error(`Section "${sectionTitle}" not found in note`)
-        }
-        const level = match[1].length
-        const sectionStart = match.index
-        // Find next heading at same or higher level
-        const rest = updated.slice(sectionStart + match[0].length)
-        const nextHeading = new RegExp(`^#{1,${level}}\\s`, "m")
-        const nextMatch = nextHeading.exec(rest)
-        const sectionEnd = nextMatch
-          ? sectionStart + match[0].length + nextMatch.index
-          : updated.length
-        updated = `${updated.slice(0, sectionStart)}${match[0]}\n${content}${nextMatch ? `\n${updated.slice(sectionEnd)}` : ""}`
-        break
-      }
+    if (options.find_text) {
+      args.push("--find-text", options.find_text)
     }
 
-    // Step 2: Extract folder from file_path (e.g., "notes/plugin-test.md" → "notes")
-    const folder = existing.file_path.includes("/")
-      ? existing.file_path.split("/").slice(0, -1).join("/")
-      : ""
+    if (options.section) {
+      args.push("--section", options.section)
+    }
 
-    // Step 3: Write back with the same title and folder
-    return this.writeNote(existing.title, updated, folder)
+    if (options.expected_replacements !== undefined) {
+      args.push("--expected-replacements", String(options.expected_replacements))
+    }
+
+    try {
+      const out = await this.execTool(args)
+      return parseJsonOutput(out) as EditNoteResult
+    } catch (err) {
+      if (isMissingEditNoteCommandError(err)) {
+        throw new Error(
+          "bm tool edit-note is required for bm_edit. " +
+            "Please upgrade basic-memory to a version that supports edit-note.",
+        )
+      }
+      throw err
+    }
+  }
+
+  private isNoteNotFoundError(err: unknown): boolean {
+    return isNoteNotFoundError(err)
   }
 
   /**
@@ -338,7 +395,9 @@ export class BmClient {
     const { resolve } = await import("node:path")
 
     // Read existing note
-    const existing = await this.readNote(identifier)
+    const existing = await this.readNote(identifier, {
+      includeFrontmatter: true,
+    })
     const oldPath = resolve(projectPath, existing.file_path)
 
     // Write to new folder (this creates the note at the new location)
@@ -386,7 +445,12 @@ export class BmClient {
     try {
       await this.editNote(title, "append", entry)
       log.debug(`appended conversation to: ${title}`)
-    } catch {
+    } catch (err) {
+      if (!this.isNoteNotFoundError(err)) {
+        log.error("conversation append failed", err)
+        return
+      }
+
       const content = [`# Conversations ${dateStr}`, "", entry].join("\n")
       try {
         await this.writeNote(title, content, "conversations")
