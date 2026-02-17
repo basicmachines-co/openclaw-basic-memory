@@ -84,12 +84,22 @@ interface BenchmarkSummary {
 // ---------------------------------------------------------------------------
 
 const BENCHMARK_DIR = dirname(new URL(import.meta.url).pathname);
-const CORPUS_DIR = resolve(BENCHMARK_DIR, "corpus");
 const RESULTS_DIR = resolve(BENCHMARK_DIR, "results");
+
+// Corpus size: small (~10 files), medium (~35 files), large (~100 files)
+// Each tier is a superset of the previous
+const CORPUS_SIZE = process.argv.find((a) => a.startsWith("--corpus="))?.split("=")[1] || "small";
+const VALID_SIZES = ["small", "medium", "large"];
+if (!VALID_SIZES.includes(CORPUS_SIZE)) {
+  console.error(`Invalid corpus size: ${CORPUS_SIZE}. Use: ${VALID_SIZES.join(", ")}`);
+  process.exit(1);
+}
+
+const CORPUS_DIR = resolve(BENCHMARK_DIR, `corpus-${CORPUS_SIZE}`);
 const QUERIES_PATH = resolve(BENCHMARK_DIR, "queries.json");
 
-// Project name for the benchmark corpus
-const BM_PROJECT = "benchmark";
+// Project name includes corpus size for isolation
+const BM_PROJECT = `benchmark-${CORPUS_SIZE}`;
 
 function bmCommand(args: string): string {
   const cmd = `bm ${args}`;
@@ -279,6 +289,7 @@ async function main() {
   console.log("╔══════════════════════════════════════════════════════╗");
   console.log("║  Basic Memory Benchmark — Retrieval Quality Eval    ║");
   console.log("╚══════════════════════════════════════════════════════╝");
+  console.log(`  Corpus: ${CORPUS_SIZE} (${CORPUS_DIR})`);
   console.log();
 
   // Load queries
@@ -444,11 +455,12 @@ async function main() {
 
   // Write results
   await mkdir(RESULTS_DIR, { recursive: true });
+  const resultsFile = `${provider}-${CORPUS_SIZE}-results.json`;
   await writeFile(
-    resolve(RESULTS_DIR, `${provider}-results.json`),
+    resolve(RESULTS_DIR, resultsFile),
     JSON.stringify(summary, null, 2)
   );
-  console.log(`  Results saved to benchmark/results/${provider}-results.json`);
+  console.log(`  Results saved to benchmark/results/${resultsFile}`);
   console.log();
 }
 

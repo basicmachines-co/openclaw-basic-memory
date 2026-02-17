@@ -42,24 +42,53 @@ Memory systems for AI agents make big claims with no reproducible evidence. We'r
 # Prerequisites: bm CLI installed
 # https://github.com/basicmachines-co/basic-memory
 
-# Run the benchmark
+# Run the benchmark (small corpus, default)
 just benchmark
 
 # Verbose output (per-query details)
 just benchmark-verbose
+
+# Run all corpus sizes to see scaling behavior
+just benchmark-all
+
+# Run a specific size
+just benchmark-medium
+just benchmark-large
 ```
 
-## Corpus
+## Corpus Tiers
 
-The test corpus (`benchmark/corpus/`) is a realistic anonymized agent memory workspace:
+Three nested corpus sizes test how retrieval scales with data growth. Each tier is a superset of the previous — medium contains all of small, large contains all of medium.
 
-- `MEMORY.md` — curated long-term facts
-- `memory/YYYY-MM-DD.md` — daily notes with events, decisions, standups
-- `memory/tasks/*.md` — structured tasks with BM schema fields
-- `memory/topics/*.md` — research and reference notes
-- `memory/people/*.md` — person notes with typed observations and relations
+### Small (~10 files, ~12KB) — `corpus-small/`
+A single day's work. Baseline: "does search work at all?"
+- 1 MEMORY.md, 4 daily notes, 2 tasks, 2 people, 2 topics
 
-~10 files, ~12KB total. Designed to exercise all query categories.
+### Medium (~35-40 files, ~50KB) — `corpus-medium/`
+A working week. Tests noise resistance and temporal ranking.
+- Everything in small + 7 more daily notes, 3 more tasks (incl. done), 3 more people, 3 more topics
+- Done tasks that should NOT appear in active task queries
+- More entities competing for relevance on each query
+- 2-hop relation chains
+
+### Large (~100-120 files, ~150-200KB) — `corpus-large/`
+A month of accumulated knowledge. The real stress test.
+- Everything in medium + 25 more daily notes, 10 more tasks, 10 more people/orgs, 15 more topics
+- Deep needle-in-haystack: specific IDs buried in old notes
+- 3+ hop relation chains
+- Heavy cross-document synthesis requirements
+- Stale vs fresh fact resolution at scale
+
+### What scaling reveals
+
+| Metric | Small → Medium | Medium → Large |
+|--------|---------------|----------------|
+| Recall@5 | Should hold steady | May degrade — more noise |
+| MRR | Should hold steady | Ranking quality under pressure |
+| Latency | Baseline | Index size impact |
+| Content hit | High | Needle-in-haystack stress |
+
+If recall drops significantly from small → large, that's the signal to improve chunking, ranking, or indexing.
 
 ## Queries
 

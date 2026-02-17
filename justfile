@@ -24,13 +24,29 @@ fix:
 # Run all checks
 check: check-types lint
 
-# Run benchmark (Basic Memory provider)
+# Run benchmark (Basic Memory, small corpus — default)
 benchmark:
-    bun benchmark/run.ts
+    bun benchmark/run.ts --corpus=small
 
 # Run benchmark with per-query detail
 benchmark-verbose:
-    bun benchmark/run.ts --verbose
+    bun benchmark/run.ts --corpus=small --verbose
+
+# Run all corpus sizes
+benchmark-all:
+    bun benchmark/run.ts --corpus=small
+    bun benchmark/run.ts --corpus=medium
+    bun benchmark/run.ts --corpus=large
+
+# Run specific corpus size
+benchmark-small:
+    bun benchmark/run.ts --corpus=small --verbose
+
+benchmark-medium:
+    bun benchmark/run.ts --corpus=medium --verbose
+
+benchmark-large:
+    bun benchmark/run.ts --corpus=large --verbose
 
 # Clean build artifacts and node_modules
 clean:
