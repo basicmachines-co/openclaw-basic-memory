@@ -40,8 +40,8 @@
     },
     "projectPath": {
       "label": "Project Path",
-      "placeholder": "~/.basic-memory/openclaw/",
-      "help": "Filesystem path for the Basic Memory project data",
+      "placeholder": "~/.openclaw/workspace/memory/",
+      "help": "Filesystem path for Basic Memory project data (relative paths resolve from workspace); created automatically if missing",
       "advanced": true
     },
     "cloud": {

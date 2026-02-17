@@ -158,6 +158,7 @@ export function registerCli(
         .description("Show plugin status")
         .action(() => {
           console.log(`Project: ${cfg.project}`)
+          console.log(`Project path: ${cfg.projectPath}`)
           console.log(`BM CLI: ${cfg.bmPath}`)
           console.log(`Memory dir: ${cfg.memoryDir}`)
           console.log(`Memory file: ${cfg.memoryFile}`)

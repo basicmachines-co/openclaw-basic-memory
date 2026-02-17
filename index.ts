@@ -4,7 +4,11 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import { BmClient } from "./bm-client.ts"
 import { registerCli } from "./commands/cli.ts"
 import { registerCommands } from "./commands/slash.ts"
-import { basicMemoryConfigSchema, parseConfig } from "./config.ts"
+import {
+  basicMemoryConfigSchema,
+  parseConfig,
+  resolveProjectPath,
+} from "./config.ts"
 import { buildCaptureHandler } from "./hooks/capture.ts"
 import { initLogger, log } from "./logger.ts"
 import { registerContextTool } from "./tools/context.ts"
@@ -62,10 +66,13 @@ export default {
       start: async (ctx: { config?: unknown; workspaceDir?: string }) => {
         log.info("starting...")
 
-        await client.ensureProject(cfg.projectPath)
-        log.debug(`project "${cfg.project}" at ${cfg.projectPath}`)
-
         const workspace = ctx.workspaceDir ?? process.cwd()
+        const projectPath = resolveProjectPath(cfg.projectPath, workspace)
+        cfg.projectPath = projectPath
+
+        await client.ensureProject(projectPath)
+        log.debug(`project "${cfg.project}" at ${projectPath}`)
+
         setWorkspaceDir(workspace)
 
         // Start `bm watch` as a long-running child process.

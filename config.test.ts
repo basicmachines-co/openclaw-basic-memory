@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { parseConfig } from "./config.ts"
+import { homedir } from "node:os"
+import { parseConfig, resolveProjectPath } from "./config.ts"
 
 describe("config", () => {
   describe("parseConfig", () => {
@@ -12,7 +13,7 @@ describe("config", () => {
       expect(config.autoCapture).toBe(true)
       expect(config.debug).toBe(false)
       expect(config.project).toMatch(/^openclaw-/)
-      expect(config.projectPath).toMatch(/\.openclaw\/workspace\/memory\//)
+      expect(config.projectPath).toBe("memory/")
       expect(config.cloud).toBeUndefined()
     })
 
@@ -65,6 +66,11 @@ describe("config", () => {
     it("should use provided projectPath", () => {
       const config = parseConfig({ projectPath: "/custom/project/path" })
       expect(config.projectPath).toBe("/custom/project/path")
+    })
+
+    it("should default projectPath to memoryDir", () => {
+      const config = parseConfig({ memoryDir: "notes/" })
+      expect(config.projectPath).toBe("notes/")
     })
 
     it("should use provided autoCapture", () => {
@@ -122,6 +128,26 @@ describe("config", () => {
 
     it("should not throw for empty config", () => {
       expect(() => parseConfig({})).not.toThrow()
+    })
+  })
+
+  describe("resolveProjectPath", () => {
+    it("resolves relative projectPath against workspace", () => {
+      expect(resolveProjectPath("memory/", "/tmp/workspace")).toBe(
+        "/tmp/workspace/memory",
+      )
+    })
+
+    it("expands tilde paths", () => {
+      expect(resolveProjectPath("~/memory", "/tmp/workspace")).toBe(
+        `${homedir()}/memory`,
+      )
+    })
+
+    it("keeps absolute paths unchanged", () => {
+      expect(resolveProjectPath("/var/data/memory", "/tmp/workspace")).toBe(
+        "/var/data/memory",
+      )
     })
   })
 })

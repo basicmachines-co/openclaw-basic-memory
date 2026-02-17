@@ -85,7 +85,7 @@ Add to your OpenClaw config:
 }
 ```
 
-This uses sensible defaults: auto-generated project name, watches `~/.openclaw/workspace/memory/`, captures conversations.
+This uses sensible defaults: auto-generated project name, maps Basic Memory to your workspace `memory/` directory, and captures conversations.
 
 ### Full configuration
 ```json5
@@ -95,7 +95,7 @@ This uses sensible defaults: auto-generated project name, watches `~/.openclaw/w
     config: {
       project: "my-agent",                          // BM project name (default: "openclaw-{hostname}")
       bmPath: "bm",                                 // Path to BM CLI binary
-      projectPath: "~/.openclaw/workspace/memory/",  // Directory BM watches and indexes
+      projectPath: "~/.openclaw/workspace/memory/",   // Optional override; supports absolute, ~/..., or workspace-relative paths
       memoryDir: "memory/",                          // Relative memory dir for task scanning
       memoryFile: "MEMORY.md",                       // Working memory file for grep search
       autoCapture: true,                             // Index conversations automatically
@@ -115,7 +115,7 @@ This uses sensible defaults: auto-generated project name, watches `~/.openclaw/w
 |--------|------|---------|-------------|
 | `project` | string | `"openclaw-{hostname}"` | Basic Memory project name |
 | `bmPath` | string | `"bm"` | Path to Basic Memory CLI binary |
-| `projectPath` | string | `"~/.openclaw/workspace/memory/"` | Directory for BM project data |
+| `projectPath` | string | `"memory/"` | Directory for BM project data (resolved from workspace unless absolute) |
 | `memoryDir` | string | `"memory/"` | Relative path for task scanning |
 | `memoryFile` | string | `"MEMORY.md"` | Working memory file (grep-searched) |
 | `autoCapture` | boolean | `true` | Auto-index agent conversations |
@@ -123,6 +123,8 @@ This uses sensible defaults: auto-generated project name, watches `~/.openclaw/w
 | `cloud` | object | — | Optional cloud sync config (`url` + `api_key`) |
 
 Snake_case aliases (`memory_dir`, `memory_file`) are also supported.
+
+On startup, the plugin ensures the configured BM project exists at `projectPath` by running `bm project add <project> <path> --default` when needed.
 
 ## How It Works
 

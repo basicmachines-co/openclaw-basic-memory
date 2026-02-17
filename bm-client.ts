@@ -122,6 +122,11 @@ export function isMissingEditNoteCommandError(err: unknown): boolean {
   )
 }
 
+export function isProjectAlreadyExistsError(err: unknown): boolean {
+  const msg = getErrorMessage(err).toLowerCase()
+  return msg.includes("project") && msg.includes("already exists")
+}
+
 export function isNoteNotFoundError(err: unknown): boolean {
   const msg = getErrorMessage(err).toLowerCase()
   if (isMissingEditNoteCommandError(err)) return false
@@ -194,10 +199,23 @@ export class BmClient {
 
   async ensureProject(projectPath: string): Promise<void> {
     try {
-      await this.execRaw(["project", "add", this.project, projectPath])
-    } catch {
-      // Silently ignore — most likely the project already exists.
-      // This is expected on every restart after first setup.
+      await this.execRaw([
+        "project",
+        "add",
+        this.project,
+        projectPath,
+        "--default",
+      ])
+    } catch (err) {
+      if (isProjectAlreadyExistsError(err)) {
+        // Expected after first startup.
+        return
+      }
+      throw new Error(
+        `failed to ensure project "${this.project}" at "${projectPath}": ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      )
     }
   }
 

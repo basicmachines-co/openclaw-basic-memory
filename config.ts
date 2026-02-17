@@ -1,4 +1,5 @@
 import { homedir, hostname } from "node:os"
+import { isAbsolute, resolve } from "node:path"
 
 export type CloudConfig = {
   url: string
@@ -46,6 +47,18 @@ function defaultProject(): string {
     .toLowerCase()}`
 }
 
+function expandUserPath(path: string): string {
+  if (path === "~") return homedir()
+  if (path.startsWith("~/")) return `${homedir()}/${path.slice(2)}`
+  return path
+}
+
+export function resolveProjectPath(projectPath: string, workspaceDir: string): string {
+  const expanded = expandUserPath(projectPath)
+  if (isAbsolute(expanded)) return expanded
+  return resolve(workspaceDir, expanded)
+}
+
 export function parseConfig(raw: unknown): BasicMemoryConfig {
   const cfg =
     raw && typeof raw === "object" && !Array.isArray(raw)
@@ -87,7 +100,7 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
     projectPath:
       typeof cfg.projectPath === "string" && cfg.projectPath.length > 0
         ? cfg.projectPath
-        : `${homedir()}/.openclaw/workspace/memory/`,
+        : memoryDir,
     bmPath:
       typeof cfg.bmPath === "string" && cfg.bmPath.length > 0
         ? cfg.bmPath

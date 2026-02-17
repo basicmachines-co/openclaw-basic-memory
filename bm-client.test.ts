@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import {
   BmClient,
+  isProjectAlreadyExistsError,
   isMissingEditNoteCommandError,
   isNoteNotFoundError,
   isUnsupportedStripFrontmatterError,
@@ -65,6 +66,15 @@ Warning: something happened
       expect(
         isNoteNotFoundError(new Error("No such command 'edit-note'")),
       ).toBe(false)
+    })
+
+    it("detects project already exists errors", () => {
+      expect(
+        isProjectAlreadyExistsError(new Error("Project 'x' already exists")),
+      ).toBe(true)
+      expect(isProjectAlreadyExistsError(new Error("permission denied"))).toBe(
+        false,
+      )
     })
   })
 })
@@ -170,6 +180,54 @@ describe("BmClient behavior", () => {
     await expect(client.editNote("t", "append", "new")).rejects.toThrow(
       "bm tool edit-note is required for bm_edit",
     )
+  })
+
+  it("ensureProject ignores already-exists errors", async () => {
+    const execRaw = jest
+      .fn()
+      .mockRejectedValue(new Error("Project 'test-project' already exists"))
+    ;(client as any).execRaw = execRaw
+
+    await expect(client.ensureProject("/tmp/memory")).resolves.toBeUndefined()
+    expect(execRaw).toHaveBeenCalledWith([
+      "project",
+      "add",
+      "test-project",
+      "/tmp/memory",
+      "--default",
+    ])
+  })
+
+  it("ensureProject throws when project creation fails for other reasons", async () => {
+    const execRaw = jest
+      .fn()
+      .mockRejectedValue(new Error("permission denied"))
+    ;(client as any).execRaw = execRaw
+
+    await expect(client.ensureProject("/tmp/memory")).rejects.toThrow(
+      'failed to ensure project "test-project" at "/tmp/memory"',
+    )
+    expect(execRaw).toHaveBeenCalledWith([
+      "project",
+      "add",
+      "test-project",
+      "/tmp/memory",
+      "--default",
+    ])
+  })
+
+  it("ensureProject passes --default when project is created", async () => {
+    const execRaw = jest.fn().mockResolvedValue("")
+    ;(client as any).execRaw = execRaw
+
+    await expect(client.ensureProject("/tmp/memory")).resolves.toBeUndefined()
+    expect(execRaw).toHaveBeenCalledWith([
+      "project",
+      "add",
+      "test-project",
+      "/tmp/memory",
+      "--default",
+    ])
   })
 
   it("indexConversation does not create fallback note on non-not-found edit errors", async () => {
