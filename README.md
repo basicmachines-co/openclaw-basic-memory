@@ -18,11 +18,12 @@ For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
 1. **Basic Memory CLI** (`bm`) with `watch` command support and native tool commands:
    - `bm tool read-note --strip-frontmatter`
    - `bm tool edit-note --format json`
+   - Pinned for testing to commit `9259a7eb59be7aa8a72c3ec20d0740bd19ba9657`
    ```bash
-   uv tool install 'basic-memory[semantic]' --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
+   uv tool install 'basic-memory[semantic] @ git+https://github.com/basicmachines-co/basic-memory.git@9259a7eb59be7aa8a72c3ec20d0740bd19ba9657' --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
 
    # Alternative (inside an existing Python environment):
-   uv pip install 'basic-memory[semantic]' 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
+   uv pip install 'basic-memory[semantic] @ git+https://github.com/basicmachines-co/basic-memory.git@9259a7eb59be7aa8a72c3ec20d0740bd19ba9657' 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
    ```
 
 2. **OpenClaw** with plugin support
