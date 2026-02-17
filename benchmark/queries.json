@@ -1,0 +1,249 @@
+[
+  {
+    "id": "exact_01",
+    "query": "What is the team plan pricing?",
+    "category": "exact_fact",
+    "ground_truth": ["MEMORY.md"],
+    "expected_content": "$9/mo per seat"
+  },
+  {
+    "id": "exact_02",
+    "query": "What is the current MRR?",
+    "category": "exact_fact",
+    "ground_truth": ["memory/2026-02-12.md", "MEMORY.md"],
+    "expected_content": "$2,100"
+  },
+  {
+    "id": "exact_03",
+    "query": "What is the Linear workspace ID?",
+    "category": "needle_in_haystack",
+    "ground_truth": ["memory/2026-02-11.md", "memory/topics/linear-integration.md"],
+    "expected_content": "ws_stl_prod_7x2k"
+  },
+  {
+    "id": "exact_04",
+    "query": "What is James Liu's email?",
+    "category": "needle_in_haystack",
+    "ground_truth": ["memory/2026-02-12.md"],
+    "expected_content": "james@cortexai.dev"
+  },
+  {
+    "id": "exact_05",
+    "query": "What is the Linear API rate limit?",
+    "category": "exact_fact",
+    "ground_truth": ["memory/topics/linear-integration.md", "memory/2026-02-12.md"],
+    "expected_content": "100 req/min"
+  },
+  {
+    "id": "exact_06",
+    "query": "What is the trial to paid conversion rate?",
+    "category": "exact_fact",
+    "ground_truth": ["memory/2026-02-12.md", "memory/tasks/onboarding-redesign.md"],
+    "expected_content": "23%"
+  },
+  {
+    "id": "exact_07",
+    "query": "How many GitHub stars do we have?",
+    "category": "exact_fact",
+    "ground_truth": ["memory/2026-02-12.md", "MEMORY.md", "memory/topics/competitive-landscape.md"],
+    "expected_content": "1,847"
+  },
+  {
+    "id": "semantic_01",
+    "query": "How do we compare to our competitors?",
+    "category": "semantic",
+    "ground_truth": ["memory/topics/competitive-landscape.md", "MEMORY.md"]
+  },
+  {
+    "id": "semantic_02",
+    "query": "What's our competitive advantage?",
+    "category": "semantic",
+    "ground_truth": ["memory/topics/competitive-landscape.md", "MEMORY.md"]
+  },
+  {
+    "id": "semantic_03",
+    "query": "Why did we choose SQLite?",
+    "category": "semantic",
+    "ground_truth": ["MEMORY.md"]
+  },
+  {
+    "id": "semantic_04",
+    "query": "What's our approach to user onboarding?",
+    "category": "semantic",
+    "ground_truth": ["memory/tasks/onboarding-redesign.md", "memory/2026-02-11.md"]
+  },
+  {
+    "id": "semantic_05",
+    "query": "What security improvements have we made recently?",
+    "category": "semantic",
+    "ground_truth": ["memory/2026-02-10.md", "memory/2026-02-12.md"]
+  },
+  {
+    "id": "temporal_01",
+    "query": "What happened on February 12th?",
+    "category": "temporal",
+    "ground_truth": ["memory/2026-02-12.md"]
+  },
+  {
+    "id": "temporal_02",
+    "query": "What did we decide on Monday?",
+    "category": "temporal",
+    "ground_truth": ["memory/2026-02-10.md"]
+  },
+  {
+    "id": "temporal_03",
+    "query": "When was the webhook queue incident?",
+    "category": "temporal",
+    "ground_truth": ["memory/2026-02-12.md", "memory/2026-02-14.md"]
+  },
+  {
+    "id": "temporal_04",
+    "query": "What's the timeline for the onboarding redesign?",
+    "category": "temporal",
+    "ground_truth": ["memory/tasks/onboarding-redesign.md", "memory/2026-02-11.md"]
+  },
+  {
+    "id": "temporal_05",
+    "query": "When is the Cortex AI demo?",
+    "category": "temporal",
+    "ground_truth": ["memory/2026-02-12.md"],
+    "expected_content": "Feb 18 at 10am PST"
+  },
+  {
+    "id": "relational_01",
+    "query": "What is Raj working on?",
+    "category": "relational",
+    "ground_truth": ["memory/people/raj-patel.md", "memory/2026-02-12.md", "memory/2026-02-14.md"]
+  },
+  {
+    "id": "relational_02",
+    "query": "Who is involved in the onboarding redesign?",
+    "category": "relational",
+    "ground_truth": ["memory/tasks/onboarding-redesign.md", "memory/people/lena-vogt.md", "memory/2026-02-11.md"]
+  },
+  {
+    "id": "relational_03",
+    "query": "What do we know about Cortex AI?",
+    "category": "relational",
+    "ground_truth": ["memory/2026-02-11.md", "memory/2026-02-12.md"]
+  },
+  {
+    "id": "relational_04",
+    "query": "Who works in a different timezone?",
+    "category": "relational",
+    "ground_truth": ["memory/people/lena-vogt.md"]
+  },
+  {
+    "id": "relational_05",
+    "query": "What's connected to the Linear integration?",
+    "category": "relational",
+    "ground_truth": ["memory/topics/linear-integration.md", "memory/2026-02-10.md", "memory/2026-02-12.md", "memory/2026-02-14.md"]
+  },
+  {
+    "id": "cross_note_01",
+    "query": "Summarize all architecture decisions we've made",
+    "category": "cross_note",
+    "ground_truth": ["MEMORY.md", "memory/2026-02-10.md", "memory/2026-02-11.md"]
+  },
+  {
+    "id": "cross_note_02",
+    "query": "What's the full story of the webhook incident?",
+    "category": "cross_note",
+    "ground_truth": ["memory/2026-02-12.md", "memory/2026-02-14.md"]
+  },
+  {
+    "id": "cross_note_03",
+    "query": "What customer feedback have we received?",
+    "category": "cross_note",
+    "ground_truth": ["memory/2026-02-11.md", "memory/2026-02-12.md"]
+  },
+  {
+    "id": "cross_note_04",
+    "query": "What are all the things Lena has done?",
+    "category": "cross_note",
+    "ground_truth": ["memory/people/lena-vogt.md", "memory/2026-02-10.md", "memory/2026-02-11.md", "memory/2026-02-14.md", "memory/tasks/onboarding-redesign.md"]
+  },
+  {
+    "id": "task_01",
+    "query": "What are the active tasks?",
+    "category": "task_recall",
+    "ground_truth": ["memory/tasks/onboarding-redesign.md", "memory/tasks/incident-runbook.md"]
+  },
+  {
+    "id": "task_02",
+    "query": "What's the status of the onboarding redesign?",
+    "category": "task_recall",
+    "ground_truth": ["memory/tasks/onboarding-redesign.md"]
+  },
+  {
+    "id": "task_03",
+    "query": "What tasks are assigned to Atlas?",
+    "category": "task_recall",
+    "ground_truth": ["memory/tasks/incident-runbook.md"]
+  },
+  {
+    "id": "task_04",
+    "query": "What's overdue?",
+    "category": "task_recall",
+    "ground_truth": ["memory/tasks/incident-runbook.md"],
+    "note": "Incident runbook was due Feb 17 — depends on eval date"
+  },
+  {
+    "id": "needle_01",
+    "query": "What is the Figma link for the onboarding mockups?",
+    "category": "needle_in_haystack",
+    "ground_truth": ["memory/tasks/onboarding-redesign.md"],
+    "expected_content": "figma.com/file/stl-onboarding-v2"
+  },
+  {
+    "id": "needle_02",
+    "query": "What Linear issue numbers has Raj fixed?",
+    "category": "needle_in_haystack",
+    "ground_truth": ["memory/2026-02-10.md", "memory/2026-02-11.md"],
+    "expected_content": "STL-142, STL-145"
+  },
+  {
+    "id": "needle_03",
+    "query": "What version was the Linear integration shipped in?",
+    "category": "needle_in_haystack",
+    "ground_truth": ["memory/2026-02-14.md", "memory/topics/linear-integration.md"],
+    "expected_content": "v0.9.0-beta.1"
+  },
+  {
+    "id": "needle_04",
+    "query": "What is the webhook queue max depth?",
+    "category": "needle_in_haystack",
+    "ground_truth": ["memory/2026-02-14.md", "memory/topics/linear-integration.md"],
+    "expected_content": "5000"
+  },
+  {
+    "id": "absence_01",
+    "query": "Do we support Jira integration?",
+    "category": "absence",
+    "ground_truth": ["MEMORY.md", "memory/topics/competitive-landscape.md"],
+    "expected_content": "post-v1",
+    "note": "Answer should indicate it's planned but not yet available"
+  },
+  {
+    "id": "absence_02",
+    "query": "Have we discussed pricing changes?",
+    "category": "absence",
+    "ground_truth": ["memory/2026-02-14.md"],
+    "note": "Discussion happened but decision was deferred"
+  },
+  {
+    "id": "evolving_01",
+    "query": "How many GitHub stars do we have?",
+    "category": "evolving_fact",
+    "ground_truth": ["memory/2026-02-12.md"],
+    "expected_content": "1,847",
+    "note": "MEMORY.md says 1,800 — daily note has the fresher number"
+  },
+  {
+    "id": "evolving_02",
+    "query": "What's the current state of the webhook architecture?",
+    "category": "evolving_fact",
+    "ground_truth": ["memory/2026-02-14.md", "memory/2026-02-12.md", "memory/2026-02-11.md"],
+    "note": "Evolved from proposal (Feb 11) → incident (Feb 12) → fix (Feb 14)"
+  }
+]

@@ -24,6 +24,14 @@ fix:
 # Run all checks
 check: check-types lint
 
+# Run benchmark (Basic Memory provider)
+benchmark:
+    bun benchmark/run.ts
+
+# Run benchmark with per-query detail
+benchmark-verbose:
+    bun benchmark/run.ts --verbose
+
 # Clean build artifacts and node_modules
 clean:
     rm -rf node_modules bun.lock
