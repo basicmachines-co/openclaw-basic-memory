@@ -3,6 +3,7 @@
 # Install dependencies
 install:
     bun install
+    uv tool install 'basic-memory[semantic]' --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
 
 # Setup Basic Memory project
 setup:

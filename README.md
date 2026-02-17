@@ -19,9 +19,10 @@ For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
    - `bm tool read-note --strip-frontmatter`
    - `bm tool edit-note --format json`
    ```bash
-   pip install basic-memory
-   # or with uv:
-   uv pip install basic-memory
+   uv tool install 'basic-memory[semantic]' --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
+
+   # Alternative (inside an existing Python environment):
+   uv pip install 'basic-memory[semantic]' 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
    ```
 
 2. **OpenClaw** with plugin support
