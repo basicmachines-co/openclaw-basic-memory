@@ -44,10 +44,11 @@ export function registerSearchTool(
           const text = results
             .map((r, i) => {
               const score = r.score ? ` (${(r.score * 100).toFixed(0)}%)` : ""
+              const content = r.content ?? ""
               const preview =
-                r.content.length > 200
-                  ? `${r.content.slice(0, 200)}...`
-                  : r.content
+                content.length > 200
+                  ? `${content.slice(0, 200)}...`
+                  : content
               return `${i + 1}. **${r.title}**${score}\n   ${preview}`
             })
             .join("\n\n")
