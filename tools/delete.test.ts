@@ -19,13 +19,7 @@ describe("delete tool", () => {
 
   async function loadAndRegister() {
     const { registerDeleteTool } = await import("./delete.ts")
-    registerDeleteTool(
-      mockApi as any,
-      mockClient as any,
-      {
-        projectPath: "/tmp/test-project",
-      } as any,
-    )
+    registerDeleteTool(mockApi as any, mockClient as any)
     return registeredTool!
   }
 

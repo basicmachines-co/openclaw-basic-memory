@@ -1,13 +1,11 @@
 import { Type } from "@sinclair/typebox"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import type { BasicMemoryConfig } from "../config.ts"
 import { log } from "../logger.ts"
 
 export function registerMoveTool(
   api: OpenClawPluginApi,
   client: BmClient,
-  cfg: BasicMemoryConfig,
 ): void {
   api.registerTool(
     {
@@ -37,7 +35,6 @@ export function registerMoveTool(
           const result = await client.moveNote(
             params.identifier,
             params.newFolder,
-            cfg.projectPath,
           )
 
           return {

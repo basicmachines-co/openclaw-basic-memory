@@ -7,7 +7,7 @@ Local-first knowledge graph plugin for OpenClaw — persistent memory with graph
 The `openclaw-basic-memory` plugin integrates [Basic Memory](https://github.com/basicmachines-co/basic-memory) with OpenClaw to provide:
 
 - **Composited `memory_search`** — queries MEMORY.md, the BM knowledge graph, and active tasks in parallel
-- **File watching via `bm watch`** — automatically syncs workspace markdown files into the knowledge graph
+- **Persistent MCP stdio session** — keeps a single `bm mcp --transport stdio --project <name>` process alive
 - **Auto-capture** — records agent conversations as structured daily notes
 - **Graph tools** — search, read, write, edit, delete, move, and navigate notes via `memory://` URLs
 
@@ -15,10 +15,10 @@ For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
 
 ## Requirements
 
-1. **Basic Memory CLI** (`bm`) with `watch` command support and native tool commands:
-   - `bm tool read-note --strip-frontmatter`
-   - `bm tool edit-note --format json`
-   - Pinned for testing to commit `f2683291e478568cdf1676759ed98c70d7cfdac3`
+1. **Basic Memory CLI** (`bm`) with MCP server support:
+   - `bm mcp --transport stdio --project <name>`
+   - MCP tools with JSON output mode: `read_note`, `write_note`, `edit_note`, `recent_activity`, `list_memory_projects`, `create_memory_project`, `delete_note`, `move_note`
+   - Structured MCP tools: `search_notes`, `build_context`
    ```bash
    uv tool install 'basic-memory[semantic] @ git+https://github.com/basicmachines-co/basic-memory.git@f2683291e478568cdf1676759ed98c70d7cfdac3' --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
 
@@ -158,17 +158,17 @@ This uses sensible defaults: auto-generated project name, maps Basic Memory to y
 
 Snake_case aliases (`memory_dir`, `memory_file`) are also supported.
 
-On startup, the plugin ensures the configured BM project exists at `projectPath` by running `bm project add <project> <path> --default` when needed.
+On startup, the plugin ensures the configured BM project exists at `projectPath` via MCP `create_memory_project` in idempotent mode.
 
 ## How It Works
 
-### File Watching
-On startup, the plugin spawns `bm watch --project <name>` as a long-running child process. This:
-1. Performs an initial sync of all files in the project directory
-2. Watches for file changes and re-indexes automatically
-3. Runs until the plugin stops (SIGTERM on shutdown)
+### MCP Session Lifecycle
+On startup, the plugin starts one persistent MCP stdio session:
+1. Spawns `bm mcp --transport stdio --project <name>`
+2. Verifies required MCP tool capabilities at connect time
+3. Uses bounded reconnect attempts (`500ms`, `1000ms`, `2000ms`) when the session drops
 
-No custom file watcher needed — Basic Memory handles everything.
+Basic Memory MCP lifecycle handles sync and watch behavior for the project.
 
 ### Composited `memory_search`
 When the agent calls `memory_search`, three sources are queried in parallel:
@@ -202,7 +202,7 @@ This plugin works best if you treat memory as three lanes:
 Typical loop:
 
 1. Capture or update notes/tasks with `bm_write` / `bm_edit`.
-2. `bm watch` syncs markdown updates into the BM project index.
+2. The persistent BM MCP process syncs markdown updates into the BM project index.
 3. `memory_search` queries:
    - `MEMORY.md` text snippets
    - BM search results (semantic + FTS)
@@ -213,7 +213,7 @@ Typical loop:
 
 ```mermaid
 flowchart LR
-    A["Write/Update notes"] --> B["bm watch indexes changes"]
+    A["Write/Update notes"] --> B["BM MCP indexes changes"]
     B --> C["memory_search(query)"]
     C --> D["MEMORY.md"]
     C --> E["Knowledge Graph"]
@@ -348,9 +348,9 @@ openclaw basic-memory status
 ```bash
 which bm              # Check if installed
 bm --version          # Check version
-bm watch --help       # Verify watch command exists
+bm mcp --help         # Verify MCP server command exists
 ```
-If `bm watch` doesn't exist, update Basic Memory to the latest version.
+If `bm mcp` doesn't exist, update Basic Memory to a newer version.
 
 ### `bm_edit` says `edit-note` is required
 Your installed `basic-memory` version is missing native `tool edit-note`.
@@ -363,10 +363,39 @@ openclaw gateway stop && openclaw gateway start
 ```
 
 ### Search returns no results
-1. Check that `bm watch` is running (look for `[bm watch]` in logs)
+1. Check that the MCP session is connected (look for `connected to BM MCP stdio` in logs)
 2. Verify files exist in the project directory
-3. Try `bm tool search-notes "your query" --project <name>` directly
+3. Try `bm mcp --transport stdio --project <name>` and run `search_notes` through an MCP inspector/client
 4. Check project status: `bm project list`
+
+## Integration Tests
+
+This repo includes real end-to-end integration tests for `BmClient` in:
+
+- `/Users/phernandez/dev/basicmachines/openclaw-basic-memory/integration/bm-client.integration.test.ts`
+
+These tests launch a real `bm mcp --transport stdio --project <name>` process,
+run write/read/edit/search/context/move/delete calls, and assert actual filesystem/index results.
+
+Run integration tests:
+
+```bash
+bun run test:int
+```
+
+By default this uses `./scripts/bm-local.sh`, which runs BM from a sibling
+`../basic-memory` checkout via `uv run --project ...` when present, and falls
+back to `bm` on `PATH` otherwise.
+
+Optional overrides:
+
+```bash
+# Use a non-default bm binary
+BM_BIN=/absolute/path/to/bm bun run test:int
+
+# Use a specific basic-memory source checkout
+BASIC_MEMORY_REPO=/absolute/path/to/basic-memory bun run test:int
+```
 
 ## Development
 
@@ -374,6 +403,7 @@ openclaw gateway stop && openclaw gateway start
 bun run check-types   # Type checking
 bun run lint          # Linting
 bun test              # Run tests (156 tests)
+bun run test:int      # Real BM MCP integration tests
 ```
 
 ## Publish to npm
@@ -400,12 +430,26 @@ For a full release (version bump + publish + push tag):
 just release patch   # or: minor, major, 0.2.0, etc.
 ```
 
+### GitHub Actions CI/CD
+
+- CI workflow: `.github/workflows/ci.yml` runs on PRs and `main` pushes.
+- Release workflow: `.github/workflows/release.yml` runs manually (`workflow_dispatch`) and will:
+  1. run release checks
+  2. bump version and create a git tag
+  3. push commit + tag
+  4. publish to npm
+  5. create a GitHub release
+
+Repository secret required:
+
+- `NPM_TOKEN` (npm publish token with package publish permissions)
+
 ### Project Structure
 ```
 openclaw-basic-memory/
-├── index.ts              # Plugin entry — spawns bm watch, registers tools
+├── index.ts              # Plugin entry — manages MCP lifecycle, registers tools
 ├── config.ts             # Configuration parsing
-├── bm-client.ts          # Basic Memory CLI wrapper
+├── bm-client.ts          # Persistent Basic Memory MCP stdio client
 ├── tools/                # Agent tools
 │   ├── search.ts         # bm_search
 │   ├── read.ts           # bm_read

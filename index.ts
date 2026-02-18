@@ -1,5 +1,3 @@
-import type { ChildProcess } from "node:child_process"
-import { spawn } from "node:child_process"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import { BmClient } from "./bm-client.ts"
 import { registerCli } from "./commands/cli.ts"
@@ -50,8 +48,8 @@ export default {
     registerWriteTool(api, client)
     registerEditTool(api, client)
     registerContextTool(api, client)
-    registerDeleteTool(api, client, cfg)
-    registerMoveTool(api, client, cfg)
+    registerDeleteTool(api, client)
+    registerMoveTool(api, client)
 
     // --- Composited memory_search + memory_get (always registered) ---
     registerMemoryProvider(api, client, cfg)
@@ -66,8 +64,6 @@ export default {
     registerCli(api, client, cfg)
 
     // --- Service lifecycle ---
-    let bmWatchProc: ChildProcess | null = null
-
     api.registerService({
       id: "basic-memory",
       start: async (ctx: { config?: unknown; workspaceDir?: string }) => {
@@ -77,44 +73,17 @@ export default {
         const projectPath = resolveProjectPath(cfg.projectPath, workspace)
         cfg.projectPath = projectPath
 
+        await client.start({ cwd: workspace })
         await client.ensureProject(projectPath)
         log.debug(`project "${cfg.project}" at ${projectPath}`)
 
         setWorkspaceDir(workspace)
 
-        // Start `bm watch` as a long-running child process.
-        // It does an initial sync then watches for file changes.
-        const args = ["watch", "--project", cfg.project]
-        log.info(`spawning: ${cfg.bmPath} ${args.join(" ")}`)
-
-        bmWatchProc = spawn(cfg.bmPath, args, {
-          stdio: ["ignore", "pipe", "pipe"],
-          detached: false,
-        })
-
-        bmWatchProc.stdout?.on("data", (data: Buffer) => {
-          const msg = data.toString().trim()
-          if (msg) log.debug(`[bm watch] ${msg}`)
-        })
-
-        bmWatchProc.stderr?.on("data", (data: Buffer) => {
-          const msg = data.toString().trim()
-          if (msg) log.warn(`[bm watch] ${msg}`)
-        })
-
-        bmWatchProc.on("exit", (code, signal) => {
-          log.warn(`bm watch exited (code=${code}, signal=${signal})`)
-          bmWatchProc = null
-        })
-
-        log.info("connected — bm watch running")
+        log.info("connected — BM MCP stdio session running")
       },
-      stop: () => {
-        if (bmWatchProc) {
-          log.info("stopping bm watch...")
-          bmWatchProc.kill("SIGTERM")
-          bmWatchProc = null
-        }
+      stop: async () => {
+        log.info("stopping BM MCP session...")
+        await client.stop()
         log.info("stopped")
       },
     })

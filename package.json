@@ -30,6 +30,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@sinclair/typebox": "0.34.47"
   },
   "peerDependencies": {
@@ -40,6 +41,7 @@
     "lint": "bunx @biomejs/biome ci .",
     "lint:fix": "bunx @biomejs/biome check --write .",
     "test": "bun test",
+    "test:int": "BM_INTEGRATION=1 BM_BIN=${BM_BIN:-./scripts/bm-local.sh} bun test integration --timeout 120000",
     "test:coverage": "bun test --coverage",
     "release:check": "bun run check-types && bun test && npm pack --dry-run"
   },

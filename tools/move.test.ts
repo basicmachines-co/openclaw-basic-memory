@@ -19,13 +19,7 @@ describe("move tool", () => {
 
   async function loadAndRegister() {
     const { registerMoveTool } = await import("./move.ts")
-    registerMoveTool(
-      mockApi as any,
-      mockClient as any,
-      {
-        projectPath: "/tmp/test-project",
-      } as any,
-    )
+    registerMoveTool(mockApi as any, mockClient as any)
     return registeredTool!
   }
 

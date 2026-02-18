@@ -1,15 +1,24 @@
-import { execFile } from "node:child_process"
-import { promisify } from "node:util"
+import { posix as posixPath } from "node:path"
+import { setTimeout as delay } from "node:timers/promises"
+import { Client } from "@modelcontextprotocol/sdk/client"
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { log } from "./logger.ts"
 
-const execFileAsync = promisify(execFile)
-let bmCallCounter = 0
+const DEFAULT_RETRY_DELAYS_MS = [500, 1000, 2000]
 
-/**
- * Strip YAML frontmatter from note content.
- * BM's read-note --format json includes frontmatter in the content field,
- * but consumers (agent tools, editNote) don't want it duplicated.
- */
+const REQUIRED_TOOLS = [
+  "search_notes",
+  "read_note",
+  "write_note",
+  "edit_note",
+  "build_context",
+  "recent_activity",
+  "list_memory_projects",
+  "create_memory_project",
+  "delete_note",
+  "move_note",
+]
+
 export function stripFrontmatter(content: string): string {
   return content.replace(/^---\n[\s\S]*?\n---\n*/, "").trim()
 }
@@ -28,6 +37,8 @@ export interface NoteResult {
   content: string
   file_path: string
   frontmatter?: Record<string, unknown> | null
+  checksum?: string | null
+  action?: "created" | "updated"
 }
 
 export interface EditNoteResult {
@@ -79,78 +90,67 @@ export interface ProjectListResult {
   isDefault?: boolean
 }
 
-/**
- * Extract JSON from CLI output that may contain non-JSON prefix lines
- * (warnings, log messages, etc). Finds the first line starting with
- * '{' or '[' and parses from there.
- */
-export function parseJsonOutput(raw: string): unknown {
-  // Try direct parse first (fast path)
-  try {
-    return JSON.parse(raw)
-  } catch {
-    // Fall through to line-by-line extraction
-  }
-
-  // Strip non-JSON prefix lines (warnings, Rich markup, etc.)
-  const lines = raw.split("\n")
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trimStart()
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-      const jsonStr = lines.slice(i).join("\n")
-      try {
-        return JSON.parse(jsonStr)
-      } catch {}
-    }
-  }
-
-  throw new Error(`Could not parse JSON from bm output: ${raw.slice(0, 200)}`)
-}
-
-function quoteArgForLog(arg: string): string {
-  if (/^[A-Za-z0-9_./:@%+=,-]+$/.test(arg)) return arg
-  return `"${arg.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
-}
-
-export function formatCommandForLog(cmd: string, args: string[]): string {
-  return [quoteArgForLog(cmd), ...args.map((arg) => quoteArgForLog(arg))].join(
-    " ",
-  )
-}
-
 function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
-export function isUnsupportedStripFrontmatterError(err: unknown): boolean {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
+function extractTextFromContent(content: unknown): string {
+  if (!Array.isArray(content)) return ""
+
+  const textBlocks = content
+    .filter(
+      (block): block is { type: "text"; text: string } =>
+        isRecord(block) &&
+        block.type === "text" &&
+        typeof block.text === "string",
+    )
+    .map((block) => block.text)
+
+  return textBlocks.join("\n").trim()
+}
+
+function tryParseJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    // fall through
+  }
+
+  const lines = text.split("\n")
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimStart()
+    if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) continue
+
+    try {
+      return JSON.parse(lines.slice(i).join("\n"))
+    } catch {
+      // keep scanning
+    }
+  }
+
+  return text
+}
+
+function isRecoverableConnectionError(err: unknown): boolean {
   const msg = getErrorMessage(err).toLowerCase()
   return (
-    msg.includes("strip-frontmatter") &&
-    (msg.includes("no such option") ||
-      msg.includes("unknown option") ||
-      msg.includes("unrecognized arguments") ||
-      msg.includes("unexpected option"))
+    msg.includes("connection closed") ||
+    msg.includes("not connected") ||
+    msg.includes("transport") ||
+    msg.includes("broken pipe") ||
+    msg.includes("econnreset") ||
+    msg.includes("epipe") ||
+    msg.includes("failed to start bm mcp stdio") ||
+    msg.includes("client is closed")
   )
 }
 
-export function isMissingEditNoteCommandError(err: unknown): boolean {
+function isNoteNotFoundError(err: unknown): boolean {
   const msg = getErrorMessage(err).toLowerCase()
-  return (
-    msg.includes("edit-note") &&
-    (msg.includes("no such command") ||
-      msg.includes("unknown command") ||
-      msg.includes("invalid choice"))
-  )
-}
-
-export function isProjectAlreadyExistsError(err: unknown): boolean {
-  const msg = getErrorMessage(err).toLowerCase()
-  return msg.includes("project") && msg.includes("already exists")
-}
-
-export function isNoteNotFoundError(err: unknown): boolean {
-  const msg = getErrorMessage(err).toLowerCase()
-  if (isMissingEditNoteCommandError(err)) return false
   return (
     msg.includes("entity not found") ||
     msg.includes("note not found") ||
@@ -160,201 +160,356 @@ export function isNoteNotFoundError(err: unknown): boolean {
   )
 }
 
+function asString(value: unknown): string | null {
+  return typeof value === "string" ? value : null
+}
+
 export class BmClient {
   private bmPath: string
   private project: string
+  private cwd?: string
+  private env?: Record<string, string>
+  private shouldRun = false
+
+  private client: Client | null = null
+  private transport: StdioClientTransport | null = null
+  private connectPromise: Promise<void> | null = null
+  private retryDelaysMs = [...DEFAULT_RETRY_DELAYS_MS]
 
   constructor(bmPath: string, project: string) {
     this.bmPath = bmPath
     this.project = project
   }
 
-  /**
-   * Run a raw bm command with no automatic flags.
-   */
-  private async execRaw(args: string[]): Promise<string> {
-    const callId = ++bmCallCounter
-    const startedAt = Date.now()
-    const renderedCommand = formatCommandForLog(this.bmPath, args)
-    log.debug(`[bm:${callId}] exec start: ${renderedCommand}`)
-    log.debug(`[bm:${callId}] exec args`, args)
+  async start(options?: {
+    cwd?: string
+    env?: Record<string, string>
+  }): Promise<void> {
+    this.shouldRun = true
+    if (options?.cwd) {
+      this.cwd = options.cwd
+    }
+    if (options?.env) {
+      this.env = options.env
+    }
+
+    await this.connectWithRetries()
+  }
+
+  async stop(): Promise<void> {
+    this.shouldRun = false
+    await this.disconnectCurrent(this.client, this.transport)
+    this.client = null
+    this.transport = null
+  }
+
+  private async connectWithRetries(): Promise<void> {
+    let lastErr: unknown
+
+    for (let attempt = 0; attempt <= this.retryDelaysMs.length; attempt++) {
+      try {
+        await this.ensureConnected()
+        return
+      } catch (err) {
+        lastErr = err
+        await this.disconnectCurrent(this.client, this.transport)
+        this.client = null
+        this.transport = null
+
+        if (attempt === this.retryDelaysMs.length) {
+          break
+        }
+
+        const waitMs = this.retryDelaysMs[attempt]
+        log.warn(
+          `BM MCP connect failed (attempt ${attempt + 1}/${this.retryDelaysMs.length + 1}): ${getErrorMessage(err)}; retrying in ${waitMs}ms`,
+        )
+        await delay(waitMs)
+      }
+    }
+
+    throw new Error(`BM MCP unavailable: ${getErrorMessage(lastErr)}`)
+  }
+
+  private async ensureConnected(): Promise<Client> {
+    if (!this.shouldRun) {
+      this.shouldRun = true
+    }
+
+    if (this.client && this.transport) {
+      return this.client
+    }
+
+    if (!this.connectPromise) {
+      this.connectPromise = this.connectFresh()
+    }
 
     try {
-      const { stdout, stderr } = await execFileAsync(this.bmPath, args, {
-        timeout: 30_000,
-        maxBuffer: 10 * 1024 * 1024,
+      await this.connectPromise
+    } finally {
+      this.connectPromise = null
+    }
+
+    if (!this.client) {
+      throw new Error("BM MCP client was not initialized")
+    }
+
+    return this.client
+  }
+
+  private async connectFresh(): Promise<void> {
+    const transport = new StdioClientTransport({
+      command: this.bmPath,
+      args: ["mcp", "--transport", "stdio", "--project", this.project],
+      cwd: this.cwd,
+      env: this.env,
+      stderr: "pipe",
+    })
+
+    const client = new Client(
+      {
+        name: "openclaw-basic-memory",
+        version: "0.1.0",
+      },
+      { capabilities: {} },
+    )
+
+    const stderr = transport.stderr
+    if (stderr) {
+      stderr.on("data", (data: Buffer) => {
+        const msg = data.toString().trim()
+        if (msg.length > 0) {
+          log.debug(`[bm mcp] ${msg}`)
+        }
       })
-      const durationMs = Date.now() - startedAt
-      const trimmedStdout = stdout.trim()
+    }
 
-      log.debug(
-        `[bm:${callId}] exec success (${durationMs}ms): ${renderedCommand}`,
+    transport.onclose = () => {
+      if (this.transport !== transport) return
+      log.warn("BM MCP stdio session closed")
+      this.client = null
+      this.transport = null
+    }
+
+    transport.onerror = (err: unknown) => {
+      if (this.transport !== transport) return
+      log.warn(`BM MCP transport error: ${getErrorMessage(err)}`)
+    }
+
+    this.client = client
+    this.transport = transport
+
+    try {
+      await client.connect(transport)
+      const tools = await client.listTools()
+      this.assertRequiredTools(tools.tools.map((tool) => tool.name))
+
+      log.info(
+        `connected to BM MCP stdio (project=${this.project}, pid=${transport.pid ?? "unknown"})`,
       )
-      log.debug(`[bm:${callId}] stdout`, stdout)
-      log.debug(`[bm:${callId}] stdout (trimmed)`, trimmedStdout)
-      if (stderr.trim().length > 0) {
-        log.debug(`[bm:${callId}] stderr`, stderr)
-      }
-
-      return trimmedStdout
     } catch (err) {
-      const durationMs = Date.now() - startedAt
-      const msg = err instanceof Error ? err.message : String(err)
-      const failedStdout =
-        typeof (err as { stdout?: unknown }).stdout === "string"
-          ? (err as { stdout: string }).stdout
-          : ""
-      const failedStderr =
-        typeof (err as { stderr?: unknown }).stderr === "string"
-          ? (err as { stderr: string }).stderr
-          : ""
+      await this.disconnectCurrent(client, transport)
+      if (this.client === client) {
+        this.client = null
+      }
+      if (this.transport === transport) {
+        this.transport = null
+      }
 
-      log.debug(
-        `[bm:${callId}] exec failure (${durationMs}ms): ${renderedCommand} — ${msg}`,
-      )
-      if (failedStdout.trim().length > 0) {
-        log.debug(`[bm:${callId}] stdout (error path)`, failedStdout)
-      }
-      if (failedStderr.trim().length > 0) {
-        log.debug(`[bm:${callId}] stderr (error path)`, failedStderr)
-      }
-      throw new Error(`bm command failed: ${renderedCommand} — ${msg}`)
+      throw new Error(`failed to start BM MCP stdio: ${getErrorMessage(err)}`)
     }
   }
 
-  /**
-   * Run a bm tool command with --project, --local, and --format json flags.
-   *
-   * Arg ordering: bm tool <subcommand> [positional args] --project X --local --format json [options]
-   * The --local flag ensures we always use local routing for low latency,
-   * even if the user has cloud mode enabled.
-   */
-  private async execTool(args: string[]): Promise<string> {
-    const fullArgs = [
-      ...args,
-      "--project",
-      this.project,
-      "--local",
-      "--format",
-      "json",
-    ]
-    return this.execRaw(fullArgs)
+  private assertRequiredTools(toolNames: string[]): void {
+    const available = new Set(toolNames)
+    const missing = REQUIRED_TOOLS.filter((name) => !available.has(name))
+    if (missing.length > 0) {
+      throw new Error(
+        `BM MCP server missing required tools: ${missing.join(", ")}`,
+      )
+    }
   }
 
-  /**
-   * Run a bm tool command that already outputs JSON natively (no --format flag needed).
-   * Still adds --project and --local.
-   */
-  private async execToolNativeJson(args: string[]): Promise<string> {
-    const fullArgs = [...args, "--project", this.project, "--local"]
-    return this.execRaw(fullArgs)
+  private async disconnectCurrent(
+    client: Client | null,
+    transport: StdioClientTransport | null,
+  ): Promise<void> {
+    if (client) {
+      try {
+        await client.close()
+      } catch {
+        // ignore shutdown errors
+      }
+    }
+
+    if (transport) {
+      try {
+        await transport.close()
+      } catch {
+        // ignore shutdown errors
+      }
+    }
+  }
+
+  private async callToolRaw(
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<unknown> {
+    let lastErr: unknown
+
+    for (let attempt = 0; attempt <= this.retryDelaysMs.length; attempt++) {
+      try {
+        const client = await this.ensureConnected()
+        const result = await client.callTool({
+          name,
+          arguments: args,
+        })
+
+        if (isRecord(result) && result.isError === true) {
+          const message = extractTextFromContent(result.content)
+          throw new Error(
+            `BM MCP tool ${name} failed${message ? `: ${message}` : ""}`,
+          )
+        }
+
+        return result
+      } catch (err) {
+        if (!isRecoverableConnectionError(err)) {
+          throw err
+        }
+
+        lastErr = err
+        await this.disconnectCurrent(this.client, this.transport)
+        this.client = null
+        this.transport = null
+
+        if (attempt === this.retryDelaysMs.length) {
+          break
+        }
+
+        const waitMs = this.retryDelaysMs[attempt]
+        log.warn(
+          `BM MCP call ${name} failed (attempt ${attempt + 1}/${this.retryDelaysMs.length + 1}): ${getErrorMessage(err)}; retrying in ${waitMs}ms`,
+        )
+        await delay(waitMs)
+      }
+    }
+
+    throw new Error(`BM MCP unavailable: ${getErrorMessage(lastErr)}`)
+  }
+
+  private async callTool(
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<unknown> {
+    const result = await this.callToolRaw(name, args)
+
+    if (isRecord(result) && result.structuredContent !== undefined) {
+      if (
+        isRecord(result.structuredContent) &&
+        result.structuredContent.result !== undefined
+      ) {
+        return result.structuredContent.result
+      }
+      return result.structuredContent
+    }
+
+    if (isRecord(result) && result.toolResult !== undefined) {
+      return result.toolResult
+    }
+
+    if (isRecord(result) && result.content !== undefined) {
+      const text = extractTextFromContent(result.content)
+      if (text.length > 0) {
+        return tryParseJson(text)
+      }
+    }
+
+    throw new Error(`BM MCP tool ${name} returned no usable payload`)
   }
 
   async ensureProject(projectPath: string): Promise<void> {
-    try {
-      await this.execRaw([
-        "project",
-        "add",
-        this.project,
-        projectPath,
-        "--default",
-      ])
-    } catch (err) {
-      if (isProjectAlreadyExistsError(err)) {
-        // Expected after first startup.
-        return
-      }
-      throw new Error(
-        `failed to ensure project "${this.project}" at "${projectPath}": ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      )
+    const payload = await this.callTool("create_memory_project", {
+      project_name: this.project,
+      project_path: projectPath,
+      set_default: true,
+      output_format: "json",
+    })
+
+    if (!isRecord(payload)) {
+      throw new Error("invalid create_memory_project response")
     }
   }
 
   async listProjects(): Promise<ProjectListResult[]> {
-    const out = await this.execRaw(["project", "list", "--format", "json"])
-    const parsed = parseJsonOutput(out)
+    const payload = await this.callTool("list_memory_projects", {
+      output_format: "json",
+    })
 
-    if (Array.isArray(parsed)) {
-      return parsed as ProjectListResult[]
+    if (Array.isArray(payload)) {
+      return payload as ProjectListResult[]
     }
 
-    if (parsed && typeof parsed === "object") {
-      const asRecord = parsed as Record<string, unknown>
-      if (Array.isArray(asRecord.projects)) {
-        return asRecord.projects as ProjectListResult[]
-      }
-      if (Array.isArray(asRecord.items)) {
-        return asRecord.items as ProjectListResult[]
-      }
+    if (isRecord(payload) && Array.isArray(payload.projects)) {
+      return payload.projects as ProjectListResult[]
     }
 
-    throw new Error("invalid bm project list response")
+    throw new Error("invalid list_memory_projects response")
   }
 
   async search(query: string, limit = 10): Promise<SearchResult[]> {
-    // search-notes outputs JSON natively (no --format flag needed)
-    // Try hybrid search (FTS + vector) first, fall back to FTS if semantic is disabled
-    let out: string
-    try {
-      out = await this.execToolNativeJson([
-        "tool",
-        "search-notes",
-        query,
-        "--hybrid",
-        "--page-size",
-        String(limit),
-      ])
-    } catch {
-      // Hybrid search requires semantic_search_enabled; fall back to FTS
-      out = await this.execToolNativeJson([
-        "tool",
-        "search-notes",
-        query,
-        "--page-size",
-        String(limit),
-      ])
+    const payload = await this.callTool("search_notes", {
+      query,
+      page: 1,
+      page_size: limit,
+      output_format: "default",
+    })
+
+    if (typeof payload === "string") {
+      throw new Error(payload)
     }
-    const parsed = parseJsonOutput(out)
-    return (parsed as { results: SearchResult[] }).results
+
+    if (!isRecord(payload) || !Array.isArray(payload.results)) {
+      throw new Error("invalid search_notes response")
+    }
+
+    return payload.results as SearchResult[]
   }
 
   async readNote(
     identifier: string,
     options: ReadNoteOptions = {},
   ): Promise<NoteResult> {
-    const includeFrontmatter = options.includeFrontmatter === true
+    const payload = await this.callTool("read_note", {
+      identifier,
+      include_frontmatter: options.includeFrontmatter === true,
+      output_format: "json",
+    })
 
-    // Prefer native frontmatter stripping support in BM CLI.
-    if (!includeFrontmatter) {
-      try {
-        const out = await this.execTool([
-          "tool",
-          "read-note",
-          identifier,
-          "--strip-frontmatter",
-        ])
-        return parseJsonOutput(out) as NoteResult
-      } catch (err) {
-        // Backward compatibility for older BM versions that do not support
-        // --strip-frontmatter yet: read raw content and strip locally.
-        if (!isUnsupportedStripFrontmatterError(err)) {
-          throw err
-        }
-        const fallbackOut = await this.execTool([
-          "tool",
-          "read-note",
-          identifier,
-        ])
-        const fallbackResult = parseJsonOutput(fallbackOut) as NoteResult
-        fallbackResult.content = stripFrontmatter(fallbackResult.content)
-        return fallbackResult
-      }
+    if (!isRecord(payload)) {
+      throw new Error("invalid read_note response")
     }
 
-    const out = await this.execTool(["tool", "read-note", identifier])
-    return parseJsonOutput(out) as NoteResult
+    const title = asString(payload.title)
+    const permalink = asString(payload.permalink)
+    const content = asString(payload.content)
+    const filePath = asString(payload.file_path)
+
+    if (!title || !permalink || content === null || !filePath) {
+      throw new Error("invalid read_note payload")
+    }
+
+    return {
+      title,
+      permalink,
+      content,
+      file_path: filePath,
+      frontmatter: isRecord(payload.frontmatter)
+        ? payload.frontmatter
+        : payload.frontmatter === null
+          ? null
+          : null,
+    }
   }
 
   async writeNote(
@@ -362,88 +517,165 @@ export class BmClient {
     content: string,
     folder: string,
   ): Promise<NoteResult> {
-    // write-note requires --format json (PR #552)
-    const out = await this.execTool([
-      "tool",
-      "write-note",
-      "--title",
+    const payload = await this.callTool("write_note", {
       title,
-      "--folder",
-      folder,
-      "--content",
       content,
-    ])
-    return parseJsonOutput(out) as NoteResult
+      directory: folder,
+      output_format: "json",
+    })
+
+    if (!isRecord(payload)) {
+      throw new Error("invalid write_note response")
+    }
+
+    const resultTitle = asString(payload.title)
+    const permalink = asString(payload.permalink)
+    const filePath = asString(payload.file_path)
+
+    if (!resultTitle || !permalink || !filePath) {
+      throw new Error("invalid write_note payload")
+    }
+
+    return {
+      title: resultTitle,
+      permalink,
+      content,
+      file_path: filePath,
+      checksum: asString(payload.checksum),
+      action:
+        payload.action === "created" || payload.action === "updated"
+          ? payload.action
+          : undefined,
+    }
   }
 
   async buildContext(url: string, depth = 1): Promise<ContextResult> {
-    // build-context always outputs JSON natively
-    const out = await this.execToolNativeJson([
-      "tool",
-      "build-context",
+    const payload = await this.callTool("build_context", {
       url,
-      "--depth",
-      String(depth),
-    ])
-    return parseJsonOutput(out) as ContextResult
+      depth,
+      format: "json",
+    })
+
+    if (!isRecord(payload) || !Array.isArray(payload.results)) {
+      throw new Error("invalid build_context response")
+    }
+
+    return payload as unknown as ContextResult
   }
 
   async recentActivity(timeframe = "24h"): Promise<RecentResult[]> {
-    // recent-activity requires --format json (PR #552)
-    const out = await this.execTool([
-      "tool",
-      "recent-activity",
-      "--timeframe",
+    const payload = await this.callTool("recent_activity", {
       timeframe,
-    ])
-    return parseJsonOutput(out) as RecentResult[]
+      output_format: "json",
+    })
+
+    if (Array.isArray(payload)) {
+      return payload as RecentResult[]
+    }
+
+    if (isRecord(payload) && Array.isArray(payload.items)) {
+      return payload.items as RecentResult[]
+    }
+
+    throw new Error("invalid recent_activity response")
   }
 
-  /**
-   * Edit a note using BM's native CLI edit-note command.
-   */
   async editNote(
     identifier: string,
     operation: "append" | "prepend" | "find_replace" | "replace_section",
     content: string,
     options: EditNoteOptions = {},
   ): Promise<EditNoteResult> {
-    const args = [
-      "tool",
-      "edit-note",
+    const payload = await this.callTool("edit_note", {
       identifier,
-      "--operation",
       operation,
-      "--content",
       content,
-    ]
+      find_text: options.find_text,
+      section: options.section,
+      expected_replacements: options.expected_replacements,
+      output_format: "json",
+    })
 
-    if (options.find_text) {
-      args.push("--find-text", options.find_text)
+    if (!isRecord(payload)) {
+      throw new Error("invalid edit_note response")
     }
 
-    if (options.section) {
-      args.push("--section", options.section)
+    const title = asString(payload.title)
+    const permalink = asString(payload.permalink)
+    const filePath = asString(payload.file_path)
+
+    if (!title || !permalink || !filePath) {
+      throw new Error("invalid edit_note payload")
     }
 
-    if (options.expected_replacements !== undefined) {
-      args.push(
-        "--expected-replacements",
-        String(options.expected_replacements),
+    return {
+      title,
+      permalink,
+      file_path: filePath,
+      operation,
+      checksum: asString(payload.checksum),
+    }
+  }
+
+  async deleteNote(
+    identifier: string,
+  ): Promise<{ title: string; permalink: string; file_path: string }> {
+    const payload = await this.callTool("delete_note", {
+      identifier,
+      output_format: "json",
+    })
+
+    if (!isRecord(payload)) {
+      throw new Error("invalid delete_note response")
+    }
+
+    if (payload.deleted !== true) {
+      throw new Error(`delete_note did not delete "${identifier}"`)
+    }
+
+    return {
+      title: asString(payload.title) ?? identifier,
+      permalink: asString(payload.permalink) ?? identifier,
+      file_path: asString(payload.file_path) ?? identifier,
+    }
+  }
+
+  async moveNote(identifier: string, newFolder: string): Promise<NoteResult> {
+    const source = await this.readNote(identifier, { includeFrontmatter: true })
+    const sourceFileName = posixPath.basename(source.file_path)
+
+    if (!sourceFileName || sourceFileName === "." || sourceFileName === "/") {
+      throw new Error(`invalid source file path for move: ${source.file_path}`)
+    }
+
+    const normalizedFolder = newFolder.replace(/^\/+|\/+$/g, "")
+    const destinationPath = normalizedFolder
+      ? `${normalizedFolder}/${sourceFileName}`
+      : sourceFileName
+
+    const payload = await this.callTool("move_note", {
+      identifier,
+      destination_path: destinationPath,
+      output_format: "json",
+    })
+
+    if (!isRecord(payload)) {
+      throw new Error("invalid move_note response")
+    }
+
+    if (payload.moved !== true) {
+      throw new Error(
+        asString(payload.error) ??
+          `move_note did not move "${identifier}" to "${destinationPath}"`,
       )
     }
 
-    try {
-      const out = await this.execTool(args)
-      return parseJsonOutput(out) as EditNoteResult
-    } catch (err) {
-      if (isMissingEditNoteCommandError(err)) {
-        throw new Error(
-          "bm tool edit-note is required for bm_edit. " +
-            "Please upgrade basic-memory to a version that supports edit-note.",
-        )
-      }
-      throw err
+    return {
+      title: asString(payload.title) ?? source.title,
+      permalink: asString(payload.permalink) ?? source.permalink,
+      content: source.content,
+      file_path: asString(payload.file_path) ?? destinationPath,
+      frontmatter: source.frontmatter ?? null,
     }
   }
 
@@ -451,79 +683,6 @@ export class BmClient {
     return isNoteNotFoundError(err)
   }
 
-  /**
-   * Delete a note from the knowledge graph.
-   *
-   * Since there's no `bm tool delete-note` CLI command, we resolve the
-   * note's file path via readNote, then delete the file. BM's file watcher
-   * will pick up the deletion and update the index.
-   */
-  async deleteNote(
-    identifier: string,
-    projectPath: string,
-  ): Promise<{ title: string; permalink: string; file_path: string }> {
-    const { unlink } = await import("node:fs/promises")
-    const { resolve } = await import("node:path")
-
-    // Read the note to get its file path and verify it exists
-    const note = await this.readNote(identifier)
-    const fullPath = resolve(projectPath, note.file_path)
-
-    await unlink(fullPath)
-    log.debug(`deleted file: ${fullPath}`)
-
-    return {
-      title: note.title,
-      permalink: note.permalink,
-      file_path: note.file_path,
-    }
-  }
-
-  /**
-   * Move a note to a new folder.
-   *
-   * Since there's no `bm tool move-note` CLI command, we read the note,
-   * write it to the new folder, then delete the old file.
-   */
-  async moveNote(
-    identifier: string,
-    newFolder: string,
-    projectPath: string,
-  ): Promise<NoteResult> {
-    const { unlink } = await import("node:fs/promises")
-    const { resolve } = await import("node:path")
-
-    // Read existing note
-    const existing = await this.readNote(identifier, {
-      includeFrontmatter: true,
-    })
-    const oldPath = resolve(projectPath, existing.file_path)
-
-    // Write to new folder (this creates the note at the new location)
-    const result = await this.writeNote(
-      existing.title,
-      existing.content,
-      newFolder,
-    )
-
-    // Delete old file
-    try {
-      await unlink(oldPath)
-      log.debug(`moved: ${existing.file_path} → ${result.file_path}`)
-    } catch {
-      log.debug(`old file already gone: ${oldPath}`)
-    }
-
-    return result
-  }
-
-  /**
-   * Index a conversation turn into the knowledge graph.
-   *
-   * Uses daily batched notes instead of per-turn notes to avoid flooding
-   * the knowledge graph. Each day gets one conversation note that is
-   * appended to throughout the day.
-   */
   async indexConversation(
     userMessage: string,
     assistantResponse: string,
@@ -558,8 +717,8 @@ export class BmClient {
       try {
         await this.writeNote(title, content, "conversations")
         log.debug(`created conversation note: ${title}`)
-      } catch (err) {
-        log.error("conversation index failed", err)
+      } catch (createErr) {
+        log.error("conversation index failed", createErr)
       }
     }
   }

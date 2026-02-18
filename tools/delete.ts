@@ -1,13 +1,11 @@
 import { Type } from "@sinclair/typebox"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import type { BasicMemoryConfig } from "../config.ts"
 import { log } from "../logger.ts"
 
 export function registerDeleteTool(
   api: OpenClawPluginApi,
   client: BmClient,
-  cfg: BasicMemoryConfig,
 ): void {
   api.registerTool(
     {
@@ -25,10 +23,7 @@ export function registerDeleteTool(
         log.debug(`bm_delete: identifier="${params.identifier}"`)
 
         try {
-          const result = await client.deleteNote(
-            params.identifier,
-            cfg.projectPath,
-          )
+          const result = await client.deleteNote(params.identifier)
 
           return {
             content: [
