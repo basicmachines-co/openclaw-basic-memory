@@ -3,6 +3,7 @@ import { promisify } from "node:util"
 import { log } from "./logger.ts"
 
 const execFileAsync = promisify(execFile)
+let bmCallCounter = 0
 
 /**
  * Strip YAML frontmatter from note content.
@@ -106,6 +107,17 @@ export function parseJsonOutput(raw: string): unknown {
   throw new Error(`Could not parse JSON from bm output: ${raw.slice(0, 200)}`)
 }
 
+function quoteArgForLog(arg: string): string {
+  if (/^[A-Za-z0-9_./:@%+=,-]+$/.test(arg)) return arg
+  return `"${arg.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+}
+
+export function formatCommandForLog(cmd: string, args: string[]): string {
+  return [quoteArgForLog(cmd), ...args.map((arg) => quoteArgForLog(arg))].join(
+    " ",
+  )
+}
+
 function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
@@ -161,20 +173,52 @@ export class BmClient {
    * Run a raw bm command with no automatic flags.
    */
   private async execRaw(args: string[]): Promise<string> {
-    log.debug(`exec: ${this.bmPath} ${args.join(" ")}`)
+    const callId = ++bmCallCounter
+    const startedAt = Date.now()
+    const renderedCommand = formatCommandForLog(this.bmPath, args)
+    log.debug(`[bm:${callId}] exec start: ${renderedCommand}`)
+    log.debug(`[bm:${callId}] exec args`, args)
 
     try {
-      const { stdout } = await execFileAsync(this.bmPath, args, {
+      const { stdout, stderr } = await execFileAsync(this.bmPath, args, {
         timeout: 30_000,
         maxBuffer: 10 * 1024 * 1024,
       })
-      return stdout.trim()
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      log.debug(`bm command failed: ${this.bmPath} ${args.join(" ")} — ${msg}`)
-      throw new Error(
-        `bm command failed: ${this.bmPath} ${args.join(" ")} — ${msg}`,
+      const durationMs = Date.now() - startedAt
+      const trimmedStdout = stdout.trim()
+
+      log.debug(
+        `[bm:${callId}] exec success (${durationMs}ms): ${renderedCommand}`,
       )
+      log.debug(`[bm:${callId}] stdout`, stdout)
+      log.debug(`[bm:${callId}] stdout (trimmed)`, trimmedStdout)
+      if (stderr.trim().length > 0) {
+        log.debug(`[bm:${callId}] stderr`, stderr)
+      }
+
+      return trimmedStdout
+    } catch (err) {
+      const durationMs = Date.now() - startedAt
+      const msg = err instanceof Error ? err.message : String(err)
+      const failedStdout =
+        typeof (err as { stdout?: unknown }).stdout === "string"
+          ? (err as { stdout: string }).stdout
+          : ""
+      const failedStderr =
+        typeof (err as { stderr?: unknown }).stderr === "string"
+          ? (err as { stderr: string }).stderr
+          : ""
+
+      log.debug(
+        `[bm:${callId}] exec failure (${durationMs}ms): ${renderedCommand} — ${msg}`,
+      )
+      if (failedStdout.trim().length > 0) {
+        log.debug(`[bm:${callId}] stdout (error path)`, failedStdout)
+      }
+      if (failedStderr.trim().length > 0) {
+        log.debug(`[bm:${callId}] stderr (error path)`, failedStderr)
+      }
+      throw new Error(`bm command failed: ${renderedCommand} — ${msg}`)
     }
   }
 

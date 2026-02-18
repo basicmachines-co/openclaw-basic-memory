@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import {
   BmClient,
+  formatCommandForLog,
   isMissingEditNoteCommandError,
   isNoteNotFoundError,
   isProjectAlreadyExistsError,
@@ -37,6 +38,26 @@ Warning: something happened
       expect(parseJsonOutput(output)).toEqual({
         results: [{ title: "Test", permalink: "test" }],
       })
+    })
+  })
+
+  describe("formatCommandForLog", () => {
+    it("quotes arguments with spaces", () => {
+      expect(
+        formatCommandForLog("/usr/local/bin/bm", [
+          "tool",
+          "search-notes",
+          "marketing strategy",
+          "--hybrid",
+          "--page-size",
+          "3",
+          "--project",
+          "claw",
+          "--local",
+        ]),
+      ).toBe(
+        '/usr/local/bin/bm tool search-notes "marketing strategy" --hybrid --page-size 3 --project claw --local',
+      )
     })
   })
 
@@ -258,6 +279,22 @@ describe("BmClient behavior", () => {
         is_private: true,
         is_default: true,
       },
+    ])
+  })
+
+  it("search passes multi-word query as a single argument", async () => {
+    const execToolNativeJson = jest.fn().mockResolvedValue('{"results":[]}')
+    ;(client as any).execToolNativeJson = execToolNativeJson
+
+    await client.search("marketing strategy", 3)
+
+    expect(execToolNativeJson).toHaveBeenCalledWith([
+      "tool",
+      "search-notes",
+      "marketing strategy",
+      "--hybrid",
+      "--page-size",
+      "3",
     ])
   })
 
