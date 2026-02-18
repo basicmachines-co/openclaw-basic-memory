@@ -3,7 +3,7 @@
 # Install dependencies
 install:
     bun install
-    uv tool install 'basic-memory[semantic] @ git+https://github.com/basicmachines-co/basic-memory.git@9259a7eb59be7aa8a72c3ec20d0740bd19ba9657' --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
+    uv tool install 'basic-memory[semantic] @ git+https://github.com/basicmachines-co/basic-memory.git@f2683291e478568cdf1676759ed98c70d7cfdac3' --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
 
 # Setup Basic Memory project
 setup:
