@@ -79,7 +79,11 @@ export function registerCli(
           async (
             identifier: string,
             opts: {
-              operation: "append" | "prepend" | "find_replace" | "replace_section"
+              operation:
+                | "append"
+                | "prepend"
+                | "find_replace"
+                | "replace_section"
               content: string
               findText?: string
               section?: string

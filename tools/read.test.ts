@@ -43,8 +43,8 @@ describe("read tool", () => {
 
     beforeEach(() => {
       registerReadTool(mockApi, mockClient)
-      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
-        .calls[0]
+      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>)
+        .mock.calls[0]
       executeFunction = registerCall[0].execute
     })
 
@@ -57,7 +57,9 @@ describe("read tool", () => {
         frontmatter: { title: "Test Note", status: "active" },
       }
 
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
+      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockNote,
+      )
 
       const result = await executeFunction("tool-call-id", {
         identifier: "test-note",
@@ -83,7 +85,8 @@ describe("read tool", () => {
     })
 
     it("reads note with raw content when include_frontmatter is true", async () => {
-      const raw = "---\ntitle: Test Note\nstatus: active\n---\n\nBody only content"
+      const raw =
+        "---\ntitle: Test Note\nstatus: active\n---\n\nBody only content"
       const mockNote = {
         title: "Test Note",
         permalink: "test-note",
@@ -92,7 +95,9 @@ describe("read tool", () => {
         frontmatter: { title: "Test Note", status: "active" },
       }
 
-      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(mockNote)
+      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockNote,
+      )
 
       const result = await executeFunction("tool-call-id", {
         identifier: "test-note",

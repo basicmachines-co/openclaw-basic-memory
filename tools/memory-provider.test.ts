@@ -64,7 +64,8 @@ describe("memory provider tools", () => {
 
     beforeEach(() => {
       registerMemoryProvider(mockApi, mockClient, makeCfg())
-      const searchCall = (mockApi.registerTool as jest.MockedFunction<any>).mock.calls[0]
+      const searchCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
+        .calls[0]
       searchExecute = searchCall[0].execute
     })
 
@@ -92,7 +93,9 @@ describe("memory provider tools", () => {
 
       const result = await searchExecute("id", { query: "nonexistent" })
 
-      expect(result.content[0].text).toBe("No matches found across memory sources.")
+      expect(result.content[0].text).toBe(
+        "No matches found across memory sources.",
+      )
     })
 
     it("should handle BM search errors gracefully", async () => {
@@ -112,7 +115,8 @@ describe("memory provider tools", () => {
 
     beforeEach(() => {
       registerMemoryProvider(mockApi, mockClient, makeCfg())
-      const getCall = (mockApi.registerTool as jest.MockedFunction<any>).mock.calls[1]
+      const getCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
+        .calls[1]
       getExecute = getCall[0].execute
     })
 

@@ -57,8 +57,8 @@ describe("write tool", () => {
 
     beforeEach(() => {
       registerWriteTool(mockApi, mockClient)
-      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
-        .calls[0]
+      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>)
+        .mock.calls[0]
       executeFunction = registerCall[0].execute
     })
 
@@ -70,7 +70,9 @@ describe("write tool", () => {
         file_path: "notes/test-note.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       const result = await executeFunction("tool-call-id", {
         title: "Test Note",
@@ -107,7 +109,9 @@ describe("write tool", () => {
         file_path: "root-note.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       await executeFunction("tool-call-id", {
         title: "Root Note",
@@ -130,7 +134,9 @@ describe("write tool", () => {
         file_path: "projects/subfolder/nested-note.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       await executeFunction("tool-call-id", {
         title: "Nested Note",
@@ -170,7 +176,9 @@ const code = "example";
         file_path: "notes/markdown-note.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       await executeFunction("tool-call-id", {
         title: "Markdown Note",
@@ -194,7 +202,9 @@ const code = "example";
         file_path: "notes/note-with-special-characters.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       await executeFunction("tool-call-id", {
         title: specialTitle,
@@ -220,7 +230,9 @@ const code = "example";
         file_path: "notes/unicode-note.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       await executeFunction("tool-call-id", {
         title: unicodeTitle,
@@ -244,7 +256,9 @@ const code = "example";
         file_path: "notes/long-note.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       await executeFunction("tool-call-id", {
         title: "Long Note",
@@ -267,7 +281,9 @@ const code = "example";
         file_path: "notes/empty-note.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       await executeFunction("tool-call-id", {
         title: "Empty Note",
@@ -275,12 +291,18 @@ const code = "example";
         folder: "notes",
       })
 
-      expect(mockClient.writeNote).toHaveBeenCalledWith("Empty Note", "", "notes")
+      expect(mockClient.writeNote).toHaveBeenCalledWith(
+        "Empty Note",
+        "",
+        "notes",
+      )
     })
 
     it("should handle write errors gracefully", async () => {
       const writeError = new Error("Failed to write note")
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockRejectedValue(writeError)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockRejectedValue(
+        writeError,
+      )
 
       const result = await executeFunction("tool-call-id", {
         title: "Failed Note",
@@ -314,7 +336,9 @@ Normal line
         file_path: "notes/formatted-note.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       await executeFunction("tool-call-id", {
         title: "Formatted Note",
@@ -338,7 +362,9 @@ Normal line
         file_path: "notes/title-with-line-break.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       await executeFunction("tool-call-id", {
         title: multilineTitle,
@@ -361,7 +387,9 @@ Normal line
         file_path: "custom/folder/detailed-note.md",
       }
 
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(mockResult)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue(
+        mockResult,
+      )
 
       const result = await executeFunction("tool-call-id", {
         title: "Detailed Note",
@@ -379,7 +407,9 @@ Normal line
     it("should handle network or service errors", async () => {
       const networkError = new Error("Connection refused")
       networkError.code = "ECONNREFUSED"
-      ;(mockClient.writeNote as jest.MockedFunction<any>).mockRejectedValue(networkError)
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockRejectedValue(
+        networkError,
+      )
 
       const result = await executeFunction("tool-call-id", {
         title: "Network Note",

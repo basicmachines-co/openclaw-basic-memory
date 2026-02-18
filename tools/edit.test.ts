@@ -32,7 +32,9 @@ describe("edit tool", () => {
               content: expect.objectContaining({ type: "string" }),
               find_text: expect.objectContaining({ type: "string" }),
               section: expect.objectContaining({ type: "string" }),
-              expected_replacements: expect.objectContaining({ type: "number" }),
+              expected_replacements: expect.objectContaining({
+                type: "number",
+              }),
             }),
           }),
           execute: expect.any(Function),
@@ -47,8 +49,8 @@ describe("edit tool", () => {
 
     beforeEach(() => {
       registerEditTool(mockApi, mockClient)
-      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
-        .calls[0]
+      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>)
+        .mock.calls[0]
       executeFunction = registerCall[0].execute
     })
 

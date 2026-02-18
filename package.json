@@ -4,6 +4,31 @@
   "type": "module",
   "description": "Basic Memory plugin for OpenClaw — local-first knowledge graph for agent memory",
   "license": "MIT",
+  "files": [
+    "index.ts",
+    "bm-client.ts",
+    "config.ts",
+    "logger.ts",
+    "commands/cli.ts",
+    "commands/slash.ts",
+    "hooks/capture.ts",
+    "tools/context.ts",
+    "tools/delete.ts",
+    "tools/edit.ts",
+    "tools/memory-provider.ts",
+    "tools/move.ts",
+    "tools/project-list.ts",
+    "tools/read.ts",
+    "tools/search.ts",
+    "tools/write.ts",
+    "types/openclaw.d.ts",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@sinclair/typebox": "0.34.47"
   },
@@ -15,7 +40,8 @@
     "lint": "bunx @biomejs/biome ci .",
     "lint:fix": "bunx @biomejs/biome check --write .",
     "test": "bun test",
-    "test:coverage": "bun test --coverage"
+    "test:coverage": "bun test --coverage",
+    "release:check": "bun run check-types && bun test && npm pack --dry-run"
   },
   "openclaw": {
     "extensions": [

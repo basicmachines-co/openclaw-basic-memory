@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import {
   BmClient,
-  isProjectAlreadyExistsError,
   isMissingEditNoteCommandError,
   isNoteNotFoundError,
+  isProjectAlreadyExistsError,
   isUnsupportedStripFrontmatterError,
   parseJsonOutput,
   stripFrontmatter,
@@ -47,18 +47,18 @@ Warning: something happened
           new Error("No such option: --strip-frontmatter"),
         ),
       ).toBe(true)
-      expect(isUnsupportedStripFrontmatterError(new Error("different error"))).toBe(
-        false,
-      )
+      expect(
+        isUnsupportedStripFrontmatterError(new Error("different error")),
+      ).toBe(false)
     })
 
     it("detects missing edit-note command errors", () => {
       expect(
         isMissingEditNoteCommandError(new Error("No such command 'edit-note'")),
       ).toBe(true)
-      expect(isMissingEditNoteCommandError(new Error("validation failed"))).toBe(
-        false,
-      )
+      expect(
+        isMissingEditNoteCommandError(new Error("validation failed")),
+      ).toBe(false)
     })
 
     it("detects note-not-found errors and excludes missing command errors", () => {
@@ -199,9 +199,7 @@ describe("BmClient behavior", () => {
   })
 
   it("ensureProject throws when project creation fails for other reasons", async () => {
-    const execRaw = jest
-      .fn()
-      .mockRejectedValue(new Error("permission denied"))
+    const execRaw = jest.fn().mockRejectedValue(new Error("permission denied"))
     ;(client as any).execRaw = execRaw
 
     await expect(client.ensureProject("/tmp/memory")).rejects.toThrow(
@@ -230,13 +228,49 @@ describe("BmClient behavior", () => {
     ])
   })
 
+  it("listProjects runs bm project list --format json", async () => {
+    const execRaw = jest.fn().mockResolvedValue(
+      JSON.stringify([
+        {
+          name: "alpha",
+          path: "/tmp/alpha",
+          display_name: "Alpha Project",
+          is_private: true,
+          is_default: true,
+        },
+      ]),
+    )
+    ;(client as any).execRaw = execRaw
+
+    const projects = await client.listProjects()
+
+    expect(execRaw).toHaveBeenCalledWith([
+      "project",
+      "list",
+      "--format",
+      "json",
+    ])
+    expect(projects).toEqual([
+      {
+        name: "alpha",
+        path: "/tmp/alpha",
+        display_name: "Alpha Project",
+        is_private: true,
+        is_default: true,
+      },
+    ])
+  })
+
   it("indexConversation does not create fallback note on non-not-found edit errors", async () => {
     ;(client as any).editNote = jest
       .fn()
       .mockRejectedValue(new Error("No such command 'edit-note'"))
     ;(client as any).writeNote = jest.fn()
 
-    await client.indexConversation("user message long enough", "assistant reply long enough")
+    await client.indexConversation(
+      "user message long enough",
+      "assistant reply long enough",
+    )
 
     expect((client as any).writeNote).not.toHaveBeenCalled()
   })
@@ -252,7 +286,10 @@ describe("BmClient behavior", () => {
       file_path: "conversations/x.md",
     })
 
-    await client.indexConversation("user message long enough", "assistant reply long enough")
+    await client.indexConversation(
+      "user message long enough",
+      "assistant reply long enough",
+    )
 
     expect((client as any).writeNote).toHaveBeenCalledTimes(1)
     const [title, content, folder] = (client as any).writeNote.mock.calls[0]

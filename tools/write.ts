@@ -26,9 +26,7 @@ export function registerWriteTool(
         _toolCallId: string,
         params: { title: string; content: string; folder: string },
       ) {
-        log.debug(
-          "bm_write: title=" + params.title + " folder=" + params.folder,
-        )
+        log.debug(`bm_write: title=${params.title} folder=${params.folder}`)
 
         try {
           const note = await client.writeNote(

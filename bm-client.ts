@@ -69,6 +69,15 @@ export interface RecentResult {
   created_at: string
 }
 
+export interface ProjectListResult {
+  name: string
+  path: string
+  display_name?: string | null
+  is_private?: boolean
+  is_default?: boolean
+  isDefault?: boolean
+}
+
 /**
  * Extract JSON from CLI output that may contain non-JSON prefix lines
  * (warnings, log messages, etc). Finds the first line starting with
@@ -219,6 +228,27 @@ export class BmClient {
     }
   }
 
+  async listProjects(): Promise<ProjectListResult[]> {
+    const out = await this.execRaw(["project", "list", "--format", "json"])
+    const parsed = parseJsonOutput(out)
+
+    if (Array.isArray(parsed)) {
+      return parsed as ProjectListResult[]
+    }
+
+    if (parsed && typeof parsed === "object") {
+      const asRecord = parsed as Record<string, unknown>
+      if (Array.isArray(asRecord.projects)) {
+        return asRecord.projects as ProjectListResult[]
+      }
+      if (Array.isArray(asRecord.items)) {
+        return asRecord.items as ProjectListResult[]
+      }
+    }
+
+    throw new Error("invalid bm project list response")
+  }
+
   async search(query: string, limit = 10): Promise<SearchResult[]> {
     // search-notes outputs JSON natively (no --format flag needed)
     // Try hybrid search (FTS + vector) first, fall back to FTS if semantic is disabled
@@ -268,7 +298,11 @@ export class BmClient {
         if (!isUnsupportedStripFrontmatterError(err)) {
           throw err
         }
-        const fallbackOut = await this.execTool(["tool", "read-note", identifier])
+        const fallbackOut = await this.execTool([
+          "tool",
+          "read-note",
+          identifier,
+        ])
         const fallbackResult = parseJsonOutput(fallbackOut) as NoteResult
         fallbackResult.content = stripFrontmatter(fallbackResult.content)
         return fallbackResult
@@ -349,7 +383,10 @@ export class BmClient {
     }
 
     if (options.expected_replacements !== undefined) {
-      args.push("--expected-replacements", String(options.expected_replacements))
+      args.push(
+        "--expected-replacements",
+        String(options.expected_replacements),
+      )
     }
 
     try {
@@ -419,7 +456,11 @@ export class BmClient {
     const oldPath = resolve(projectPath, existing.file_path)
 
     // Write to new folder (this creates the note at the new location)
-    const result = await this.writeNote(existing.title, existing.content, newFolder)
+    const result = await this.writeNote(
+      existing.title,
+      existing.content,
+      newFolder,
+    )
 
     // Delete old file
     try {

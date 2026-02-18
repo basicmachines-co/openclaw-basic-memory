@@ -1,5 +1,5 @@
-import { readFile, readdir } from "node:fs/promises"
-import { resolve, join } from "node:path"
+import { readdir, readFile } from "node:fs/promises"
+import { join, resolve } from "node:path"
 import { Type } from "@sinclair/typebox"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
@@ -97,7 +97,9 @@ async function searchActiveTasks(
     const tasksDir = resolve(workspaceDir, memoryDir, "tasks")
     let entries: import("node:fs").Dirent[]
     try {
-      entries = await readdir(tasksDir, { withFileTypes: true }) as unknown as import("node:fs").Dirent[]
+      entries = (await readdir(tasksDir, {
+        withFileTypes: true,
+      })) as unknown as import("node:fs").Dirent[]
     } catch {
       return ""
     }
@@ -126,7 +128,9 @@ async function searchActiveTasks(
       const stepMatch = content.match(/current_step:\s*(\S+)/)
       const currentStep = stepMatch?.[1] ?? "?"
 
-      const contextMatch = content.match(/## Context\s*\n([\s\S]*?)(?=\n##|\n---|$)/)
+      const contextMatch = content.match(
+        /## Context\s*\n([\s\S]*?)(?=\n##|\n---|$)/,
+      )
       const context = contextMatch?.[1]?.trim().slice(0, 150) ?? ""
 
       matches.push(

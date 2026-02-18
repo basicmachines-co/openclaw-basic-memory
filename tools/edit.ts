@@ -42,7 +42,8 @@ export function registerEditTool(
         ),
         section: Type.Optional(
           Type.String({
-            description: "Section heading to replace (required for replace_section)",
+            description:
+              "Section heading to replace (required for replace_section)",
           }),
         ),
         expected_replacements: Type.Optional(

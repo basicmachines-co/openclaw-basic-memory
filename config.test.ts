@@ -103,9 +103,9 @@ describe("config", () => {
     })
 
     it("should throw error for unknown config keys", () => {
-      expect(() =>
-        parseConfig({ unknownKey: "value" }),
-      ).toThrow("basic-memory config has unknown keys: unknownKey")
+      expect(() => parseConfig({ unknownKey: "value" })).toThrow(
+        "basic-memory config has unknown keys: unknownKey",
+      )
     })
 
     it("should handle complete config object", () => {

@@ -30,11 +30,59 @@ For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
 
 ## Installation
 
-Clone and install:
+### Install in OpenClaw (local directory)
+
 ```bash
 git clone https://github.com/basicmachines-co/openclaw-basic-memory.git
 cd openclaw-basic-memory
 bun install
+openclaw plugins install -l "$PWD"
+```
+
+Then set this plugin as the memory slot owner in your OpenClaw config:
+
+```json5
+{
+  plugins: {
+    entries: {
+      "basic-memory": {
+        enabled: true
+      }
+    },
+    slots: {
+      memory: "basic-memory"
+    }
+  }
+}
+```
+
+Restart OpenClaw gateway after install/config changes, then verify:
+
+```bash
+openclaw plugins list
+openclaw plugins info basic-memory
+```
+
+### Manual Load Path (Dev Alternative)
+
+If you prefer loading directly from a path in config instead of `plugins install`:
+
+```json5
+{
+  plugins: {
+    load: {
+      paths: ["~/dev/openclaw-basic-memory"]
+    },
+    entries: {
+      "basic-memory": {
+        enabled: true
+      }
+    },
+    slots: {
+      memory: "basic-memory"
+    }
+  }
+}
 ```
 
 ### Optional: Install Companion Skills
@@ -59,22 +107,6 @@ If you want these skills available to multiple workspaces/agents on the same mac
 install to `~/.openclaw/skills/` instead.
 
 After installation, start a new OpenClaw session so the refreshed skill set is loaded.
-
-Add to your OpenClaw config:
-```json5
-{
-  plugins: {
-    load: {
-      paths: ["~/dev/openclaw-basic-memory"]
-    },
-    entries: {
-      "basic-memory": {
-        enabled: true
-      }
-    }
-  }
-}
-```
 
 ## Configuration
 
@@ -342,6 +374,30 @@ openclaw gateway stop && openclaw gateway start
 bun run check-types   # Type checking
 bun run lint          # Linting
 bun test              # Run tests (156 tests)
+```
+
+## Publish to npm
+
+This package is published as `@openclaw/basic-memory`.
+
+```bash
+# 1) Verify release readiness (types + tests + npm pack dry run)
+just release-check
+
+# 2) Inspect publish payload
+just release-pack
+
+# 3) Authenticate once (if needed)
+npm login
+
+# 4) Publish current version from package.json
+just release-publish
+```
+
+For a full release (version bump + publish + push tag):
+
+```bash
+just release patch   # or: minor, major, 0.2.0, etc.
 ```
 
 ### Project Structure

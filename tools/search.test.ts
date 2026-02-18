@@ -25,7 +25,9 @@ describe("search tool", () => {
         expect.objectContaining({
           name: "bm_search",
           label: "Knowledge Search",
-          description: expect.stringContaining("Search the Basic Memory knowledge graph"),
+          description: expect.stringContaining(
+            "Search the Basic Memory knowledge graph",
+          ),
           parameters: expect.objectContaining({
             type: "object",
             properties: expect.objectContaining({
@@ -51,8 +53,8 @@ describe("search tool", () => {
 
     beforeEach(() => {
       registerSearchTool(mockApi, mockClient)
-      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
-        .calls[0]
+      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>)
+        .mock.calls[0]
       executeFunction = registerCall[0].execute
     })
 
@@ -74,7 +76,9 @@ describe("search tool", () => {
         },
       ]
 
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(
+        mockResults,
+      )
 
       const result = await executeFunction("tool-call-id", {
         query: "test query",
@@ -133,7 +137,9 @@ describe("search tool", () => {
         },
       ]
 
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(
+        mockResults,
+      )
 
       const result = await executeFunction("tool-call-id", { query: "test" })
 
@@ -152,7 +158,9 @@ describe("search tool", () => {
         },
       ]
 
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(
+        mockResults,
+      )
 
       const result = await executeFunction("tool-call-id", { query: "test" })
 
@@ -173,12 +181,14 @@ describe("search tool", () => {
         },
       ]
 
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(
+        mockResults,
+      )
 
       const result = await executeFunction("tool-call-id", { query: "test" })
 
       const text = result.content[0].text
-      expect(text).toContain("a".repeat(200) + "...")
+      expect(text).toContain(`${"a".repeat(200)}...`)
       expect(text).not.toContain("a".repeat(250))
     })
 
@@ -194,7 +204,9 @@ describe("search tool", () => {
         },
       ]
 
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(
+        mockResults,
+      )
 
       const result = await executeFunction("tool-call-id", { query: "test" })
 
@@ -206,7 +218,9 @@ describe("search tool", () => {
     it("should return appropriate message when no results found", async () => {
       ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([])
 
-      const result = await executeFunction("tool-call-id", { query: "nonexistent" })
+      const result = await executeFunction("tool-call-id", {
+        query: "nonexistent",
+      })
 
       expect(result).toEqual({
         content: [
@@ -220,7 +234,9 @@ describe("search tool", () => {
 
     it("should handle search errors gracefully", async () => {
       const searchError = new Error("Search service unavailable")
-      ;(mockClient.search as jest.MockedFunction<any>).mockRejectedValue(searchError)
+      ;(mockClient.search as jest.MockedFunction<any>).mockRejectedValue(
+        searchError,
+      )
 
       const result = await executeFunction("tool-call-id", { query: "test" })
 
@@ -256,7 +272,9 @@ describe("search tool", () => {
         },
       ]
 
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(
+        mockResults,
+      )
 
       const result = await executeFunction("tool-call-id", { query: "test" })
 
@@ -283,7 +301,9 @@ describe("search tool", () => {
         },
       ]
 
-      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(mockResults)
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue(
+        mockResults,
+      )
 
       const result = await executeFunction("tool-call-id", { query: "test" })
 

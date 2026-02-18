@@ -53,7 +53,10 @@ function expandUserPath(path: string): string {
   return path
 }
 
-export function resolveProjectPath(projectPath: string, workspaceDir: string): string {
+export function resolveProjectPath(
+  projectPath: string,
+  workspaceDir: string,
+): string {
   const expanded = expandUserPath(projectPath)
   if (isAbsolute(expanded)) return expanded
   return resolve(workspaceDir, expanded)
@@ -73,14 +76,16 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
   const memoryDir =
     typeof cfg.memoryDir === "string" && cfg.memoryDir.length > 0
       ? cfg.memoryDir
-      : typeof cfg.memory_dir === "string" && (cfg.memory_dir as string).length > 0
+      : typeof cfg.memory_dir === "string" &&
+          (cfg.memory_dir as string).length > 0
         ? (cfg.memory_dir as string)
         : "memory/"
 
   const memoryFile =
     typeof cfg.memoryFile === "string" && cfg.memoryFile.length > 0
       ? cfg.memoryFile
-      : typeof cfg.memory_file === "string" && (cfg.memory_file as string).length > 0
+      : typeof cfg.memory_file === "string" &&
+          (cfg.memory_file as string).length > 0
         ? (cfg.memory_file as string)
         : "MEMORY.md"
 

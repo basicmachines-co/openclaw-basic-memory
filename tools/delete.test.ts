@@ -19,16 +19,20 @@ describe("delete tool", () => {
 
   async function loadAndRegister() {
     const { registerDeleteTool } = await import("./delete.ts")
-    registerDeleteTool(mockApi as any, mockClient as any, {
-      projectPath: "/tmp/test-project",
-    } as any)
+    registerDeleteTool(
+      mockApi as any,
+      mockClient as any,
+      {
+        projectPath: "/tmp/test-project",
+      } as any,
+    )
     return registeredTool!
   }
 
   it("should register bm_delete tool", async () => {
     await loadAndRegister()
     expect(registeredTool).not.toBeNull()
-    expect(registeredTool!.name).toBe("bm_delete")
+    expect(registeredTool?.name).toBe("bm_delete")
   })
 
   it("should delete a note successfully", async () => {
@@ -39,7 +43,9 @@ describe("delete tool", () => {
       file_path: "notes/old-note.md",
     })
 
-    const result = await tool.execute("call-1", { identifier: "notes/old-note" })
+    const result = await tool.execute("call-1", {
+      identifier: "notes/old-note",
+    })
     expect(result.content[0].text).toContain("Deleted")
     expect(result.content[0].text).toContain("old-note")
   })

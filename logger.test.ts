@@ -31,7 +31,9 @@ describe("logger", () => {
 
     it("should call backend.info with prefixed message", () => {
       log.info("test message")
-      expect(mockBackend.info).toHaveBeenCalledWith("basic-memory: test message")
+      expect(mockBackend.info).toHaveBeenCalledWith(
+        "basic-memory: test message",
+      )
     })
 
     it("should pass through additional arguments", () => {
@@ -51,7 +53,9 @@ describe("logger", () => {
 
     it("should call backend.warn with prefixed message", () => {
       log.warn("warning message")
-      expect(mockBackend.warn).toHaveBeenCalledWith("basic-memory: warning message")
+      expect(mockBackend.warn).toHaveBeenCalledWith(
+        "basic-memory: warning message",
+      )
     })
 
     it("should pass through additional arguments", () => {
@@ -70,7 +74,9 @@ describe("logger", () => {
 
     it("should call backend.error with prefixed message", () => {
       log.error("error message")
-      expect(mockBackend.error).toHaveBeenCalledWith("basic-memory: error message")
+      expect(mockBackend.error).toHaveBeenCalledWith(
+        "basic-memory: error message",
+      )
     })
 
     it("should append error message when Error is provided", () => {
@@ -100,12 +106,16 @@ describe("logger", () => {
       )
 
       log.error("error message", undefined)
-      expect(mockBackend.error).toHaveBeenCalledWith("basic-memory: error message")
+      expect(mockBackend.error).toHaveBeenCalledWith(
+        "basic-memory: error message",
+      )
     })
 
     it("should handle empty/falsy error values", () => {
       log.error("error message", "")
-      expect(mockBackend.error).toHaveBeenCalledWith("basic-memory: error message")
+      expect(mockBackend.error).toHaveBeenCalledWith(
+        "basic-memory: error message",
+      )
 
       log.error("error message", 0)
       expect(mockBackend.error).toHaveBeenCalledWith(

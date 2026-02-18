@@ -30,11 +30,12 @@ export const log = {
   },
 
   error(msg: string, err?: unknown): void {
-    const detail = err instanceof Error 
-      ? err.message 
-      : err !== undefined && err !== "" 
-        ? String(err) 
-        : ""
+    const detail =
+      err instanceof Error
+        ? err.message
+        : err !== undefined && err !== ""
+          ? String(err)
+          : ""
     _backend.error(`basic-memory: ${msg}${detail ? ` — ${detail}` : ""}`)
   },
 

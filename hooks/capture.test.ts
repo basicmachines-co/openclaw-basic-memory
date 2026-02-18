@@ -24,7 +24,10 @@ describe("capture hook", () => {
 
   describe("buildCaptureHandler", () => {
     it("should return a function", () => {
-      const handler = buildCaptureHandler(mockClient as unknown as BmClient, mockConfig)
+      const handler = buildCaptureHandler(
+        mockClient as unknown as BmClient,
+        mockConfig,
+      )
       expect(typeof handler).toBe("function")
     })
   })
@@ -33,14 +36,20 @@ describe("capture hook", () => {
     let captureHandler: Function
 
     beforeEach(() => {
-      captureHandler = buildCaptureHandler(mockClient as unknown as BmClient, mockConfig)
+      captureHandler = buildCaptureHandler(
+        mockClient as unknown as BmClient,
+        mockConfig,
+      )
     })
 
     it("should ignore events without success", async () => {
-      await captureHandler({ success: false, messages: [
-        { role: "user", content: "Hello" },
-        { role: "assistant", content: "Hi there" },
-      ]})
+      await captureHandler({
+        success: false,
+        messages: [
+          { role: "user", content: "Hello" },
+          { role: "assistant", content: "Hi there" },
+        ],
+      })
       expect(mockClient.indexConversation).not.toHaveBeenCalled()
     })
 
@@ -64,7 +73,10 @@ describe("capture hook", () => {
         success: true,
         messages: [
           { role: "user", content: "What is the weather like?" },
-          { role: "assistant", content: "I don't have access to real-time weather data." },
+          {
+            role: "assistant",
+            content: "I don't have access to real-time weather data.",
+          },
         ],
       })
       expect(mockClient.indexConversation).toHaveBeenCalledWith(
@@ -93,8 +105,20 @@ describe("capture hook", () => {
       await captureHandler({
         success: true,
         messages: [
-          { role: "user", content: [{ type: "text", text: "Please explain" }, { type: "text", text: " how this works" }] },
-          { role: "assistant", content: [{ type: "text", text: "Here's how it works:" }, { type: "text", text: " step by step explanation" }] },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Please explain" },
+              { type: "text", text: " how this works" },
+            ],
+          },
+          {
+            role: "assistant",
+            content: [
+              { type: "text", text: "Here's how it works:" },
+              { type: "text", text: " step by step explanation" },
+            ],
+          },
         ],
       })
       expect(mockClient.indexConversation).toHaveBeenCalledWith(
@@ -158,7 +182,9 @@ describe("capture hook", () => {
     it("should handle conversation with only assistant message", async () => {
       await captureHandler({
         success: true,
-        messages: [{ role: "assistant", content: "This is a long assistant message" }],
+        messages: [
+          { role: "assistant", content: "This is a long assistant message" },
+        ],
       })
       expect(mockClient.indexConversation).not.toHaveBeenCalled()
     })

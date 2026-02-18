@@ -1,5 +1,5 @@
-import { spawn } from "node:child_process"
 import type { ChildProcess } from "node:child_process"
+import { spawn } from "node:child_process"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import { BmClient } from "./bm-client.ts"
 import { registerCli } from "./commands/cli.ts"
@@ -14,8 +14,12 @@ import { initLogger, log } from "./logger.ts"
 import { registerContextTool } from "./tools/context.ts"
 import { registerDeleteTool } from "./tools/delete.ts"
 import { registerEditTool } from "./tools/edit.ts"
-import { registerMemoryProvider, setWorkspaceDir } from "./tools/memory-provider.ts"
+import {
+  registerMemoryProvider,
+  setWorkspaceDir,
+} from "./tools/memory-provider.ts"
 import { registerMoveTool } from "./tools/move.ts"
+import { registerProjectListTool } from "./tools/project-list.ts"
 import { registerReadTool } from "./tools/read.ts"
 import { registerSearchTool } from "./tools/search.ts"
 import { registerWriteTool } from "./tools/write.ts"
@@ -33,12 +37,15 @@ export default {
 
     initLogger(api.logger, cfg.debug)
 
-    log.info(`project=${cfg.project} memoryDir=${cfg.memoryDir} memoryFile=${cfg.memoryFile}`)
+    log.info(
+      `project=${cfg.project} memoryDir=${cfg.memoryDir} memoryFile=${cfg.memoryFile}`,
+    )
 
     const client = new BmClient(cfg.bmPath, cfg.project)
 
     // --- BM Tools (always registered) ---
     registerSearchTool(api, client)
+    registerProjectListTool(api, client)
     registerReadTool(api, client)
     registerWriteTool(api, client)
     registerEditTool(api, client)

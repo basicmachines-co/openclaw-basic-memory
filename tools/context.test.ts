@@ -33,7 +33,9 @@ describe("context tool", () => {
             properties: expect.objectContaining({
               url: expect.objectContaining({
                 type: "string",
-                description: expect.stringContaining('memory://agents/decisions'),
+                description: expect.stringContaining(
+                  "memory://agents/decisions",
+                ),
               }),
               depth: expect.objectContaining({
                 type: "number",
@@ -53,8 +55,8 @@ describe("context tool", () => {
 
     beforeEach(() => {
       registerContextTool(mockApi, mockClient)
-      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
-        .calls[0]
+      const registerCall = (mockApi.registerTool as jest.MockedFunction<any>)
+        .mock.calls[0]
       executeFunction = registerCall[0].execute
     })
 
@@ -138,7 +140,10 @@ describe("context tool", () => {
         url: "memory://test/url",
       })
 
-      expect(mockClient.buildContext).toHaveBeenCalledWith("memory://test/url", 1)
+      expect(mockClient.buildContext).toHaveBeenCalledWith(
+        "memory://test/url",
+        1,
+      )
     })
 
     it("should handle context with no results", async () => {
@@ -370,7 +375,10 @@ describe("context tool", () => {
           url: "memory://test",
           depth,
         })
-        expect(mockClient.buildContext).toHaveBeenCalledWith("memory://test", depth)
+        expect(mockClient.buildContext).toHaveBeenCalledWith(
+          "memory://test",
+          depth,
+        )
       }
 
       expect(mockClient.buildContext).toHaveBeenCalledTimes(depths.length)
@@ -422,9 +430,18 @@ describe("context tool", () => {
               file_path: "notes/complex-obs.md",
             },
             observations: [
-              { category: "decision-point", content: "Critical decision made here" },
-              { category: "user_preference", content: "User prefers dark mode" },
-              { category: "technical-detail", content: "Uses TypeScript for safety" },
+              {
+                category: "decision-point",
+                content: "Critical decision made here",
+              },
+              {
+                category: "user_preference",
+                content: "User prefers dark mode",
+              },
+              {
+                category: "technical-detail",
+                content: "Uses TypeScript for safety",
+              },
             ],
             related_results: [],
           },

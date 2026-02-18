@@ -17,12 +17,34 @@ check-types:
 lint:
     npx @biomejs/biome check .
 
+# Lint fix (safe + unsafe)
+lint-fix:
+    npx @biomejs/biome check --write --unsafe .
+
 # Format and fix
 fix:
     npx @biomejs/biome check --write --unsafe .
 
 # Run all checks
 check: check-types lint
+
+# Release readiness checks
+release-check:
+    bun run release:check
+
+# Show exactly what would be published to npm
+release-pack:
+    npm pack --dry-run
+
+# Publish current version to npm (requires npm auth)
+release-publish:
+    npm publish
+
+# Bump version, publish, and push commit+tag
+release version:
+    npm version {{version}}
+    npm publish
+    git push origin main --follow-tags
 
 # Clean build artifacts and node_modules
 clean:
