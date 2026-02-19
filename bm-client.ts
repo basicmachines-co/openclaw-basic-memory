@@ -19,10 +19,6 @@ const REQUIRED_TOOLS = [
   "move_note",
 ]
 
-export function stripFrontmatter(content: string): string {
-  return content.replace(/^---\n[\s\S]*?\n---\n*/, "").trim()
-}
-
 export interface SearchResult {
   title: string
   permalink: string
@@ -111,28 +107,6 @@ function extractTextFromContent(content: unknown): string {
     .map((block) => block.text)
 
   return textBlocks.join("\n").trim()
-}
-
-function tryParseJson(text: string): unknown {
-  try {
-    return JSON.parse(text)
-  } catch {
-    // fall through
-  }
-
-  const lines = text.split("\n")
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trimStart()
-    if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) continue
-
-    try {
-      return JSON.parse(lines.slice(i).join("\n"))
-    } catch {
-      // keep scanning
-    }
-  }
-
-  return text
 }
 
 function isRecoverableConnectionError(err: unknown): boolean {
@@ -404,28 +378,16 @@ export class BmClient {
   ): Promise<unknown> {
     const result = await this.callToolRaw(name, args)
 
-    if (isRecord(result) && result.structuredContent !== undefined) {
-      if (
-        isRecord(result.structuredContent) &&
-        result.structuredContent.result !== undefined
-      ) {
-        return result.structuredContent.result
-      }
-      return result.structuredContent
+    if (!isRecord(result) || result.structuredContent === undefined) {
+      throw new Error(`BM MCP tool ${name} returned no structured payload`)
     }
 
-    if (isRecord(result) && result.toolResult !== undefined) {
-      return result.toolResult
+    const structuredPayload = result.structuredContent
+    if (isRecord(structuredPayload) && structuredPayload.result !== undefined) {
+      return structuredPayload.result
     }
 
-    if (isRecord(result) && result.content !== undefined) {
-      const text = extractTextFromContent(result.content)
-      if (text.length > 0) {
-        return tryParseJson(text)
-      }
-    }
-
-    throw new Error(`BM MCP tool ${name} returned no usable payload`)
+    return structuredPayload
   }
 
   async ensureProject(projectPath: string): Promise<void> {
@@ -446,10 +408,6 @@ export class BmClient {
       output_format: "json",
     })
 
-    if (Array.isArray(payload)) {
-      return payload as ProjectListResult[]
-    }
-
     if (isRecord(payload) && Array.isArray(payload.projects)) {
       return payload.projects as ProjectListResult[]
     }
@@ -462,12 +420,8 @@ export class BmClient {
       query,
       page: 1,
       page_size: limit,
-      output_format: "default",
+      output_format: "json",
     })
-
-    if (typeof payload === "string") {
-      throw new Error(payload)
-    }
 
     if (!isRecord(payload) || !Array.isArray(payload.results)) {
       throw new Error("invalid search_notes response")
@@ -504,11 +458,7 @@ export class BmClient {
       permalink,
       content,
       file_path: filePath,
-      frontmatter: isRecord(payload.frontmatter)
-        ? payload.frontmatter
-        : payload.frontmatter === null
-          ? null
-          : null,
+      frontmatter: isRecord(payload.frontmatter) ? payload.frontmatter : null,
     }
   }
 
@@ -553,7 +503,7 @@ export class BmClient {
     const payload = await this.callTool("build_context", {
       url,
       depth,
-      format: "json",
+      output_format: "json",
     })
 
     if (!isRecord(payload) || !Array.isArray(payload.results)) {
@@ -571,10 +521,6 @@ export class BmClient {
 
     if (Array.isArray(payload)) {
       return payload as RecentResult[]
-    }
-
-    if (isRecord(payload) && Array.isArray(payload.items)) {
-      return payload.items as RecentResult[]
     }
 
     throw new Error("invalid recent_activity response")

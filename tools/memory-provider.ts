@@ -81,7 +81,9 @@ async function searchActiveTasks(
       for (const r of results) {
         const score = r.score ? ` (${r.score.toFixed(2)})` : ""
         const preview =
-          (r.content ?? "").length > 200 ? `${(r.content ?? "").slice(0, 200)}…` : (r.content ?? "")
+          (r.content ?? "").length > 200
+            ? `${(r.content ?? "").slice(0, 200)}…`
+            : (r.content ?? "")
         matches.push(
           `- **${r.title}**${score} — ${r.file_path}\n  > ${preview.replace(/\n/g, "\n  > ")}`,
         )

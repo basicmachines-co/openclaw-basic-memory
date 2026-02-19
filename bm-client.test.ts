@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
-import { BmClient, stripFrontmatter } from "./bm-client.ts"
+import { BmClient } from "./bm-client.ts"
 
 function mcpResult(payload: unknown) {
   return {
-    structuredContent: payload,
+    structuredContent: { result: payload },
     content: [
       {
         type: "text",
@@ -22,14 +22,6 @@ function setConnected(client: BmClient, callTool: jest.Mock) {
     close: jest.fn().mockResolvedValue(undefined),
   }
 }
-
-describe("BmClient utility functions", () => {
-  it("strips YAML frontmatter from content", () => {
-    const content =
-      "---\ntitle: Test Note\ndate: 2025-02-08\n---\n\nThis is the actual content"
-    expect(stripFrontmatter(content)).toBe("This is the actual content")
-  })
-})
 
 describe("BmClient MCP behavior", () => {
   let client: BmClient
@@ -173,14 +165,14 @@ describe("BmClient MCP behavior", () => {
         query: "marketing strategy",
         page: 1,
         page_size: 3,
-        output_format: "default",
+        output_format: "json",
       },
     })
     expect(results).toHaveLength(1)
     expect(results[0].title).toBe("x")
   })
 
-  it("buildContext calls build_context using json format", async () => {
+  it("buildContext calls build_context using output_format=json", async () => {
     const callTool = jest.fn().mockResolvedValue(
       mcpResult({
         results: [
@@ -206,7 +198,7 @@ describe("BmClient MCP behavior", () => {
       arguments: {
         url: "memory://notes/x",
         depth: 2,
-        format: "json",
+        output_format: "json",
       },
     })
     expect(ctx.results).toHaveLength(1)
