@@ -134,24 +134,19 @@ Use `bm_edit` (`find_replace`) to change `status: active` to `status: done`.
 3. Ensure `memoryDir` points to the directory that contains your `tasks/` folder.
 4. If task search looks wrong, verify `bm watch` is running and notes exist in expected paths.
 
-## Companion Skills (Optional)
+## Bundled Skills
 
-The companion repo
-[`basic-memory-skills`](https://github.com/basicmachines-co/basic-memory-skills)
-adds workflow-oriented skills that fit this plugin:
+This plugin ships with workflow-oriented skills that are automatically loaded when the plugin is enabled:
 
-- `memory-tasks`: standardized task creation/resume/update flow
-- `memory-reflect`: periodic memory consolidation from recent notes
-- `memory-defrag`: periodic cleanup/reorganization of memory files
+- **`memory-tasks`** — standardized task creation/resume/update flow
+- **`memory-reflect`** — periodic memory consolidation from recent notes
+- **`memory-defrag`** — periodic cleanup/reorganization of memory files
+- **`memory-schema`** — schema lifecycle management (infer, create, validate, diff, evolve)
 
-Install into your workspace:
+No manual installation needed. To update skills or install new ones as they become available:
 
 ```bash
-git clone https://github.com/basicmachines-co/basic-memory-skills.git
-cp -r basic-memory-skills/memory-tasks ~/.openclaw/workspace/skills/
-cp -r basic-memory-skills/memory-reflect ~/.openclaw/workspace/skills/
-cp -r basic-memory-skills/memory-defrag ~/.openclaw/workspace/skills/
+npx skills add basicmachines-co/basic-memory-skills --agent openclaw
 ```
 
-Use `~/.openclaw/skills/` instead if you want shared skills across agents/workspaces.
-After installing, start a new session so OpenClaw reloads the skill snapshot.
+See the upstream source at [`basic-memory-skills`](https://github.com/basicmachines-co/basic-memory-skills).

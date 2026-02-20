@@ -84,28 +84,30 @@ If you prefer loading directly from a path in config instead of `plugins install
 }
 ```
 
-### Optional: Install Companion Skills
+### Bundled Skills
 
-You can pair this plugin with skills from
-[`basic-memory-skills`](https://github.com/basicmachines-co/basic-memory-skills):
+This plugin ships with four skills that are automatically available when the plugin is enabled — no manual installation needed:
 
-- `memory-tasks` — structured task tracking that survives compaction
-- `memory-reflect` — periodic consolidation of recent notes into durable memory
-- `memory-defrag` — periodic cleanup/reorganization of memory files
+- **`memory-tasks`** — structured task tracking that survives context compaction
+- **`memory-reflect`** — periodic consolidation of recent notes into durable memory
+- **`memory-defrag`** — periodic cleanup/reorganization of memory files
+- **`memory-schema`** — schema lifecycle management (infer, create, validate, diff, evolve)
 
-Install (workspace-local):
+Skills are loaded from the plugin's `skills/` directory. See the upstream source at [`basic-memory-skills`](https://github.com/basicmachines-co/basic-memory-skills).
+
+#### Updating or adding skills with `npx skills`
+
+You can update bundled skills or install new ones as they become available using the [Skills CLI](https://github.com/vercel-labs/skills):
 
 ```bash
-git clone https://github.com/basicmachines-co/basic-memory-skills.git
-cp -r basic-memory-skills/memory-tasks ~/.openclaw/workspace/skills/
-cp -r basic-memory-skills/memory-reflect ~/.openclaw/workspace/skills/
-cp -r basic-memory-skills/memory-defrag ~/.openclaw/workspace/skills/
+# Update all basic-memory skills to latest
+npx skills add basicmachines-co/basic-memory-skills --agent openclaw
+
+# Install a specific skill
+npx skills add basicmachines-co/basic-memory-skills --name memory-tasks --agent openclaw
 ```
 
-If you want these skills available to multiple workspaces/agents on the same machine,
-install to `~/.openclaw/skills/` instead.
-
-After installation, start a new OpenClaw session so the refreshed skill set is loaded.
+This installs to the same `skills/` directory the plugin reads from, so updated skills take effect on the next session.
 
 ## Configuration
 

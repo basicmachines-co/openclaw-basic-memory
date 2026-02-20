@@ -9,6 +9,7 @@ import {
 } from "./config.ts"
 import { buildCaptureHandler } from "./hooks/capture.ts"
 import { initLogger, log } from "./logger.ts"
+import { TASK_SCHEMA_CONTENT } from "./schema/task-schema.ts"
 import { registerContextTool } from "./tools/context.ts"
 import { registerDeleteTool } from "./tools/delete.ts"
 import { registerEditTool } from "./tools/edit.ts"
@@ -82,6 +83,19 @@ export default {
         await client.start({ cwd: workspace })
         await client.ensureProject(projectPath)
         log.debug(`project "${cfg.project}" at ${projectPath}`)
+
+        // Seed Task schema if not already present
+        try {
+          await client.readNote("schema/Task")
+          log.debug("Task schema already exists, skipping seed")
+        } catch {
+          try {
+            await client.writeNote("Task", TASK_SCHEMA_CONTENT, "schema")
+            log.debug("seeded Task schema note")
+          } catch (err) {
+            log.debug("Task schema seed failed (non-fatal)", err)
+          }
+        }
 
         setWorkspaceDir(workspace)
 

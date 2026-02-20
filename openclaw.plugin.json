@@ -1,6 +1,12 @@
 {
   "id": "basic-memory",
   "kind": "memory",
+  "skills": [
+    "skills/memory-tasks",
+    "skills/memory-reflect",
+    "skills/memory-defrag",
+    "skills/memory-schema"
+  ],
   "uiHints": {
     "project": {
       "label": "Project Name",

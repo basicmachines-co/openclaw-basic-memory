@@ -1,0 +1,237 @@
+---
+name: memory-schema
+description: "Schema lifecycle management for Basic Memory: discover unschemaed notes, infer schemas, create and edit schema definitions, validate notes, and detect drift. Use when working with structured note types (Task, Person, Meeting, etc.) to maintain consistency across the knowledge graph."
+---
+
+# Memory Schema
+
+Manage structured note types using Basic Memory's Picoschema system. Schemas define what fields a note type should have, making notes uniform, queryable, and validatable.
+
+## When to Use
+
+- **New note type emerging** — you notice several notes share the same structure (meetings, people, decisions)
+- **Validation check** — confirm existing notes conform to their schema
+- **Schema drift** — detect fields that notes use but the schema doesn't define (or vice versa)
+- **Schema evolution** — add/remove/change fields as requirements evolve
+- **On demand** — user asks to create, check, or manage schemas
+
+## Picoschema Syntax Reference
+
+Schemas are defined in YAML frontmatter using Picoschema — a compact notation for describing note structure.
+
+### Basic Types
+
+```yaml
+schema:
+  name: string, person's full name
+  age: integer, age in years
+  score: number, floating-point rating
+  active: boolean, whether currently active
+```
+
+Supported types: `string`, `integer`, `number`, `boolean`.
+
+### Optional Fields
+
+Append `?` to the field name:
+
+```yaml
+schema:
+  title: string, required field
+  subtitle?: string, optional field
+```
+
+### Enums
+
+Use `(enum)` with a list of allowed values:
+
+```yaml
+schema:
+  status(enum): [active, blocked, done, abandoned], current state
+```
+
+Optional enum:
+
+```yaml
+schema:
+  priority?(enum): [low, medium, high, critical], task priority
+```
+
+### Arrays
+
+Use `(array)` for list fields:
+
+```yaml
+schema:
+  tags(array): string, categorization labels
+  steps?(array): string, ordered steps to complete
+```
+
+### Relations
+
+Reference other entity types directly:
+
+```yaml
+schema:
+  parent_task?: Task, parent task if this is a subtask
+  attendees?(array): Person, people who attended
+```
+
+Relations create edges in the knowledge graph, linking notes together.
+
+### Validation Settings
+
+```yaml
+settings:
+  validation: warn    # warn (log issues) or error (strict)
+```
+
+### Complete Example
+
+```yaml
+---
+title: Meeting
+type: schema
+entity: Meeting
+version: 1
+schema:
+  topic: string, what was discussed
+  date: string, when it happened (YYYY-MM-DD)
+  attendees?(array): Person, who attended
+  decisions?(array): string, decisions made
+  action_items?(array): string, follow-up tasks
+  status?(enum): [scheduled, completed, cancelled], meeting state
+settings:
+  validation: warn
+---
+```
+
+## Discovering Unschemaed Notes
+
+Look for clusters of notes that share structure but have no schema:
+
+1. **Search by type**: `bm_search({ query: "type:Meeting" })` — if many notes share a `type` but no `schema/Meeting.md` exists, it's a candidate.
+
+2. **Infer a schema**: Use `bm_schema_infer` to analyze existing notes and generate a suggested schema:
+   ```typescript
+   bm_schema_infer({ noteType: "Meeting" })
+   bm_schema_infer({ noteType: "Meeting", threshold: 0.5 })  // fields in 50%+ of notes
+   ```
+   The threshold (0.0–1.0) controls how common a field must be to be included. Default is usually fine; lower it to catch rarer fields.
+
+3. **Review the suggestion** — the inferred schema shows field names, types, and frequency. Decide which fields to keep, make optional, or drop.
+
+## Creating a Schema
+
+Write the schema note to `schema/<EntityName>`:
+
+```typescript
+bm_write({
+  title: "Meeting",
+  folder: "schema",
+  content: `---
+title: Meeting
+type: schema
+entity: Meeting
+version: 1
+schema:
+  topic: string, what was discussed
+  date: string, when it happened
+  attendees?(array): Person, who attended
+  decisions?(array): string, decisions made
+settings:
+  validation: warn
+---
+
+# Meeting
+
+Schema for meeting notes.
+
+## Observations
+- [convention] Meeting notes live in memory/meetings/ or as daily entries
+- [convention] Always include date and topic
+- [convention] Action items should become tasks when complex`
+})
+```
+
+### Key Principles
+
+- **Schema notes live in `schema/`** — one note per entity type
+- **`type: schema`** in frontmatter marks it as a schema definition
+- **`entity: Meeting`** names the type it applies to
+- **`version: 1`** — increment when making breaking changes
+- **`settings.validation: warn`** is recommended to start — it logs issues without blocking writes
+
+## Validating Notes
+
+Check how well existing notes conform to their schema:
+
+```typescript
+// Validate all notes of a type
+bm_schema_validate({ noteType: "Meeting" })
+
+// Validate a single note
+bm_schema_validate({ identifier: "meetings/2026-02-10-standup" })
+```
+
+Validation reports:
+- **Missing required fields** — the note lacks a field the schema requires
+- **Unknown fields** — the note has fields the schema doesn't define
+- **Type mismatches** — a field value doesn't match the expected type
+- **Invalid enum values** — a value isn't in the allowed set
+
+### Handling Validation Results
+
+- **`warn` mode**: Review warnings periodically. Fix notes that are clearly wrong; add optional fields to the schema for legitimate new patterns.
+- **`error` mode**: Use for strict schemas where conformance matters (e.g., automated pipelines consuming notes).
+
+## Detecting Drift
+
+Over time, notes evolve and schemas lag behind. Use `bm_schema_diff` to find divergence:
+
+```typescript
+bm_schema_diff({ noteType: "Meeting" })
+```
+
+Diff reports:
+- **Fields in notes but not in schema** — candidates for adding to the schema (as optional)
+- **Schema fields rarely used** — consider making optional or removing
+- **Type inconsistencies** — fields used as different types across notes
+
+## Schema Evolution
+
+When note structure changes:
+
+1. **Run diff** to see current state: `bm_schema_diff({ noteType: "Meeting" })`
+2. **Update the schema note** via `bm_edit`:
+   ```typescript
+   bm_edit({
+     identifier: "schema/Meeting",
+     operation: "find_replace",
+     find_text: "version: 1",
+     content: "version: 2",
+     expected_replacements: 1
+   })
+   ```
+3. **Add/remove/modify fields** in the `schema:` block
+4. **Re-validate** to confirm existing notes still pass: `bm_schema_validate({ noteType: "Meeting" })`
+5. **Fix outliers** — update notes that don't conform to the new schema
+
+### Evolution Guidelines
+
+- **Additive changes** (new optional fields) are safe — no version bump needed
+- **Breaking changes** (new required fields, removed fields, type changes) should bump `version`
+- **Prefer optional over required** — most fields should be optional to start
+- **Don't over-constrain** — schemas should describe common structure, not enforce rigid templates
+- **Schema as documentation** — even if validation is set to `warn`, the schema serves as living documentation for what notes of that type should contain
+
+## Workflow Summary
+
+```
+1. Notice repeated note structure → infer schema (bm_schema_infer)
+2. Review + create schema note   → write to schema/ (bm_write)
+3. Validate existing notes       → check conformance (bm_schema_validate)
+4. Fix outliers                  → edit non-conforming notes (bm_edit)
+5. Periodically check drift      → detect divergence (bm_schema_diff)
+6. Evolve schema as needed       → update schema note (bm_edit)
+```

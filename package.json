@@ -25,6 +25,8 @@
     "tools/search.ts",
     "tools/write.ts",
     "types/openclaw.d.ts",
+    "schema/task-schema.ts",
+    "skills/",
     "openclaw.plugin.json",
     "README.md",
     "LICENSE"

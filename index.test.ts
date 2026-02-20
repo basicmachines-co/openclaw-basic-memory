@@ -14,6 +14,12 @@ describe("plugin service lifecycle", () => {
     const ensureProjectSpy = jest
       .spyOn(BmClient.prototype, "ensureProject")
       .mockResolvedValue(undefined)
+    const readNoteSpy = jest
+      .spyOn(BmClient.prototype, "readNote")
+      .mockRejectedValue(new Error("Entity not found"))
+    const writeNoteSpy = jest
+      .spyOn(BmClient.prototype, "writeNote")
+      .mockResolvedValue(undefined as any)
     const stopSpy = jest
       .spyOn(BmClient.prototype, "stop")
       .mockResolvedValue(undefined)
@@ -52,6 +58,14 @@ describe("plugin service lifecycle", () => {
 
     expect(startSpy).toHaveBeenCalledWith({ cwd: "/tmp/workspace" })
     expect(ensureProjectSpy).toHaveBeenCalledWith("/tmp/workspace/memory")
+
+    // Schema seed: readNote throws "not found" → writeNote called
+    expect(readNoteSpy).toHaveBeenCalledWith("schema/Task")
+    expect(writeNoteSpy).toHaveBeenCalledWith(
+      "Task",
+      expect.stringContaining("type: schema"),
+      "schema",
+    )
 
     await services[0].stop()
 
