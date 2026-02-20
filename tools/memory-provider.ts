@@ -60,8 +60,8 @@ async function searchMemoryFile(
 
 /**
  * Search for active tasks via BM knowledge graph.
- * Uses schema-based querying: searches for notes with type:Task and active status.
- * Falls back to filesystem scan if BM search fails.
+ * Uses structured metadata filtering via search_by_metadata for precise querying.
+ * Falls back to filesystem scan if metadata search fails.
  */
 async function searchActiveTasks(
   query: string,
@@ -69,29 +69,44 @@ async function searchActiveTasks(
   workspaceDir: string,
   memoryDir: string,
 ): Promise<string> {
-  // Try BM knowledge graph query first
+  // Try structured metadata search first
   try {
-    const searchQuery = query
-      ? `type:Task [status] active ${query}`
-      : "type:Task [status] active"
-    const results = await client.search(searchQuery, 10)
+    const filters: Record<string, unknown> = { type: "task", status: "active" }
+    const metaResults = await client.searchByMetadata(filters, 10)
 
-    if (results.length > 0) {
-      const matches: string[] = []
-      for (const r of results) {
-        const score = r.score ? ` (${r.score.toFixed(2)})` : ""
-        const preview =
-          (r.content ?? "").length > 200
-            ? `${(r.content ?? "").slice(0, 200)}…`
-            : (r.content ?? "")
-        matches.push(
-          `- **${r.title}**${score} — ${r.file_path}\n  > ${preview.replace(/\n/g, "\n  > ")}`,
-        )
+    if (metaResults.results.length > 0) {
+      // If the caller provided a query, filter results by keyword match
+      const queryLower = query.toLowerCase()
+      const terms = queryLower.split(/\s+/).filter((t) => t.length > 0)
+
+      const filtered =
+        terms.length > 0
+          ? metaResults.results.filter((r) => {
+              const text = `${r.title} ${r.content ?? ""}`.toLowerCase()
+              return terms.some((term) => text.includes(term))
+            })
+          : metaResults.results
+
+      if (filtered.length > 0) {
+        const matches: string[] = []
+        for (const r of filtered) {
+          const score = r.score ? ` (${r.score.toFixed(2)})` : ""
+          const preview =
+            (r.content ?? "").length > 200
+              ? `${(r.content ?? "").slice(0, 200)}…`
+              : (r.content ?? "")
+          matches.push(
+            `- **${r.title}**${score} — ${r.file_path}\n  > ${preview.replace(/\n/g, "\n  > ")}`,
+          )
+        }
+        return matches.join("\n\n")
       }
-      return matches.join("\n\n")
     }
   } catch (err) {
-    log.debug("BM task search failed, falling back to filesystem scan", err)
+    log.debug(
+      "BM metadata task search failed, falling back to filesystem scan",
+      err,
+    )
   }
 
   // Fallback: filesystem scan for tasks not yet indexed

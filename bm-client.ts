@@ -1,4 +1,3 @@
-import { posix as posixPath } from "node:path"
 import { setTimeout as delay } from "node:timers/promises"
 import { Client } from "@modelcontextprotocol/sdk/client"
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
@@ -8,6 +7,7 @@ const DEFAULT_RETRY_DELAYS_MS = [500, 1000, 2000]
 
 const REQUIRED_TOOLS = [
   "search_notes",
+  "search_by_metadata",
   "read_note",
   "write_note",
   "edit_note",
@@ -17,6 +17,9 @@ const REQUIRED_TOOLS = [
   "create_memory_project",
   "delete_note",
   "move_note",
+  "schema_validate",
+  "schema_infer",
+  "schema_diff",
 ]
 
 export interface SearchResult {
@@ -84,6 +87,49 @@ export interface ProjectListResult {
   is_private?: boolean
   is_default?: boolean
   isDefault?: boolean
+}
+
+export interface SchemaValidationResult {
+  entity_type: string | null
+  total_notes: number
+  total_entities: number
+  valid_count: number
+  warning_count: number
+  error_count: number
+  results: Array<{
+    identifier: string
+    valid: boolean
+    warnings: string[]
+    errors: string[]
+  }>
+}
+
+export interface SchemaInferResult {
+  entity_type: string
+  notes_analyzed: number
+  field_frequencies: Array<{
+    field: string
+    frequency: number
+    count: number
+  }>
+  suggested_schema: Record<string, unknown>
+  suggested_required: string[]
+  suggested_optional: string[]
+  excluded: string[]
+}
+
+export interface SchemaDiffResult {
+  entity_type: string
+  schema_found: boolean
+  new_fields: Array<{ field: string; frequency: number }>
+  dropped_fields: Array<{ field: string; declared_in: string }>
+  cardinality_changes: string[]
+}
+
+export interface MetadataSearchResult {
+  results: SearchResult[]
+  current_page: number
+  page_size: number
 }
 
 function getErrorMessage(err: unknown): string {
@@ -587,21 +633,9 @@ export class BmClient {
   }
 
   async moveNote(identifier: string, newFolder: string): Promise<NoteResult> {
-    const source = await this.readNote(identifier, { includeFrontmatter: true })
-    const sourceFileName = posixPath.basename(source.file_path)
-
-    if (!sourceFileName || sourceFileName === "." || sourceFileName === "/") {
-      throw new Error(`invalid source file path for move: ${source.file_path}`)
-    }
-
-    const normalizedFolder = newFolder.replace(/^\/+|\/+$/g, "")
-    const destinationPath = normalizedFolder
-      ? `${normalizedFolder}/${sourceFileName}`
-      : sourceFileName
-
     const payload = await this.callTool("move_note", {
       identifier,
-      destination_path: destinationPath,
+      destination_folder: newFolder,
       output_format: "json",
     })
 
@@ -612,17 +646,80 @@ export class BmClient {
     if (payload.moved !== true) {
       throw new Error(
         asString(payload.error) ??
-          `move_note did not move "${identifier}" to "${destinationPath}"`,
+          `move_note did not move "${identifier}" to "${newFolder}"`,
       )
     }
 
     return {
-      title: asString(payload.title) ?? source.title,
-      permalink: asString(payload.permalink) ?? source.permalink,
-      content: source.content,
-      file_path: asString(payload.file_path) ?? destinationPath,
-      frontmatter: source.frontmatter ?? null,
+      title: asString(payload.title) ?? identifier,
+      permalink: asString(payload.permalink) ?? identifier,
+      content: "",
+      file_path: asString(payload.file_path) ?? "",
     }
+  }
+
+  async schemaValidate(
+    noteType?: string,
+    identifier?: string,
+  ): Promise<SchemaValidationResult> {
+    const args: Record<string, unknown> = { output_format: "json" }
+    if (noteType) args.note_type = noteType
+    if (identifier) args.identifier = identifier
+
+    const payload = await this.callTool("schema_validate", args)
+
+    if (!isRecord(payload)) {
+      throw new Error("invalid schema_validate response")
+    }
+
+    return payload as unknown as SchemaValidationResult
+  }
+
+  async schemaInfer(
+    noteType: string,
+    threshold = 0.25,
+  ): Promise<SchemaInferResult> {
+    const payload = await this.callTool("schema_infer", {
+      note_type: noteType,
+      threshold,
+      output_format: "json",
+    })
+
+    if (!isRecord(payload)) {
+      throw new Error("invalid schema_infer response")
+    }
+
+    return payload as unknown as SchemaInferResult
+  }
+
+  async schemaDiff(noteType: string): Promise<SchemaDiffResult> {
+    const payload = await this.callTool("schema_diff", {
+      note_type: noteType,
+      output_format: "json",
+    })
+
+    if (!isRecord(payload)) {
+      throw new Error("invalid schema_diff response")
+    }
+
+    return payload as unknown as SchemaDiffResult
+  }
+
+  async searchByMetadata(
+    filters: Record<string, unknown>,
+    limit = 20,
+  ): Promise<MetadataSearchResult> {
+    const payload = await this.callTool("search_by_metadata", {
+      filters,
+      limit,
+      output_format: "json",
+    })
+
+    if (!isRecord(payload) || !Array.isArray(payload.results)) {
+      throw new Error("invalid search_by_metadata response")
+    }
+
+    return payload as unknown as MetadataSearchResult
   }
 
   private isNoteNotFoundError(err: unknown): boolean {

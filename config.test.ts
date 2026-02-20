@@ -11,6 +11,7 @@ describe("config", () => {
       expect(config.memoryDir).toBe("memory/")
       expect(config.memoryFile).toBe("MEMORY.md")
       expect(config.autoCapture).toBe(true)
+      expect(config.captureMinChars).toBe(10)
       expect(config.debug).toBe(false)
       expect(config.project).toMatch(/^openclaw-/)
       expect(config.projectPath).toBe("memory/")
@@ -81,6 +82,20 @@ describe("config", () => {
     it("should use provided debug flag", () => {
       expect(parseConfig({ debug: true }).debug).toBe(true)
       expect(parseConfig({ debug: false }).debug).toBe(false)
+    })
+
+    it("should use provided captureMinChars", () => {
+      expect(parseConfig({ captureMinChars: 25 }).captureMinChars).toBe(25)
+      expect(parseConfig({ captureMinChars: 0 }).captureMinChars).toBe(0)
+    })
+
+    it("should support snake_case capture_min_chars", () => {
+      expect(parseConfig({ capture_min_chars: 50 }).captureMinChars).toBe(50)
+    })
+
+    it("should default captureMinChars for non-number input", () => {
+      expect(parseConfig({ captureMinChars: "abc" }).captureMinChars).toBe(10)
+      expect(parseConfig({ captureMinChars: -5 }).captureMinChars).toBe(10)
     })
 
     it("should parse cloud config", () => {

@@ -15,16 +15,15 @@ For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
 
 ## Requirements
 
-1. **Basic Memory CLI** (`bm`) with MCP server support:
-   - `bm mcp --transport stdio --project <name>`
-   - MCP tools with JSON output mode: `read_note`, `write_note`, `edit_note`, `recent_activity`, `list_memory_projects`, `create_memory_project`, `delete_note`, `move_note`
-   - Structured MCP tools: `search_notes`, `build_context`
+1. **Basic Memory CLI** (`bm`) — installed automatically by `bun install` when [uv](https://docs.astral.sh/uv/) is available. Manual install:
    ```bash
-   uv tool install 'basic-memory[semantic] @ git+https://github.com/basicmachines-co/basic-memory.git@f2683291e478568cdf1676759ed98c70d7cfdac3' --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
+   # Latest main branch (recommended during pre-release):
+   bash scripts/setup-bm.sh
 
-   # Alternative (inside an existing Python environment):
-   uv pip install 'basic-memory[semantic] @ git+https://github.com/basicmachines-co/basic-memory.git@f2683291e478568cdf1676759ed98c70d7cfdac3' 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
+   # Or pin a specific ref:
+   BM_REF=v0.18.4 bash scripts/setup-bm.sh
    ```
+   If `uv` is not installed, the postinstall step is skipped gracefully. Install `uv` first, then re-run `bash scripts/setup-bm.sh`.
 
 2. **OpenClaw** with plugin support
 
@@ -133,6 +132,7 @@ This uses sensible defaults: auto-generated project name, maps Basic Memory to y
       memoryDir: "memory/",                          // Relative memory dir for task scanning
       memoryFile: "MEMORY.md",                       // Working memory file for grep search
       autoCapture: true,                             // Index conversations automatically
+      captureMinChars: 10,                           // Min chars to trigger auto-capture
       debug: false,                                  // Verbose logging
       cloud: {                                       // Optional cloud sync
         url: "https://cloud.basicmemory.com",
@@ -153,6 +153,7 @@ This uses sensible defaults: auto-generated project name, maps Basic Memory to y
 | `memoryDir` | string | `"memory/"` | Relative path for task scanning |
 | `memoryFile` | string | `"MEMORY.md"` | Working memory file (grep-searched) |
 | `autoCapture` | boolean | `true` | Auto-index agent conversations |
+| `captureMinChars` | number | `10` | Minimum character threshold for auto-capture (both messages must be shorter to skip) |
 | `debug` | boolean | `false` | Enable verbose debug logs |
 | `cloud` | object | — | Optional cloud sync config (`url` + `api_key`) |
 
@@ -265,7 +266,7 @@ Done tasks are filtered out of the `Active Tasks` section in composited `memory_
 After each agent turn (when `autoCapture: true`), the plugin:
 1. Extracts the last user + assistant messages
 2. Appends them as timestamped entries to a daily conversation note (`conversations-YYYY-MM-DD`)
-3. Skips very short exchanges (< 10 chars each)
+3. Skips very short exchanges (< `captureMinChars` chars each, default 10)
 
 ## Agent Tools
 
@@ -323,6 +324,26 @@ bm_move({ identifier: "notes/my-note", newFolder: "archive" })
 Navigate the knowledge graph — get a note with its observations and relations.
 ```typescript
 bm_context({ url: "memory://projects/api-redesign", depth: 2 })
+```
+
+### `bm_schema_validate`
+Validate notes against their Picoschema definitions.
+```typescript
+bm_schema_validate({ noteType: "person" })
+bm_schema_validate({ identifier: "notes/john-doe" })
+```
+
+### `bm_schema_infer`
+Analyze existing notes and suggest a Picoschema definition.
+```typescript
+bm_schema_infer({ noteType: "meeting" })
+bm_schema_infer({ noteType: "person", threshold: 0.5 })
+```
+
+### `bm_schema_diff`
+Detect drift between a schema definition and actual note usage.
+```typescript
+bm_schema_diff({ noteType: "person" })
 ```
 
 ## Slash Commands
@@ -458,6 +479,9 @@ openclaw-basic-memory/
 │   ├── delete.ts         # bm_delete
 │   ├── move.ts           # bm_move
 │   ├── context.ts        # bm_context
+│   ├── schema-validate.ts # bm_schema_validate
+│   ├── schema-infer.ts   # bm_schema_infer
+│   ├── schema-diff.ts    # bm_schema_diff
 │   └── memory-provider.ts # Composited memory_search + memory_get
 ├── commands/
 │   ├── slash.ts          # /remember, /recall

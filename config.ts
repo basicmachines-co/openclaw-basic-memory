@@ -13,6 +13,7 @@ export type BasicMemoryConfig = {
   memoryFile: string
   projectPath: string
   autoCapture: boolean
+  captureMinChars: number
   debug: boolean
   cloud?: CloudConfig
 }
@@ -26,6 +27,8 @@ const ALLOWED_KEYS = [
   "memory_file",
   "projectPath",
   "autoCapture",
+  "captureMinChars",
+  "capture_min_chars",
   "debug",
   "cloud",
 ]
@@ -113,6 +116,13 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
     memoryDir,
     memoryFile,
     autoCapture: typeof cfg.autoCapture === "boolean" ? cfg.autoCapture : true,
+    captureMinChars:
+      typeof cfg.captureMinChars === "number" && cfg.captureMinChars >= 0
+        ? cfg.captureMinChars
+        : typeof cfg.capture_min_chars === "number" &&
+            (cfg.capture_min_chars as number) >= 0
+          ? (cfg.capture_min_chars as number)
+          : 10,
     debug: typeof cfg.debug === "boolean" ? cfg.debug : false,
     cloud,
   }

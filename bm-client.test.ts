@@ -301,48 +301,169 @@ describe("BmClient MCP behavior", () => {
     expect(result.file_path).toBe("notes/old-note.md")
   })
 
-  it("moveNote preserves source filename and calls move_note", async () => {
-    const callTool = jest
-      .fn()
-      .mockResolvedValueOnce(
-        mcpResult({
-          title: "My Note",
-          permalink: "notes/my-note",
-          content: "body",
-          file_path: "notes/my-note.md",
-          frontmatter: null,
-        }),
-      )
-      .mockResolvedValueOnce(
-        mcpResult({
-          moved: true,
-          title: "My Note",
-          permalink: "archive/my-note",
-          file_path: "archive/my-note.md",
-          source: "notes/my-note.md",
-          destination: "archive/my-note.md",
-        }),
-      )
+  it("schemaValidate calls schema_validate with JSON output", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({
+        entity_type: "person",
+        total_notes: 3,
+        total_entities: 3,
+        valid_count: 3,
+        warning_count: 0,
+        error_count: 0,
+        results: [],
+      }),
+    )
+    setConnected(client, callTool)
+
+    const result = await client.schemaValidate("person")
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: "schema_validate",
+      arguments: {
+        note_type: "person",
+        output_format: "json",
+      },
+    })
+    expect(result.entity_type).toBe("person")
+    expect(result.valid_count).toBe(3)
+  })
+
+  it("schemaValidate passes identifier when provided", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({
+        entity_type: null,
+        total_notes: 1,
+        total_entities: 1,
+        valid_count: 1,
+        warning_count: 0,
+        error_count: 0,
+        results: [],
+      }),
+    )
+    setConnected(client, callTool)
+
+    await client.schemaValidate(undefined, "notes/my-note")
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: "schema_validate",
+      arguments: {
+        identifier: "notes/my-note",
+        output_format: "json",
+      },
+    })
+  })
+
+  it("schemaInfer calls schema_infer with threshold", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({
+        entity_type: "task",
+        notes_analyzed: 10,
+        field_frequencies: [],
+        suggested_schema: {},
+        suggested_required: [],
+        suggested_optional: [],
+        excluded: [],
+      }),
+    )
+    setConnected(client, callTool)
+
+    const result = await client.schemaInfer("task", 0.5)
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: "schema_infer",
+      arguments: {
+        note_type: "task",
+        threshold: 0.5,
+        output_format: "json",
+      },
+    })
+    expect(result.notes_analyzed).toBe(10)
+  })
+
+  it("schemaDiff calls schema_diff with JSON output", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({
+        entity_type: "person",
+        schema_found: true,
+        new_fields: [{ field: "phone", frequency: 0.6 }],
+        dropped_fields: [],
+        cardinality_changes: [],
+      }),
+    )
+    setConnected(client, callTool)
+
+    const result = await client.schemaDiff("person")
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: "schema_diff",
+      arguments: {
+        note_type: "person",
+        output_format: "json",
+      },
+    })
+    expect(result.new_fields).toHaveLength(1)
+  })
+
+  it("searchByMetadata calls search_by_metadata with filters", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({
+        results: [
+          {
+            title: "Task 1",
+            permalink: "tasks/task-1",
+            content: "active task",
+            file_path: "tasks/task-1.md",
+            score: 0.9,
+          },
+        ],
+        current_page: 1,
+        page_size: 20,
+      }),
+    )
+    setConnected(client, callTool)
+
+    const result = await client.searchByMetadata(
+      { type: "task", status: "active" },
+      10,
+    )
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: "search_by_metadata",
+      arguments: {
+        filters: { type: "task", status: "active" },
+        limit: 10,
+        output_format: "json",
+      },
+    })
+    expect(result.results).toHaveLength(1)
+    expect(result.results[0].title).toBe("Task 1")
+  })
+
+  it("moveNote calls move_note with destination_folder in a single MCP call", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({
+        moved: true,
+        title: "My Note",
+        permalink: "archive/my-note",
+        file_path: "archive/my-note.md",
+        source: "notes/my-note",
+        destination: "archive/my-note.md",
+      }),
+    )
     setConnected(client, callTool)
 
     const result = await client.moveNote("notes/my-note", "archive")
 
-    expect(callTool).toHaveBeenNthCalledWith(1, {
-      name: "read_note",
-      arguments: {
-        identifier: "notes/my-note",
-        include_frontmatter: true,
-        output_format: "json",
-      },
-    })
-    expect(callTool).toHaveBeenNthCalledWith(2, {
+    expect(callTool).toHaveBeenCalledTimes(1)
+    expect(callTool).toHaveBeenCalledWith({
       name: "move_note",
       arguments: {
         identifier: "notes/my-note",
-        destination_path: "archive/my-note.md",
+        destination_folder: "archive",
         output_format: "json",
       },
     })
+    expect(result.title).toBe("My Note")
     expect(result.file_path).toBe("archive/my-note.md")
   })
 

@@ -66,7 +66,8 @@ function getLastTurn(messages: unknown[]): {
  * After each agent turn, extracts the conversation content and indexes it
  * into the Basic Memory knowledge graph as a conversation note.
  */
-export function buildCaptureHandler(client: BmClient, _cfg: BasicMemoryConfig) {
+export function buildCaptureHandler(client: BmClient, cfg: BasicMemoryConfig) {
+  const minChars = cfg.captureMinChars
   return async (event: Record<string, unknown>) => {
     if (
       !event.success ||
@@ -79,7 +80,7 @@ export function buildCaptureHandler(client: BmClient, _cfg: BasicMemoryConfig) {
     const { userText, assistantText } = getLastTurn(event.messages)
 
     if (!userText && !assistantText) return
-    if (userText.length < 10 && assistantText.length < 10) return
+    if (userText.length < minChars && assistantText.length < minChars) return
 
     log.debug(
       `capturing conversation: user=${userText.length} chars, assistant=${assistantText.length} chars`,

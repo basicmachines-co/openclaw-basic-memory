@@ -19,6 +19,9 @@ import {
 import { registerMoveTool } from "./tools/move.ts"
 import { registerProjectListTool } from "./tools/project-list.ts"
 import { registerReadTool } from "./tools/read.ts"
+import { registerSchemaDiffTool } from "./tools/schema-diff.ts"
+import { registerSchemaInferTool } from "./tools/schema-infer.ts"
+import { registerSchemaValidateTool } from "./tools/schema-validate.ts"
 import { registerSearchTool } from "./tools/search.ts"
 import { registerWriteTool } from "./tools/write.ts"
 
@@ -50,6 +53,9 @@ export default {
     registerContextTool(api, client)
     registerDeleteTool(api, client)
     registerMoveTool(api, client)
+    registerSchemaValidateTool(api, client)
+    registerSchemaInferTool(api, client)
+    registerSchemaDiffTool(api, client)
 
     // --- Composited memory_search + memory_get (always registered) ---
     registerMemoryProvider(api, client, cfg)

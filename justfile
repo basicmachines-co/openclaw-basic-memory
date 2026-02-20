@@ -1,9 +1,9 @@
 # OpenClaw Basic Memory Plugin
 
-# Install dependencies
+# Install dependencies (bun + basic-memory CLI)
 install:
     bun install
-    uv tool install 'basic-memory[semantic] @ git+https://github.com/basicmachines-co/basic-memory.git@f2683291e478568cdf1676759ed98c70d7cfdac3' --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"'
+    bash scripts/setup-bm.sh
 
 # Setup Basic Memory project
 setup:

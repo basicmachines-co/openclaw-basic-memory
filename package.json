@@ -19,6 +19,9 @@
     "tools/move.ts",
     "tools/project-list.ts",
     "tools/read.ts",
+    "tools/schema-diff.ts",
+    "tools/schema-infer.ts",
+    "tools/schema-validate.ts",
     "tools/search.ts",
     "tools/write.ts",
     "types/openclaw.d.ts",
@@ -37,6 +40,7 @@
     "openclaw": ">=2026.1.29"
   },
   "scripts": {
+    "postinstall": "bash scripts/setup-bm.sh || true",
     "check-types": "tsc --noEmit",
     "lint": "bunx @biomejs/biome ci .",
     "lint:fix": "bunx @biomejs/biome check --write .",

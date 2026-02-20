@@ -18,6 +18,7 @@ describe("capture hook", () => {
       memoryFile: "MEMORY.md",
       projectPath: "/tmp/test",
       autoCapture: true,
+      captureMinChars: 10,
       debug: false,
     }
   })
@@ -187,6 +188,55 @@ describe("capture hook", () => {
         ],
       })
       expect(mockClient.indexConversation).not.toHaveBeenCalled()
+    })
+
+    it("should respect custom captureMinChars threshold", async () => {
+      const strictConfig = { ...mockConfig, captureMinChars: 50 }
+      const strictHandler = buildCaptureHandler(
+        mockClient as unknown as BmClient,
+        strictConfig,
+      )
+
+      // Both messages under 50 chars — should skip
+      await strictHandler({
+        success: true,
+        messages: [
+          { role: "user", content: "This is a longer user message" },
+          { role: "assistant", content: "And a longer assistant reply" },
+        ],
+      })
+      expect(mockClient.indexConversation).not.toHaveBeenCalled()
+
+      // One message over 50 chars — should capture
+      await strictHandler({
+        success: true,
+        messages: [
+          {
+            role: "user",
+            content:
+              "This is a very long message that definitely exceeds fifty characters in total length",
+          },
+          { role: "assistant", content: "Ok" },
+        ],
+      })
+      expect(mockClient.indexConversation).toHaveBeenCalledTimes(1)
+    })
+
+    it("should capture everything when captureMinChars is 0", async () => {
+      const permissiveConfig = { ...mockConfig, captureMinChars: 0 }
+      const permissiveHandler = buildCaptureHandler(
+        mockClient as unknown as BmClient,
+        permissiveConfig,
+      )
+
+      await permissiveHandler({
+        success: true,
+        messages: [
+          { role: "user", content: "Hi" },
+          { role: "assistant", content: "Hello" },
+        ],
+      })
+      expect(mockClient.indexConversation).toHaveBeenCalledTimes(1)
     })
   })
 })
