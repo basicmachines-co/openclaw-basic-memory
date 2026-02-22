@@ -48,15 +48,22 @@ export function registerSchemaValidateTool(
             params.project,
           )
 
+          // Handle error responses from BM (e.g., no schema found)
+          if ("error" in result && typeof (result as any).error === "string") {
+            return {
+              content: [{ type: "text" as const, text: (result as any).error }],
+            }
+          }
+
           const lines: string[] = []
           if (result.entity_type) {
             lines.push(`**Type:** ${result.entity_type}`)
           }
           lines.push(
-            `**Notes:** ${result.total_notes} | **Valid:** ${result.valid_count} | **Warnings:** ${result.warning_count} | **Errors:** ${result.error_count}`,
+            `**Notes:** ${result.total_notes ?? 0} | **Valid:** ${result.valid_count ?? 0} | **Warnings:** ${result.warning_count ?? 0} | **Errors:** ${result.error_count ?? 0}`,
           )
 
-          if (result.results.length > 0) {
+          if (result.results && result.results.length > 0) {
             lines.push("")
             for (const r of result.results) {
               const status = r.valid ? "valid" : "invalid"

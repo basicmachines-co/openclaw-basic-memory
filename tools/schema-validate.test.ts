@@ -117,6 +117,18 @@ describe("schema-validate tool", () => {
       )
     })
 
+    it("should handle BM error response (no schema found)", async () => {
+      ;(
+        mockClient.schemaValidate as jest.MockedFunction<any>
+      ).mockResolvedValue({
+        error: "No schema found for type 'Task'",
+      })
+
+      const result = await execute("call-1", { noteType: "Task" })
+
+      expect(result.content[0].text).toContain("No schema found")
+    })
+
     it("should handle errors gracefully", async () => {
       ;(
         mockClient.schemaValidate as jest.MockedFunction<any>
