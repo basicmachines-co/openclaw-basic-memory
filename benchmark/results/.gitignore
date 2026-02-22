@@ -1,0 +1,3 @@
+# Ignore benchmark results (generated, not committed)
+*.json
+!.gitignore
