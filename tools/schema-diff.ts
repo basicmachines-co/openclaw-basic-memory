@@ -62,7 +62,7 @@ export function registerSchemaDiffTool(
               lines.push("", "### New Fields (in notes, not in schema)")
               for (const f of result.new_fields) {
                 lines.push(
-                  `- **${f.field}** — ${(f.frequency * 100).toFixed(0)}% of notes`,
+                  `- **${f.name}** — ${(f.percentage * 100).toFixed(0)}% of notes`,
                 )
               }
             }
@@ -70,7 +70,7 @@ export function registerSchemaDiffTool(
             if (result.dropped_fields.length > 0) {
               lines.push("", "### Dropped Fields (in schema, not in notes)")
               for (const f of result.dropped_fields) {
-                lines.push(`- **${f.field}** — declared in ${f.declared_in}`)
+                lines.push(`- **${f.name}** — declared in ${f.declared_in}`)
               }
             }
 

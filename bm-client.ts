@@ -121,9 +121,14 @@ export interface SchemaInferResult {
   entity_type: string
   notes_analyzed: number
   field_frequencies: Array<{
-    field: string
-    frequency: number
+    name: string
+    percentage: number
     count: number
+    total: number
+    source: string
+    sample_values?: string[]
+    is_array?: boolean
+    target_type?: string | null
   }>
   suggested_schema: Record<string, unknown>
   suggested_required: string[]
@@ -134,8 +139,8 @@ export interface SchemaInferResult {
 export interface SchemaDiffResult {
   entity_type: string
   schema_found: boolean
-  new_fields: Array<{ field: string; frequency: number }>
-  dropped_fields: Array<{ field: string; declared_in: string }>
+  new_fields: Array<{ name: string; source: string; count: number; total: number; percentage: number }>
+  dropped_fields: Array<{ name: string; source: string; declared_in?: string }>
   cardinality_changes: string[]
 }
 

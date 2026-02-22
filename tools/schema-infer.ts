@@ -66,7 +66,7 @@ export function registerSchemaInferTool(
             lines.push("", "### Field Frequencies")
             for (const f of result.field_frequencies) {
               lines.push(
-                `- **${f.field}** — ${(f.frequency * 100).toFixed(0)}% (${f.count} notes)`,
+                `- **${f.name}** — ${(f.percentage * 100).toFixed(0)}% (${f.count} notes)`,
               )
             }
           }
