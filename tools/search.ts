@@ -13,7 +13,8 @@ export function registerSearchTool(
       label: "Knowledge Search",
       description:
         "Search the Basic Memory knowledge graph for relevant notes, concepts, and connections. " +
-        "Returns matching notes with titles, content previews, and relevance scores.",
+        "Returns matching notes with titles, content previews, and relevance scores. " +
+        "Optionally filter by frontmatter metadata fields, tags, or status.",
       parameters: Type.Object({
         query: Type.String({ description: "Search query" }),
         limit: Type.Optional(
@@ -24,19 +25,52 @@ export function registerSearchTool(
             description: "Target project name (defaults to current project)",
           }),
         ),
+        metadata_filters: Type.Optional(
+          Type.Record(Type.String(), Type.Unknown(), {
+            description:
+              "Filter by frontmatter fields. Supports equality, $in, $gt/$gte/$lt/$lte, $between, and array-contains operators.",
+          }),
+        ),
+        tags: Type.Optional(
+          Type.Array(Type.String(), {
+            description: "Filter by frontmatter tags (all must match)",
+          }),
+        ),
+        status: Type.Optional(
+          Type.String({
+            description: "Filter by frontmatter status field",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
-        params: { query: string; limit?: number; project?: string },
+        params: {
+          query: string
+          limit?: number
+          project?: string
+          metadata_filters?: Record<string, unknown>
+          tags?: string[]
+          status?: string
+        },
       ) {
         const limit = params.limit ?? 10
         log.debug(`bm_search: query="${params.query}" limit=${limit}`)
+
+        const metadata =
+          params.metadata_filters || params.tags || params.status
+            ? {
+                filters: params.metadata_filters,
+                tags: params.tags,
+                status: params.status,
+              }
+            : undefined
 
         try {
           const results = await client.search(
             params.query,
             limit,
             params.project,
+            metadata,
           )
 
           if (results.length === 0) {

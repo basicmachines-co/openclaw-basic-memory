@@ -499,6 +499,11 @@ export class BmClient {
     query: string,
     limit = 10,
     project?: string,
+    metadata?: {
+      filters?: Record<string, unknown>
+      tags?: string[]
+      status?: string
+    },
   ): Promise<SearchResult[]> {
     const args: Record<string, unknown> = {
       query,
@@ -507,6 +512,9 @@ export class BmClient {
       output_format: "json",
     }
     if (project) args.project = project
+    if (metadata?.filters) args.metadata_filters = metadata.filters
+    if (metadata?.tags) args.tags = metadata.tags
+    if (metadata?.status) args.status = metadata.status
 
     const payload = await this.callTool("search_notes", args)
 

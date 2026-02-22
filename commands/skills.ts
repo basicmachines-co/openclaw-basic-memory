@@ -19,6 +19,8 @@ const SKILLS = [
   },
   { name: "defrag", dir: "memory-defrag", desc: "Memory defrag workflow" },
   { name: "schema", dir: "memory-schema", desc: "Schema management workflow" },
+  { name: "notes", dir: "memory-notes", desc: "How to write well-structured notes" },
+  { name: "metadata-search", dir: "memory-metadata-search", desc: "Structured metadata search workflow" },
 ] as const
 
 export function registerSkillCommands(api: OpenClawPluginApi): void {

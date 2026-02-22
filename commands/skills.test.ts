@@ -3,19 +3,19 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import { registerSkillCommands } from "./skills.ts"
 
 describe("skill slash commands", () => {
-  it("should register all four skill commands", () => {
+  it("should register all skill commands", () => {
     const mockApi = {
       registerCommand: jest.fn(),
     } as unknown as OpenClawPluginApi
 
     registerSkillCommands(mockApi)
 
-    expect(mockApi.registerCommand).toHaveBeenCalledTimes(4)
+    expect(mockApi.registerCommand).toHaveBeenCalledTimes(6)
 
     const names = (
       mockApi.registerCommand as jest.MockedFunction<any>
     ).mock.calls.map((call: any[]) => call[0].name)
-    expect(names).toEqual(["tasks", "reflect", "defrag", "schema"])
+    expect(names).toEqual(["tasks", "reflect", "defrag", "schema", "notes", "metadata-search"])
   })
 
   it("should set correct metadata on each command", () => {
@@ -91,6 +91,12 @@ describe("skill slash commands", () => {
 
       const schemaResult = await commands.schema.handler({})
       expect(schemaResult.text).toContain("## Picoschema Syntax Reference")
+
+      const notesResult = await commands.notes.handler({})
+      expect(notesResult.text).toContain("## Note Anatomy")
+
+      const metadataResult = await commands["metadata-search"].handler({})
+      expect(metadataResult.text).toContain("## Filter Syntax")
     })
   })
 })

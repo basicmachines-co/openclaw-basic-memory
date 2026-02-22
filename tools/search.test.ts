@@ -88,7 +88,7 @@ describe("search tool", () => {
         limit: 5,
       })
 
-      expect(mockClient.search).toHaveBeenCalledWith("test query", 5, undefined)
+      expect(mockClient.search).toHaveBeenCalledWith("test query", 5, undefined, undefined)
       expect(result).toEqual({
         content: [
           {
@@ -122,6 +122,7 @@ describe("search tool", () => {
       expect(mockClient.search).toHaveBeenCalledWith(
         "test query",
         10,
+        undefined,
         undefined,
       )
     })
@@ -251,6 +252,91 @@ describe("search tool", () => {
         "test query",
         10,
         "other-project",
+        undefined,
+      )
+    })
+
+    it("should pass metadata_filters to client.search", async () => {
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([])
+
+      await executeFunction("tool-call-id", {
+        query: "auth",
+        metadata_filters: { status: "draft", type: "spec" },
+      })
+
+      expect(mockClient.search).toHaveBeenCalledWith("auth", 10, undefined, {
+        filters: { status: "draft", type: "spec" },
+        tags: undefined,
+        status: undefined,
+      })
+    })
+
+    it("should pass tags to client.search", async () => {
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([])
+
+      await executeFunction("tool-call-id", {
+        query: "",
+        tags: ["security", "oauth"],
+      })
+
+      expect(mockClient.search).toHaveBeenCalledWith("", 10, undefined, {
+        filters: undefined,
+        tags: ["security", "oauth"],
+        status: undefined,
+      })
+    })
+
+    it("should pass status to client.search", async () => {
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([])
+
+      await executeFunction("tool-call-id", {
+        query: "planning",
+        status: "active",
+      })
+
+      expect(mockClient.search).toHaveBeenCalledWith(
+        "planning",
+        10,
+        undefined,
+        {
+          filters: undefined,
+          tags: undefined,
+          status: "active",
+        },
+      )
+    })
+
+    it("should pass all metadata params together to client.search", async () => {
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([])
+
+      await executeFunction("tool-call-id", {
+        query: "oauth flow",
+        limit: 5,
+        project: "research",
+        metadata_filters: { confidence: { $gt: 0.7 } },
+        tags: ["security"],
+        status: "in-progress",
+      })
+
+      expect(mockClient.search).toHaveBeenCalledWith("oauth flow", 5, "research", {
+        filters: { confidence: { $gt: 0.7 } },
+        tags: ["security"],
+        status: "in-progress",
+      })
+    })
+
+    it("should not pass metadata when no metadata params provided", async () => {
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([])
+
+      await executeFunction("tool-call-id", {
+        query: "test query",
+      })
+
+      expect(mockClient.search).toHaveBeenCalledWith(
+        "test query",
+        10,
+        undefined,
+        undefined,
       )
     })
 

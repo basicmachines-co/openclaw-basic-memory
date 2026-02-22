@@ -172,6 +172,64 @@ describe("BmClient MCP behavior", () => {
     expect(results[0].title).toBe("x")
   })
 
+  it("search passes metadata_filters, tags, and status to search_notes", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({
+        results: [
+          {
+            title: "Auth Design",
+            permalink: "auth-design",
+            content: "OAuth spec",
+            file_path: "specs/auth-design.md",
+            score: 0.85,
+          },
+        ],
+      }),
+    )
+    setConnected(client, callTool)
+
+    const results = await client.search("oauth", 5, "research", {
+      filters: { type: "spec", confidence: { $gt: 0.7 } },
+      tags: ["security"],
+      status: "in-progress",
+    })
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: "search_notes",
+      arguments: {
+        query: "oauth",
+        page: 1,
+        page_size: 5,
+        output_format: "json",
+        project: "research",
+        metadata_filters: { type: "spec", confidence: { $gt: 0.7 } },
+        tags: ["security"],
+        status: "in-progress",
+      },
+    })
+    expect(results).toHaveLength(1)
+    expect(results[0].title).toBe("Auth Design")
+  })
+
+  it("search omits metadata args when not provided", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({ results: [] }),
+    )
+    setConnected(client, callTool)
+
+    await client.search("test", 10)
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: "search_notes",
+      arguments: {
+        query: "test",
+        page: 1,
+        page_size: 10,
+        output_format: "json",
+      },
+    })
+  })
+
   it("buildContext calls build_context using output_format=json", async () => {
     const callTool = jest.fn().mockResolvedValue(
       mcpResult({
