@@ -67,9 +67,12 @@ export interface ContextResult {
       content: string
     }>
     related_results: Array<{
-      title: string
+      type: "relation" | "entity"
+      title?: string
       permalink: string
-      relation_type: string
+      relation_type?: string
+      from_entity?: string
+      to_entity?: string
     }>
   }>
 }

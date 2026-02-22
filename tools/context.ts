@@ -76,10 +76,15 @@ export function registerContextTool(
 
             if (result.related_results?.length > 0) {
               const rels = result.related_results
-                .map(
-                  (r) =>
-                    `- ${r.relation_type} → **${r.title}** (${r.permalink})`,
-                )
+                .map((r) => {
+                  if (r.type === "relation") {
+                    return `- ${r.relation_type} → **${r.to_entity}**`
+                  }
+                  const label = r.relation_type
+                    ? `${r.relation_type} → **${r.title}**`
+                    : `**${r.title}**`
+                  return r.permalink ? `- ${label} (${r.permalink})` : `- ${label}`
+                })
                 .join("\n")
               sections.push(`### Related\n${rels}`)
             }
