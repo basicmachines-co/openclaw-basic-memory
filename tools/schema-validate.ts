@@ -49,7 +49,7 @@ export function registerSchemaValidateTool(
           )
 
           // Handle error responses from BM (e.g., no schema found)
-          const resultRecord = result as Record<string, unknown>
+          const resultRecord = result as unknown as Record<string, unknown>
           if ("error" in result && typeof resultRecord.error === "string") {
             return {
               content: [{ type: "text" as const, text: resultRecord.error }],
