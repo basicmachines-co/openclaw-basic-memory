@@ -301,7 +301,7 @@ export class BmClient {
   private async connectFresh(): Promise<void> {
     const transport = new StdioClientTransport({
       command: this.bmPath,
-      args: ["mcp", "--transport", "stdio", "--project", this.project],
+      args: ["mcp", "--transport", "stdio"],
       cwd: this.cwd,
       env: this.env,
       stderr: "pipe",

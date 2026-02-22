@@ -54,7 +54,8 @@ export function registerSearchTool(
         },
       ) {
         const limit = params.limit ?? 10
-        log.debug(`bm_search: query="${params.query}" limit=${limit}`)
+        log.debug(`bm_search: query="${params.query}" limit=${limit} project="${params.project ?? "default"}"`)
+
 
         const metadata =
           params.metadata_filters || params.tags || params.status
