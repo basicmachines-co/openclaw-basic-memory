@@ -41,8 +41,18 @@ describe("schema-diff tool", () => {
       ;(mockClient.schemaDiff as jest.MockedFunction<any>).mockResolvedValue({
         entity_type: "person",
         schema_found: true,
-        new_fields: [{ name: "phone", source: "observation", count: 6, total: 10, percentage: 0.6 }],
-        dropped_fields: [{ name: "fax", source: "observation", declared_in: "schema" }],
+        new_fields: [
+          {
+            name: "phone",
+            source: "observation",
+            count: 6,
+            total: 10,
+            percentage: 0.6,
+          },
+        ],
+        dropped_fields: [
+          { name: "fax", source: "observation", declared_in: "schema" },
+        ],
         cardinality_changes: [],
       })
 

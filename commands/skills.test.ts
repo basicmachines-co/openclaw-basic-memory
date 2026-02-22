@@ -15,7 +15,14 @@ describe("skill slash commands", () => {
     const names = (
       mockApi.registerCommand as jest.MockedFunction<any>
     ).mock.calls.map((call: any[]) => call[0].name)
-    expect(names).toEqual(["tasks", "reflect", "defrag", "schema", "notes", "metadata-search"])
+    expect(names).toEqual([
+      "tasks",
+      "reflect",
+      "defrag",
+      "schema",
+      "notes",
+      "metadata-search",
+    ])
   })
 
   it("should set correct metadata on each command", () => {

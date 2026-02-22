@@ -142,7 +142,13 @@ export interface SchemaInferResult {
 export interface SchemaDiffResult {
   entity_type: string
   schema_found: boolean
-  new_fields: Array<{ name: string; source: string; count: number; total: number; percentage: number }>
+  new_fields: Array<{
+    name: string
+    source: string
+    count: number
+    total: number
+    percentage: number
+  }>
   dropped_fields: Array<{ name: string; source: string; declared_in?: string }>
   cardinality_changes: string[]
 }

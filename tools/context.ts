@@ -83,7 +83,9 @@ export function registerContextTool(
                   const label = r.relation_type
                     ? `${r.relation_type} → **${r.title}**`
                     : `**${r.title}**`
-                  return r.permalink ? `- ${label} (${r.permalink})` : `- ${label}`
+                  return r.permalink
+                    ? `- ${label} (${r.permalink})`
+                    : `- ${label}`
                 })
                 .join("\n")
               sections.push(`### Related\n${rels}`)

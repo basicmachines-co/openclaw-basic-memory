@@ -42,8 +42,20 @@ describe("schema-infer tool", () => {
         entity_type: "person",
         notes_analyzed: 12,
         field_frequencies: [
-          { name: "name", percentage: 1.0, count: 12, total: 12, source: "observation" },
-          { name: "email", percentage: 0.75, count: 9, total: 12, source: "observation" },
+          {
+            name: "name",
+            percentage: 1.0,
+            count: 12,
+            total: 12,
+            source: "observation",
+          },
+          {
+            name: "email",
+            percentage: 0.75,
+            count: 9,
+            total: 12,
+            source: "observation",
+          },
         ],
         suggested_schema: { name: "string", "email?": "string" },
         suggested_required: ["name"],

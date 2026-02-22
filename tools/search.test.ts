@@ -88,7 +88,12 @@ describe("search tool", () => {
         limit: 5,
       })
 
-      expect(mockClient.search).toHaveBeenCalledWith("test query", 5, undefined, undefined)
+      expect(mockClient.search).toHaveBeenCalledWith(
+        "test query",
+        5,
+        undefined,
+        undefined,
+      )
       expect(result).toEqual({
         content: [
           {
@@ -318,11 +323,16 @@ describe("search tool", () => {
         status: "in-progress",
       })
 
-      expect(mockClient.search).toHaveBeenCalledWith("oauth flow", 5, "research", {
-        filters: { confidence: { $gt: 0.7 } },
-        tags: ["security"],
-        status: "in-progress",
-      })
+      expect(mockClient.search).toHaveBeenCalledWith(
+        "oauth flow",
+        5,
+        "research",
+        {
+          filters: { confidence: { $gt: 0.7 } },
+          tags: ["security"],
+          status: "in-progress",
+        },
+      )
     })
 
     it("should not pass metadata when no metadata params provided", async () => {

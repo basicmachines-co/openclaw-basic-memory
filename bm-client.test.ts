@@ -212,9 +212,7 @@ describe("BmClient MCP behavior", () => {
   })
 
   it("search omits metadata args when not provided", async () => {
-    const callTool = jest.fn().mockResolvedValue(
-      mcpResult({ results: [] }),
-    )
+    const callTool = jest.fn().mockResolvedValue(mcpResult({ results: [] }))
     setConnected(client, callTool)
 
     await client.search("test", 10)

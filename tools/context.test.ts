@@ -77,12 +77,14 @@ describe("context tool", () => {
             ],
             related_results: [
               {
-                type: "entity", title: "Related Note 1",
+                type: "entity",
+                title: "Related Note 1",
                 permalink: "related-note-1",
                 relation_type: "references",
               },
               {
-                type: "entity", title: "Related Note 2",
+                type: "entity",
+                title: "Related Note 2",
                 permalink: "related-note-2",
                 relation_type: "follows_from",
               },
@@ -211,7 +213,8 @@ describe("context tool", () => {
             observations: [{ category: "note", content: "Single observation" }],
             related_results: [
               {
-                type: "entity", title: "Related to Second",
+                type: "entity",
+                title: "Related to Second",
                 permalink: "related-to-second",
                 relation_type: "depends_on",
               },
@@ -315,12 +318,14 @@ describe("context tool", () => {
             observations: [],
             related_results: [
               {
-                type: "entity", title: "Related Note with Long Title",
+                type: "entity",
+                title: "Related Note with Long Title",
                 permalink: "related-note-with-long-title",
                 relation_type: "references",
               },
               {
-                type: "entity", title: "Short Note",
+                type: "entity",
+                title: "Short Note",
                 permalink: "short",
                 relation_type: "follows_from",
               },
