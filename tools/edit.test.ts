@@ -35,6 +35,7 @@ describe("edit tool", () => {
               expected_replacements: expect.objectContaining({
                 type: "number",
               }),
+              project: expect.objectContaining({ type: "string" }),
             }),
           }),
           execute: expect.any(Function),
@@ -78,6 +79,7 @@ describe("edit tool", () => {
           section: undefined,
           expected_replacements: undefined,
         },
+        undefined,
       )
       expect(result.details).toEqual({
         title: "Test Note",
@@ -114,6 +116,7 @@ describe("edit tool", () => {
           section: undefined,
           expected_replacements: 3,
         },
+        undefined,
       )
     })
 
@@ -141,6 +144,35 @@ describe("edit tool", () => {
           section: "## This Week",
           expected_replacements: undefined,
         },
+        undefined,
+      )
+    })
+
+    it("passes project to client.editNote", async () => {
+      ;(mockClient.editNote as jest.MockedFunction<any>).mockResolvedValue({
+        title: "Test Note",
+        permalink: "test-note",
+        file_path: "notes/test-note.md",
+        operation: "append",
+      })
+
+      await executeFunction("tool-call-id", {
+        identifier: "test-note",
+        operation: "append",
+        content: "new content",
+        project: "other-project",
+      })
+
+      expect(mockClient.editNote).toHaveBeenCalledWith(
+        "test-note",
+        "append",
+        "new content",
+        {
+          find_text: undefined,
+          section: undefined,
+          expected_replacements: undefined,
+        },
+        "other-project",
       )
     })
 

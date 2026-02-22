@@ -45,6 +45,26 @@ describe("move tool", () => {
     expect(result.content[0].text).toContain("archive/my-note.md")
   })
 
+  it("should pass project to client.moveNote", async () => {
+    const tool = await loadAndRegister()
+    ;(mockClient.moveNote as any).mockResolvedValue({
+      title: "my-note",
+      permalink: "archive/my-note",
+      file_path: "archive/my-note.md",
+    })
+
+    await tool.execute("call-1", {
+      identifier: "notes/my-note",
+      newFolder: "archive",
+      project: "other-project",
+    })
+    expect(mockClient.moveNote).toHaveBeenCalledWith(
+      "notes/my-note",
+      "archive",
+      "other-project",
+    )
+  })
+
   it("should handle move failure", async () => {
     const tool = await loadAndRegister()
     ;(mockClient.moveNote as any).mockRejectedValue(new Error("not found"))

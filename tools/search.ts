@@ -19,16 +19,25 @@ export function registerSearchTool(
         limit: Type.Optional(
           Type.Number({ description: "Max results (default: 10)" }),
         ),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
-        params: { query: string; limit?: number },
+        params: { query: string; limit?: number; project?: string },
       ) {
         const limit = params.limit ?? 10
         log.debug(`bm_search: query="${params.query}" limit=${limit}`)
 
         try {
-          const results = await client.search(params.query, limit)
+          const results = await client.search(
+            params.query,
+            limit,
+            params.project,
+          )
 
           if (results.length === 0) {
             return {

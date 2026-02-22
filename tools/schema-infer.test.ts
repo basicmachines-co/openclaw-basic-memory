@@ -53,7 +53,11 @@ describe("schema-infer tool", () => {
 
       const result = await execute("call-1", { noteType: "person" })
 
-      expect(mockClient.schemaInfer).toHaveBeenCalledWith("person", undefined)
+      expect(mockClient.schemaInfer).toHaveBeenCalledWith(
+        "person",
+        undefined,
+        undefined,
+      )
       expect(result.content[0].text).toContain("person")
       expect(result.content[0].text).toContain("12")
       expect(result.content[0].text).toContain("name")
@@ -73,7 +77,34 @@ describe("schema-infer tool", () => {
 
       await execute("call-1", { noteType: "task", threshold: 0.5 })
 
-      expect(mockClient.schemaInfer).toHaveBeenCalledWith("task", 0.5)
+      expect(mockClient.schemaInfer).toHaveBeenCalledWith(
+        "task",
+        0.5,
+        undefined,
+      )
+    })
+
+    it("should pass project to client.schemaInfer", async () => {
+      ;(mockClient.schemaInfer as jest.MockedFunction<any>).mockResolvedValue({
+        entity_type: "person",
+        notes_analyzed: 1,
+        field_frequencies: [],
+        suggested_schema: {},
+        suggested_required: [],
+        suggested_optional: [],
+        excluded: [],
+      })
+
+      await execute("call-1", {
+        noteType: "person",
+        project: "other-project",
+      })
+
+      expect(mockClient.schemaInfer).toHaveBeenCalledWith(
+        "person",
+        undefined,
+        "other-project",
+      )
     })
 
     it("should handle errors gracefully", async () => {

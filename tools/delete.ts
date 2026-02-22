@@ -18,12 +18,23 @@ export function registerDeleteTool(
         identifier: Type.String({
           description: "Note title, permalink, or memory:// URL to delete",
         }),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
-      async execute(_toolCallId: string, params: { identifier: string }) {
+      async execute(
+        _toolCallId: string,
+        params: { identifier: string; project?: string },
+      ) {
         log.debug(`bm_delete: identifier="${params.identifier}"`)
 
         try {
-          const result = await client.deleteNote(params.identifier)
+          const result = await client.deleteNote(
+            params.identifier,
+            params.project,
+          )
 
           return {
             content: [

@@ -1,6 +1,6 @@
 # openclaw-basic-memory
 
-Local-first knowledge graph plugin for OpenClaw — persistent memory with graph search and composited memory search.
+Local-first knowledge graph plugin for OpenClaw — persistent memory with graph search and composited memory search. Everything works locally with no cloud account required.
 
 ## What this plugin does
 
@@ -8,8 +8,12 @@ The `openclaw-basic-memory` plugin integrates [Basic Memory](https://github.com/
 
 - **Composited `memory_search`** — queries MEMORY.md, the BM knowledge graph, and active tasks in parallel
 - **Persistent MCP stdio session** — keeps a single `bm mcp --transport stdio --project <name>` process alive
+- **Auto-recall** — injects active tasks and recent activity as context at session start
 - **Auto-capture** — records agent conversations as structured daily notes
 - **Graph tools** — search, read, write, edit, delete, move, and navigate notes via `memory://` URLs
+- **Skill workflows** — `/tasks`, `/reflect`, `/defrag`, `/schema` slash commands for guided memory management
+
+All data stays on your machine as markdown files indexed locally with SQLite. Cloud sync is available but entirely optional — see [BASIC_MEMORY.md](./BASIC_MEMORY.md) for cloud setup.
 
 For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
 
@@ -135,11 +139,9 @@ This uses sensible defaults: auto-generated project name, maps Basic Memory to y
       memoryFile: "MEMORY.md",                       // Working memory file for grep search
       autoCapture: true,                             // Index conversations automatically
       captureMinChars: 10,                           // Min chars to trigger auto-capture
+      autoRecall: true,                              // Inject active tasks + recent activity at session start
+      recallPrompt: "Check for active tasks and recent activity. Summarize anything relevant to the current session.",
       debug: false,                                  // Verbose logging
-      cloud: {                                       // Optional cloud sync
-        url: "https://cloud.basicmemory.com",
-        api_key: "your-key"
-      }
     }
   }
 }
@@ -156,10 +158,13 @@ This uses sensible defaults: auto-generated project name, maps Basic Memory to y
 | `memoryFile` | string | `"MEMORY.md"` | Working memory file (grep-searched) |
 | `autoCapture` | boolean | `true` | Auto-index agent conversations |
 | `captureMinChars` | number | `10` | Minimum character threshold for auto-capture (both messages must be shorter to skip) |
+| `autoRecall` | boolean | `true` | Inject active tasks and recent activity as context at session start |
+| `recallPrompt` | string | *(see above)* | Instruction appended to recalled context — customize to change what the agent focuses on |
 | `debug` | boolean | `false` | Enable verbose debug logs |
-| `cloud` | object | — | Optional cloud sync config (`url` + `api_key`) |
 
-Snake_case aliases (`memory_dir`, `memory_file`) are also supported.
+Snake_case aliases (`memory_dir`, `memory_file`, `auto_recall`, `recall_prompt`, `capture_min_chars`) are also supported.
+
+Cloud sync is optional — see [BASIC_MEMORY.md](./BASIC_MEMORY.md) for cloud configuration.
 
 On startup, the plugin ensures the configured BM project exists at `projectPath` via MCP `create_memory_project` in idempotent mode.
 
@@ -201,6 +206,8 @@ This plugin works best if you treat memory as three lanes:
 1. **Working memory (`MEMORY.md`)** — short-horizon context and current focus.
 2. **Knowledge graph (`memory/**/*.md`)** — long-term notes indexed by Basic Memory.
 3. **Task notes (`memory/tasks/*.md`)** — active execution state for in-flight work.
+
+> **Note:** OpenClaw's default convention treats `MEMORY.md` as [long-term curated memory](https://docs.openclaw.ai/concepts/memory). This plugin flips that role — the BM knowledge graph handles durable storage, so `MEMORY.md` serves as short-horizon working memory. See [MEMORY_TASK_FLOW.md](./MEMORY_TASK_FLOW.md) for details.
 
 Typical loop:
 
@@ -264,18 +271,53 @@ status: done
 
 Done tasks are filtered out of the `Active Tasks` section in composited `memory_search`.
 
+### Auto-Recall
+On each `agent_start` event (when `autoRecall: true`), the plugin:
+1. Queries the knowledge graph for active tasks (`type: Task`, `status: active`, up to 5)
+2. Fetches notes modified in the last 24 hours
+3. Formats both into structured context and returns it to the agent
+
+This gives the agent immediate awareness of ongoing work and recent changes without the user needing to ask. The `recallPrompt` config field controls the instruction appended to the context — customize it to steer what the agent prioritizes.
+
 ### Auto-Capture
 After each agent turn (when `autoCapture: true`), the plugin:
 1. Extracts the last user + assistant messages
 2. Appends them as timestamped entries to a daily conversation note (`conversations-YYYY-MM-DD`)
 3. Skips very short exchanges (< `captureMinChars` chars each, default 10)
 
+### Basic Memory Cloud
+
+Everything works locally — cloud adds cross-device, team, and production capabilities:
+
+- **Your agent's memory travels with you** — same knowledge graph on laptop, desktop, and hosted environments
+- **Team knowledge sharing** — org workspaces let multiple agents and team members build on a shared knowledge base
+- **Durable memory for production agents** — persistent memory that survives CI teardowns and container restarts
+- **Multi-agent coordination** — multiple agents can read and write to the same graph
+
+Cloud extends local-first — still plain markdown, still yours. Start with a [7-day free trial](https://basicmemory.com) and use code `BMCLAW` for 20% off for 3 months. See [BASIC_MEMORY.md](./BASIC_MEMORY.md) for setup, or visit [basicmemory.com](https://basicmemory.com) for more info.
+
 ## Agent Tools
+
+All content tools accept an optional `project` parameter to operate on a different project than the default (cross-project operations).
+
+### `bm_workspace_list`
+List all workspaces (personal and organization) accessible to this user.
+```typescript
+bm_workspace_list({})
+```
+
+### `bm_project_list`
+List all projects, optionally filtered by workspace.
+```typescript
+bm_project_list({})
+bm_project_list({ workspace: "my-org" })
+```
 
 ### `bm_search`
 Search the knowledge graph.
 ```typescript
 bm_search({ query: "API design", limit: 5 })
+bm_search({ query: "API design", project: "other-project" })  // cross-project
 ```
 
 ### `bm_read`
@@ -283,12 +325,14 @@ Read a note by title, permalink, or `memory://` URL.
 ```typescript
 bm_read({ identifier: "memory://projects/api-redesign" })
 bm_read({ identifier: "memory://projects/api-redesign", include_frontmatter: true }) // raw markdown + YAML
+bm_read({ identifier: "notes/readme", project: "docs" })  // cross-project
 ```
 
 ### `bm_write`
 Create a new note.
 ```typescript
 bm_write({ title: "Auth Strategy", content: "## Overview\n...", folder: "decisions" })
+bm_write({ title: "Shared Note", content: "...", folder: "shared", project: "team" })  // cross-project
 ```
 
 ### `bm_edit`
@@ -306,7 +350,7 @@ bm_edit({
   identifier: "weekly-review",
   operation: "replace_section",
   section: "## This Week",
-  content: "- ✅ Done\n- 🔄 Next",
+  content: "- Done\n- Next",
 })
 ```
 
@@ -314,6 +358,7 @@ bm_edit({
 Delete a note.
 ```typescript
 bm_delete({ identifier: "notes/old-draft" })
+bm_delete({ identifier: "notes/old-draft", project: "archive" })  // cross-project
 ```
 
 ### `bm_move`
@@ -326,6 +371,7 @@ bm_move({ identifier: "notes/my-note", newFolder: "archive" })
 Navigate the knowledge graph — get a note with its observations and relations.
 ```typescript
 bm_context({ url: "memory://projects/api-redesign", depth: 2 })
+bm_context({ url: "memory://decisions", depth: 1, project: "team" })  // cross-project
 ```
 
 ### `bm_schema_validate`
@@ -333,6 +379,7 @@ Validate notes against their Picoschema definitions.
 ```typescript
 bm_schema_validate({ noteType: "person" })
 bm_schema_validate({ identifier: "notes/john-doe" })
+bm_schema_validate({ noteType: "person", project: "contacts" })  // cross-project
 ```
 
 ### `bm_schema_infer`
@@ -350,8 +397,27 @@ bm_schema_diff({ noteType: "person" })
 
 ## Slash Commands
 
-- **`/remember <text>`** — Save a quick note
-- **`/recall <query>`** — Search the knowledge graph
+### Memory
+- **`/remember <text>`** — Save a quick note to the knowledge graph
+- **`/recall <query>`** — Search the knowledge graph (top 5 results)
+
+### Skill workflows
+These inject step-by-step instructions from the bundled skill files. Each accepts optional arguments for context.
+
+| Command | Description |
+|---------|-------------|
+| `/tasks [args]` | Task management — create, track, resume structured tasks |
+| `/reflect [args]` | Memory reflection — consolidate recent activity into long-term memory |
+| `/defrag [args]` | Memory defrag — reorganize, split, prune memory files |
+| `/schema [args]` | Schema management — infer, create, validate, evolve Picoschema definitions |
+
+Examples:
+```
+/tasks create a task for the API migration
+/reflect
+/defrag clean up completed tasks older than 2 weeks
+/schema infer a schema for Meeting notes
+```
 
 ## CLI Commands
 
@@ -395,7 +461,7 @@ openclaw gateway stop && openclaw gateway start
 
 This repo includes real end-to-end integration tests for `BmClient` in:
 
-- `/Users/phernandez/dev/basicmachines/openclaw-basic-memory/integration/bm-client.integration.test.ts`
+- `integration/bm-client.integration.test.ts`
 
 These tests launch a real `bm mcp --transport stdio --project <name>` process,
 run write/read/edit/search/context/move/delete calls, and assert actual filesystem/index results.
@@ -481,15 +547,19 @@ openclaw-basic-memory/
 │   ├── delete.ts         # bm_delete
 │   ├── move.ts           # bm_move
 │   ├── context.ts        # bm_context
+│   ├── project-list.ts   # bm_project_list
+│   ├── workspace-list.ts # bm_workspace_list
 │   ├── schema-validate.ts # bm_schema_validate
 │   ├── schema-infer.ts   # bm_schema_infer
 │   ├── schema-diff.ts    # bm_schema_diff
 │   └── memory-provider.ts # Composited memory_search + memory_get
 ├── commands/
 │   ├── slash.ts          # /remember, /recall
+│   ├── skills.ts         # /tasks, /reflect, /defrag, /schema
 │   └── cli.ts            # openclaw basic-memory CLI
 └── hooks/
-    └── capture.ts        # Auto-capture conversations
+    ├── capture.ts        # Auto-capture conversations
+    └── recall.ts         # Auto-recall (active tasks + recent activity)
 ```
 
 ## License

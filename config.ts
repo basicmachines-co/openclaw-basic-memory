@@ -14,6 +14,8 @@ export type BasicMemoryConfig = {
   projectPath: string
   autoCapture: boolean
   captureMinChars: number
+  autoRecall: boolean
+  recallPrompt: string
   debug: boolean
   cloud?: CloudConfig
 }
@@ -29,6 +31,10 @@ const ALLOWED_KEYS = [
   "autoCapture",
   "captureMinChars",
   "capture_min_chars",
+  "autoRecall",
+  "auto_recall",
+  "recallPrompt",
+  "recall_prompt",
   "debug",
   "cloud",
 ]
@@ -123,6 +129,19 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
             (cfg.capture_min_chars as number) >= 0
           ? (cfg.capture_min_chars as number)
           : 10,
+    autoRecall:
+      typeof cfg.autoRecall === "boolean"
+        ? cfg.autoRecall
+        : typeof cfg.auto_recall === "boolean"
+          ? (cfg.auto_recall as boolean)
+          : true,
+    recallPrompt:
+      typeof cfg.recallPrompt === "string" && cfg.recallPrompt.length > 0
+        ? cfg.recallPrompt
+        : typeof cfg.recall_prompt === "string" &&
+            (cfg.recall_prompt as string).length > 0
+          ? (cfg.recall_prompt as string)
+          : "Check for active tasks and recent activity. Summarize anything relevant to the current session.",
     debug: typeof cfg.debug === "boolean" ? cfg.debug : false,
     cloud,
   }

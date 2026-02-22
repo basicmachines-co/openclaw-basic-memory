@@ -29,6 +29,7 @@ describe("read tool", () => {
             properties: expect.objectContaining({
               identifier: expect.objectContaining({ type: "string" }),
               include_frontmatter: expect.objectContaining({ type: "boolean" }),
+              project: expect.objectContaining({ type: "string" }),
             }),
           }),
           execute: expect.any(Function),
@@ -65,9 +66,11 @@ describe("read tool", () => {
         identifier: "test-note",
       })
 
-      expect(mockClient.readNote).toHaveBeenCalledWith("test-note", {
-        includeFrontmatter: false,
-      })
+      expect(mockClient.readNote).toHaveBeenCalledWith(
+        "test-note",
+        { includeFrontmatter: false },
+        undefined,
+      )
       expect(result).toEqual({
         content: [
           {
@@ -104,9 +107,11 @@ describe("read tool", () => {
         include_frontmatter: true,
       })
 
-      expect(mockClient.readNote).toHaveBeenCalledWith("test-note", {
-        includeFrontmatter: true,
-      })
+      expect(mockClient.readNote).toHaveBeenCalledWith(
+        "test-note",
+        { includeFrontmatter: true },
+        undefined,
+      )
       expect(result.content[0].text).toBe(raw)
       expect(result.details.frontmatter).toEqual({
         title: "Test Note",
@@ -127,6 +132,26 @@ describe("read tool", () => {
       })
 
       expect(result.details.frontmatter).toBeNull()
+    })
+
+    it("passes project to client.readNote", async () => {
+      ;(mockClient.readNote as jest.MockedFunction<any>).mockResolvedValue({
+        title: "Test",
+        permalink: "test",
+        content: "content",
+        file_path: "test.md",
+      })
+
+      await executeFunction("tool-call-id", {
+        identifier: "test",
+        project: "other-project",
+      })
+
+      expect(mockClient.readNote).toHaveBeenCalledWith(
+        "test",
+        { includeFrontmatter: false },
+        "other-project",
+      )
     })
 
     it("handles errors gracefully", async () => {

@@ -21,10 +21,20 @@ export function registerWriteTool(
           description: "Note content in Markdown format",
         }),
         folder: Type.String({ description: "Folder to write the note in" }),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
-        params: { title: string; content: string; folder: string },
+        params: {
+          title: string
+          content: string
+          folder: string
+          project?: string
+        },
       ) {
         log.debug(`bm_write: title=${params.title} folder=${params.folder}`)
 
@@ -33,6 +43,7 @@ export function registerWriteTool(
             params.title,
             params.content,
             params.folder,
+            params.project,
           )
 
           const msg = `Note saved: ${note.title} (${note.permalink})`

@@ -24,17 +24,28 @@ export function registerReadTool(
               "If true, returns raw note content including YAML frontmatter.",
           }),
         ),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
-        params: { identifier: string; include_frontmatter?: boolean },
+        params: {
+          identifier: string
+          include_frontmatter?: boolean
+          project?: string
+        },
       ) {
         log.debug(`bm_read: identifier="${params.identifier}"`)
 
         try {
-          const note = await client.readNote(params.identifier, {
-            includeFrontmatter: params.include_frontmatter === true,
-          })
+          const note = await client.readNote(
+            params.identifier,
+            { includeFrontmatter: params.include_frontmatter === true },
+            params.project,
+          )
 
           return {
             content: [

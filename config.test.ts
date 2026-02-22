@@ -12,6 +12,8 @@ describe("config", () => {
       expect(config.memoryFile).toBe("MEMORY.md")
       expect(config.autoCapture).toBe(true)
       expect(config.captureMinChars).toBe(10)
+      expect(config.autoRecall).toBe(true)
+      expect(config.recallPrompt).toContain("Check for active tasks")
       expect(config.debug).toBe(false)
       expect(config.project).toMatch(/^openclaw-/)
       expect(config.projectPath).toBe("memory/")
@@ -96,6 +98,34 @@ describe("config", () => {
     it("should default captureMinChars for non-number input", () => {
       expect(parseConfig({ captureMinChars: "abc" }).captureMinChars).toBe(10)
       expect(parseConfig({ captureMinChars: -5 }).captureMinChars).toBe(10)
+    })
+
+    it("should use provided autoRecall", () => {
+      expect(parseConfig({ autoRecall: false }).autoRecall).toBe(false)
+      expect(parseConfig({ autoRecall: true }).autoRecall).toBe(true)
+    })
+
+    it("should support snake_case auto_recall", () => {
+      expect(parseConfig({ auto_recall: false }).autoRecall).toBe(false)
+    })
+
+    it("should default autoRecall to true", () => {
+      expect(parseConfig({}).autoRecall).toBe(true)
+    })
+
+    it("should use provided recallPrompt", () => {
+      const config = parseConfig({ recallPrompt: "Custom prompt" })
+      expect(config.recallPrompt).toBe("Custom prompt")
+    })
+
+    it("should support snake_case recall_prompt", () => {
+      const config = parseConfig({ recall_prompt: "Custom snake" })
+      expect(config.recallPrompt).toBe("Custom snake")
+    })
+
+    it("should default recallPrompt for empty string", () => {
+      const config = parseConfig({ recallPrompt: "" })
+      expect(config.recallPrompt).toContain("Check for active tasks")
     })
 
     it("should parse cloud config", () => {

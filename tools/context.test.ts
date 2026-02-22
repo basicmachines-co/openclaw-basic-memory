@@ -41,6 +41,7 @@ describe("context tool", () => {
                 type: "number",
                 description: "How many relation hops to follow (default: 1)",
               }),
+              project: expect.objectContaining({ type: "string" }),
             }),
           }),
           execute: expect.any(Function),
@@ -102,6 +103,7 @@ describe("context tool", () => {
       expect(mockClient.buildContext).toHaveBeenCalledWith(
         "memory://projects/my-project",
         2,
+        undefined,
       )
 
       expect(result).toEqual({
@@ -143,6 +145,7 @@ describe("context tool", () => {
       expect(mockClient.buildContext).toHaveBeenCalledWith(
         "memory://test/url",
         1,
+        undefined,
       )
     })
 
@@ -356,7 +359,7 @@ describe("context tool", () => {
 
       for (const url of urls) {
         await executeFunction("tool-call-id", { url })
-        expect(mockClient.buildContext).toHaveBeenCalledWith(url, 1)
+        expect(mockClient.buildContext).toHaveBeenCalledWith(url, 1, undefined)
       }
 
       expect(mockClient.buildContext).toHaveBeenCalledTimes(urls.length)
@@ -378,10 +381,29 @@ describe("context tool", () => {
         expect(mockClient.buildContext).toHaveBeenCalledWith(
           "memory://test",
           depth,
+          undefined,
         )
       }
 
       expect(mockClient.buildContext).toHaveBeenCalledTimes(depths.length)
+    })
+
+    it("should pass project to client.buildContext", async () => {
+      const mockContext = { results: [] }
+      ;(mockClient.buildContext as jest.MockedFunction<any>).mockResolvedValue(
+        mockContext,
+      )
+
+      await executeFunction("tool-call-id", {
+        url: "memory://test",
+        project: "other-project",
+      })
+
+      expect(mockClient.buildContext).toHaveBeenCalledWith(
+        "memory://test",
+        1,
+        "other-project",
+      )
     })
 
     it("should handle buildContext errors gracefully", async () => {

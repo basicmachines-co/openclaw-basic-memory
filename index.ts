@@ -1,6 +1,7 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import { BmClient } from "./bm-client.ts"
 import { registerCli } from "./commands/cli.ts"
+import { registerSkillCommands } from "./commands/skills.ts"
 import { registerCommands } from "./commands/slash.ts"
 import {
   basicMemoryConfigSchema,
@@ -8,6 +9,7 @@ import {
   resolveProjectPath,
 } from "./config.ts"
 import { buildCaptureHandler } from "./hooks/capture.ts"
+import { buildRecallHandler } from "./hooks/recall.ts"
 import { initLogger, log } from "./logger.ts"
 import { TASK_SCHEMA_CONTENT } from "./schema/task-schema.ts"
 import { registerContextTool } from "./tools/context.ts"
@@ -24,6 +26,7 @@ import { registerSchemaDiffTool } from "./tools/schema-diff.ts"
 import { registerSchemaInferTool } from "./tools/schema-infer.ts"
 import { registerSchemaValidateTool } from "./tools/schema-validate.ts"
 import { registerSearchTool } from "./tools/search.ts"
+import { registerWorkspaceListTool } from "./tools/workspace-list.ts"
 import { registerWriteTool } from "./tools/write.ts"
 
 export default {
@@ -48,6 +51,7 @@ export default {
     // --- BM Tools (always registered) ---
     registerSearchTool(api, client)
     registerProjectListTool(api, client)
+    registerWorkspaceListTool(api, client)
     registerReadTool(api, client)
     registerWriteTool(api, client)
     registerEditTool(api, client)
@@ -66,8 +70,13 @@ export default {
       api.on("agent_end", buildCaptureHandler(client, cfg))
     }
 
+    if (cfg.autoRecall) {
+      api.on("agent_start", buildRecallHandler(client, cfg))
+    }
+
     // --- Commands ---
     registerCommands(api, client)
+    registerSkillCommands(api)
     registerCli(api, client, cfg)
 
     // --- Service lifecycle ---

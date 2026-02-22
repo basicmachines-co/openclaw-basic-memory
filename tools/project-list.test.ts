@@ -27,7 +27,9 @@ describe("project list tool", () => {
         description: "List all Basic Memory projects accessible to this agent",
         parameters: expect.objectContaining({
           type: "object",
-          properties: {},
+          properties: expect.objectContaining({
+            workspace: expect.objectContaining({ type: "string" }),
+          }),
         }),
         execute: expect.any(Function),
       }),
@@ -58,7 +60,7 @@ describe("project list tool", () => {
 
     const result = await execute("call-1", {})
 
-    expect(mockClient.listProjects).toHaveBeenCalledWith()
+    expect(mockClient.listProjects).toHaveBeenCalledWith(undefined)
     expect(result.content[0].text).toContain("Found 2 project(s):")
     expect(result.content[0].text).toContain("**alpha** (default)")
     expect(result.content[0].text).toContain("Display Name: Alpha Project")
@@ -72,6 +74,9 @@ describe("project list tool", () => {
           display_name: "Alpha Project",
           is_private: true,
           is_default: true,
+          workspace_name: null,
+          workspace_type: null,
+          workspace_tenant_id: null,
         },
         {
           name: "beta",
@@ -79,6 +84,9 @@ describe("project list tool", () => {
           display_name: null,
           is_private: false,
           is_default: false,
+          workspace_name: null,
+          workspace_type: null,
+          workspace_tenant_id: null,
         },
       ],
     })
@@ -106,6 +114,19 @@ describe("project list tool", () => {
         projects: [],
       },
     })
+  })
+
+  it("passes workspace filter to client.listProjects", async () => {
+    registerProjectListTool(mockApi, mockClient)
+    const registerCall = (mockApi.registerTool as jest.MockedFunction<any>).mock
+      .calls[0]
+    const execute = registerCall[0].execute
+
+    ;(mockClient.listProjects as jest.MockedFunction<any>).mockResolvedValue([])
+
+    await execute("call-1", { workspace: "my-org" })
+
+    expect(mockClient.listProjects).toHaveBeenCalledWith("my-org")
   })
 
   it("handles listProjects errors gracefully", async () => {

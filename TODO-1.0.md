@@ -21,24 +21,17 @@
 - [x] **v2: Composited memory_search** — queries MEMORY.md + BM graph + active tasks in parallel
 - [x] **v2: Nesting bug fix** — file watcher excludes BM project directory to prevent recursive copies
 
-## 🔧 Needs fixing before 1.0
-- [ ] Auto-capture (conversations) — needs testing, may double-write frontmatter
-- [ ] Type checking — run `bun check-types` and fix errors
-- [ ] Lint — run `bun lint` and fix errors
-- [ ] README — update with actual setup instructions
-- [ ] Error handling — tool errors should be more informative
-- [ ] Cloud backend — implement actual cloud API client (currently config-only)
-
-## 🎯 Nice to have for 1.0
-- [ ] `bm project list --format json` for reliable ensureProject check
+## 🔧 before 1.0
+- [x] Auto-capture (conversations)
+- [x] Type checking — run `bun check-types` and fix errors
+- [x] Lint — run `bun lint` and fix errors
+- [x] README — update with actual setup instructions
+- [x] Error handling — tool errors should be more informative
+- [x] Cloud backend — plugin routes through BM MCP server; docs added in BASIC_MEMORY.md
+- [x] `bm project list --format json` for reliable ensureProject check
 - [x] CLI `edit-note` in basic-memory (native command available)
-- [ ] Publish to npm as @openclaw/basic-memory
-- [ ] OpenClaw `plugins install @openclaw/basic-memory` support
-
-## 📋 Post-1.0
-- [ ] Embedding search (BM has vector search, currently only FTS)
-- [ ] Auto-recall (inject relevant context before agent starts, like memory-lancedb)
-- [ ] Conversation summarization before indexing
-- [ ] Bulk import/export
-- [ ] Health check / status command showing BM connection state
-- [ ] Metrics (notes indexed, searches, etc.)
+- [x] Publish to npm as @openclaw/basic-memory
+- [x] OpenClaw `plugins install @openclaw/basic-memory` support
+- [x] Auto-recall — configurable prompt injects active tasks + recent activity on agent_start
+- [x] Health check / status command showing BM connection state
+- [x] Slash commands for BM skills — /tasks, /reflect, /defrag, /schema

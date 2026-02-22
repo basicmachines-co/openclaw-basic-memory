@@ -25,16 +25,25 @@ export function registerContextTool(
             description: "How many relation hops to follow (default: 1)",
           }),
         ),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
-        params: { url: string; depth?: number },
+        params: { url: string; depth?: number; project?: string },
       ) {
         const depth = params.depth ?? 1
         log.debug(`bm_context: url="${params.url}" depth=${depth}`)
 
         try {
-          const ctx = await client.buildContext(params.url, depth)
+          const ctx = await client.buildContext(
+            params.url,
+            depth,
+            params.project,
+          )
 
           if (!ctx.results || ctx.results.length === 0) {
             return {

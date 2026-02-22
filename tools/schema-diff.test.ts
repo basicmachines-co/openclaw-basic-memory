@@ -48,7 +48,7 @@ describe("schema-diff tool", () => {
 
       const result = await execute("call-1", { noteType: "person" })
 
-      expect(mockClient.schemaDiff).toHaveBeenCalledWith("person")
+      expect(mockClient.schemaDiff).toHaveBeenCalledWith("person", undefined)
       expect(result.content[0].text).toContain("phone")
       expect(result.content[0].text).toContain("fax")
       expect(result.details.new_fields).toHaveLength(1)
@@ -81,6 +81,26 @@ describe("schema-diff tool", () => {
 
       expect(result.content[0].text).toContain("No schema found")
       expect(result.content[0].text).toContain("bm_schema_infer")
+    })
+
+    it("should pass project to client.schemaDiff", async () => {
+      ;(mockClient.schemaDiff as jest.MockedFunction<any>).mockResolvedValue({
+        entity_type: "person",
+        schema_found: true,
+        new_fields: [],
+        dropped_fields: [],
+        cardinality_changes: [],
+      })
+
+      await execute("call-1", {
+        noteType: "person",
+        project: "other-project",
+      })
+
+      expect(mockClient.schemaDiff).toHaveBeenCalledWith(
+        "person",
+        "other-project",
+      )
     })
 
     it("should handle errors gracefully", async () => {

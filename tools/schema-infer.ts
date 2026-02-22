@@ -25,10 +25,15 @@ export function registerSchemaInferTool(
               "Minimum frequency (0-1) for a field to be suggested as optional. Default 0.25.",
           }),
         ),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
-        params: { noteType: string; threshold?: number },
+        params: { noteType: string; threshold?: number; project?: string },
       ) {
         log.debug(
           `bm_schema_infer: noteType="${params.noteType}" threshold=${params.threshold ?? 0.25}`,
@@ -38,6 +43,7 @@ export function registerSchemaInferTool(
           const result = await client.schemaInfer(
             params.noteType,
             params.threshold,
+            params.project,
           )
 
           const lines: string[] = [

@@ -20,12 +20,23 @@ export function registerSchemaDiffTool(
           description:
             'The note type to check for drift (e.g., "person", "meeting")',
         }),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
-      async execute(_toolCallId: string, params: { noteType: string }) {
+      async execute(
+        _toolCallId: string,
+        params: { noteType: string; project?: string },
+      ) {
         log.debug(`bm_schema_diff: noteType="${params.noteType}"`)
 
         try {
-          const result = await client.schemaDiff(params.noteType)
+          const result = await client.schemaDiff(
+            params.noteType,
+            params.project,
+          )
 
           if (!result.schema_found) {
             return {

@@ -52,6 +52,11 @@ export function registerEditTool(
               "Expected replacement count for find_replace (default: 1)",
           }),
         ),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
@@ -62,6 +67,7 @@ export function registerEditTool(
           find_text?: string
           section?: string
           expected_replacements?: number
+          project?: string
         },
       ) {
         log.debug(`bm_edit: id="${params.identifier}" op=${params.operation}`)
@@ -76,6 +82,7 @@ export function registerEditTool(
               section: params.section,
               expected_replacements: params.expected_replacements,
             },
+            params.project,
           )
 
           return {

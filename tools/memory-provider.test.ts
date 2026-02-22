@@ -12,6 +12,9 @@ function makeCfg(overrides?: Partial<BasicMemoryConfig>): BasicMemoryConfig {
     memoryFile: "MEMORY.md",
     projectPath: "/tmp/bm-test",
     autoCapture: true,
+    captureMinChars: 10,
+    autoRecall: true,
+    recallPrompt: "Check for active tasks and recent activity.",
     debug: false,
     ...overrides,
   }

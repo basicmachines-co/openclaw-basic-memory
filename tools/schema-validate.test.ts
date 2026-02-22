@@ -62,6 +62,7 @@ describe("schema-validate tool", () => {
       expect(mockClient.schemaValidate).toHaveBeenCalledWith(
         "person",
         undefined,
+        undefined,
       )
       expect(result.content[0].text).toContain("person")
       expect(result.content[0].text).toContain("Valid:** 4")
@@ -89,8 +90,31 @@ describe("schema-validate tool", () => {
       expect(mockClient.schemaValidate).toHaveBeenCalledWith(
         undefined,
         "notes/my-note",
+        undefined,
       )
       expect(result.content[0].text).toContain("Valid:** 1")
+    })
+
+    it("should pass project to client.schemaValidate", async () => {
+      ;(
+        mockClient.schemaValidate as jest.MockedFunction<any>
+      ).mockResolvedValue({
+        entity_type: "person",
+        total_notes: 1,
+        total_entities: 1,
+        valid_count: 1,
+        warning_count: 0,
+        error_count: 0,
+        results: [],
+      })
+
+      await execute("call-1", { noteType: "person", project: "other-project" })
+
+      expect(mockClient.schemaValidate).toHaveBeenCalledWith(
+        "person",
+        undefined,
+        "other-project",
+      )
     })
 
     it("should handle errors gracefully", async () => {

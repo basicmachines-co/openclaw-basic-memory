@@ -22,10 +22,15 @@ export function registerMoveTool(
           description:
             "Destination folder (e.g., 'archive', 'projects/completed')",
         }),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
-        params: { identifier: string; newFolder: string },
+        params: { identifier: string; newFolder: string; project?: string },
       ) {
         log.debug(
           `bm_move: identifier="${params.identifier}" → folder="${params.newFolder}"`,
@@ -35,6 +40,7 @@ export function registerMoveTool(
           const result = await client.moveNote(
             params.identifier,
             params.newFolder,
+            params.project,
           )
 
           return {

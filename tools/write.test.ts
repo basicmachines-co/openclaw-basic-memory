@@ -43,6 +43,9 @@ describe("write tool", () => {
                 type: "string",
                 description: "Folder to write the note in",
               }),
+              project: expect.objectContaining({
+                type: "string",
+              }),
             }),
           }),
           execute: expect.any(Function),
@@ -84,6 +87,7 @@ describe("write tool", () => {
         "Test Note",
         "This is test content",
         "notes",
+        undefined,
       )
 
       expect(result).toEqual({
@@ -123,6 +127,7 @@ describe("write tool", () => {
         "Root Note",
         "Root level note",
         "",
+        undefined,
       )
     })
 
@@ -148,6 +153,7 @@ describe("write tool", () => {
         "Nested Note",
         "Nested folder note",
         "projects/subfolder",
+        undefined,
       )
     })
 
@@ -190,6 +196,7 @@ const code = "example";
         "Markdown Note",
         markdownContent,
         "notes",
+        undefined,
       )
     })
 
@@ -216,6 +223,7 @@ const code = "example";
         specialTitle,
         "Content",
         "notes",
+        undefined,
       )
     })
 
@@ -244,6 +252,7 @@ const code = "example";
         unicodeTitle,
         unicodeContent,
         "notes",
+        undefined,
       )
     })
 
@@ -270,6 +279,7 @@ const code = "example";
         "Long Note",
         longContent,
         "notes",
+        undefined,
       )
     })
 
@@ -295,6 +305,30 @@ const code = "example";
         "Empty Note",
         "",
         "notes",
+        undefined,
+      )
+    })
+
+    it("should pass project to client.writeNote", async () => {
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue({
+        title: "Note",
+        permalink: "note",
+        content: "content",
+        file_path: "notes/note.md",
+      })
+
+      await executeFunction("tool-call-id", {
+        title: "Note",
+        content: "content",
+        folder: "notes",
+        project: "other-project",
+      })
+
+      expect(mockClient.writeNote).toHaveBeenCalledWith(
+        "Note",
+        "content",
+        "notes",
+        "other-project",
       )
     })
 
@@ -350,6 +384,7 @@ Normal line
         "Formatted Note",
         formattedContent,
         "notes",
+        undefined,
       )
     })
 
@@ -376,6 +411,7 @@ Normal line
         multilineTitle,
         "Content",
         "notes",
+        undefined,
       )
     })
 

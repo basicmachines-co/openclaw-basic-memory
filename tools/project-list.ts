@@ -10,6 +10,9 @@ function normalizeProject(project: ProjectListResult) {
     display_name: project.display_name ?? null,
     is_private: project.is_private === true,
     is_default: project.is_default === true || project.isDefault === true,
+    workspace_name: project.workspace_name ?? null,
+    workspace_type: project.workspace_type ?? null,
+    workspace_tenant_id: project.workspace_tenant_id ?? null,
   }
 }
 
@@ -22,12 +25,18 @@ export function registerProjectListTool(
       name: "bm_project_list",
       label: "List Projects",
       description: "List all Basic Memory projects accessible to this agent",
-      parameters: Type.Object({}),
-      async execute(_toolCallId: string, _params: Record<string, never>) {
-        log.debug("bm_project_list")
+      parameters: Type.Object({
+        workspace: Type.Optional(
+          Type.String({
+            description: "Filter by workspace name or tenant_id",
+          }),
+        ),
+      }),
+      async execute(_toolCallId: string, params: { workspace?: string }) {
+        log.debug(`bm_project_list: workspace="${params.workspace ?? ""}"`)
 
         try {
-          const projects = await client.listProjects()
+          const projects = await client.listProjects(params.workspace)
           const normalized = projects.map(normalizeProject)
 
           if (normalized.length === 0) {

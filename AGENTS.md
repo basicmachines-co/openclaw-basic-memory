@@ -4,7 +4,47 @@
 
 This plugin provides sophisticated knowledge management through Basic Memory's knowledge graph. Use these tools and guidelines to help users build and navigate their persistent knowledge base.
 
+## Cross-Project Operations
+
+All content tools (`bm_search`, `bm_read`, `bm_write`, `bm_edit`, `bm_delete`, `bm_move`, `bm_context`, `bm_schema_validate`, `bm_schema_infer`, `bm_schema_diff`) accept an optional `project` parameter to operate on a different project than the default. Use this when the user needs to work across multiple knowledge bases.
+
+```typescript
+// Search in a different project
+bm_search({ query: "meeting notes", project: "team-wiki" })
+
+// Read a note from another project
+bm_read({ identifier: "decisions/auth-strategy", project: "backend" })
+
+// Write to a shared project
+bm_write({ title: "Shared Insight", content: "...", folder: "insights", project: "shared" })
+```
+
 ## Available Tools
+
+### 🌐 `bm_workspace_list`
+**Purpose**: List all workspaces (personal and organization) accessible to this user
+**When to use**: When the user wants to see what workspaces are available, or before filtering projects by workspace
+**Returns**: Workspace names, types (personal/organization), roles, and subscription status
+
+**Examples**:
+```typescript
+// List all workspaces
+bm_workspace_list({})
+```
+
+### 📋 `bm_project_list`
+**Purpose**: List all Basic Memory projects, optionally filtered by workspace
+**When to use**: When the user wants to see available projects, discover projects in a specific workspace, or before cross-project operations
+**Returns**: Project names, paths, default status, and workspace metadata
+
+**Examples**:
+```typescript
+// List all projects
+bm_project_list({})
+
+// List projects in a specific workspace
+bm_project_list({ workspace: "my-organization" })
+```
 
 ### 🔍 `bm_search`
 **Purpose**: Search the knowledge graph for relevant notes, concepts, and connections  
@@ -21,6 +61,9 @@ bm_search({ query: "authentication implementation", limit: 3 })
 
 // Exploring a broad topic
 bm_search({ query: "meeting notes client feedback", limit: 10 })
+
+// Search in a different project
+bm_search({ query: "API endpoints", project: "backend-docs" })
 ```
 
 ### 📖 `bm_read`
@@ -41,6 +84,9 @@ bm_read({ identifier: "Weekly Review 2024-02-01" })
 
 // Read raw markdown including YAML frontmatter
 bm_read({ identifier: "projects/api-redesign", include_frontmatter: true })
+
+// Read from another project
+bm_read({ identifier: "decisions/auth-strategy", project: "backend" })
 ```
 
 ### ✍️ `bm_write`
@@ -192,6 +238,42 @@ bm_context({
 })
 ```
 
+### 📐 `bm_schema_validate`
+**Purpose**: Validate notes against their Picoschema definitions
+**When to use**: When checking note consistency, after schema changes, or when the user wants to audit note quality
+
+**Examples**:
+```typescript
+// Validate all notes of a type
+bm_schema_validate({ noteType: "person" })
+
+// Validate a single note
+bm_schema_validate({ identifier: "notes/john-doe" })
+
+// Validate in another project
+bm_schema_validate({ noteType: "meeting", project: "team" })
+```
+
+### 🔬 `bm_schema_infer`
+**Purpose**: Analyze existing notes and suggest a Picoschema definition
+**When to use**: When creating a new schema from existing notes, or exploring what structure notes of a type share
+
+**Examples**:
+```typescript
+bm_schema_infer({ noteType: "meeting" })
+bm_schema_infer({ noteType: "person", threshold: 0.5 })
+```
+
+### 📊 `bm_schema_diff`
+**Purpose**: Detect drift between a schema definition and actual note usage
+**When to use**: When checking if a schema is still accurate, or after adding new fields to notes
+
+**Examples**:
+```typescript
+bm_schema_diff({ noteType: "person" })
+bm_schema_diff({ noteType: "Task", project: "work" })
+```
+
 ## Knowledge Graph Structure
 
 ### Understanding the Graph
@@ -257,6 +339,12 @@ Create connections between notes:
 - Cross-reference related decisions and implementations
 
 ## When to Use Each Tool
+
+### Discover Workspaces and Projects
+Use `bm_workspace_list` and `bm_project_list` when:
+- User asks what workspaces or projects are available
+- Before cross-project operations, to confirm project names
+- When switching between personal and organization contexts
 
 ### Start with Search
 **Always begin with `bm_search`** when:

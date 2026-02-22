@@ -27,10 +27,15 @@ export function registerSchemaValidateTool(
               "Specific note to validate (permalink, title, or path)",
           }),
         ),
+        project: Type.Optional(
+          Type.String({
+            description: "Target project name (defaults to current project)",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
-        params: { noteType?: string; identifier?: string },
+        params: { noteType?: string; identifier?: string; project?: string },
       ) {
         log.debug(
           `bm_schema_validate: noteType="${params.noteType ?? ""}" identifier="${params.identifier ?? ""}"`,
@@ -40,6 +45,7 @@ export function registerSchemaValidateTool(
           const result = await client.schemaValidate(
             params.noteType,
             params.identifier,
+            params.project,
           )
 
           const lines: string[] = []

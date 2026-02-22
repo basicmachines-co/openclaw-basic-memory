@@ -19,6 +19,8 @@ describe("capture hook", () => {
       projectPath: "/tmp/test",
       autoCapture: true,
       captureMinChars: 10,
+      autoRecall: true,
+      recallPrompt: "Check for active tasks and recent activity.",
       debug: false,
     }
   })

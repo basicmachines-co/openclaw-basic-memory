@@ -39,6 +39,9 @@ describe("search tool", () => {
                 type: "number",
                 description: "Max results (default: 10)",
               }),
+              project: expect.objectContaining({
+                type: "string",
+              }),
             }),
           }),
           execute: expect.any(Function),
@@ -85,7 +88,7 @@ describe("search tool", () => {
         limit: 5,
       })
 
-      expect(mockClient.search).toHaveBeenCalledWith("test query", 5)
+      expect(mockClient.search).toHaveBeenCalledWith("test query", 5, undefined)
       expect(result).toEqual({
         content: [
           {
@@ -116,7 +119,11 @@ describe("search tool", () => {
 
       await executeFunction("tool-call-id", { query: "test query" })
 
-      expect(mockClient.search).toHaveBeenCalledWith("test query", 10)
+      expect(mockClient.search).toHaveBeenCalledWith(
+        "test query",
+        10,
+        undefined,
+      )
     })
 
     it("should format results with scores as percentages", async () => {
@@ -230,6 +237,21 @@ describe("search tool", () => {
           },
         ],
       })
+    })
+
+    it("should pass project to client.search", async () => {
+      ;(mockClient.search as jest.MockedFunction<any>).mockResolvedValue([])
+
+      await executeFunction("tool-call-id", {
+        query: "test query",
+        project: "other-project",
+      })
+
+      expect(mockClient.search).toHaveBeenCalledWith(
+        "test query",
+        10,
+        "other-project",
+      )
     })
 
     it("should handle search errors gracefully", async () => {

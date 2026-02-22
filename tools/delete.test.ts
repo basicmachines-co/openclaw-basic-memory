@@ -44,6 +44,24 @@ describe("delete tool", () => {
     expect(result.content[0].text).toContain("old-note")
   })
 
+  it("should pass project to client.deleteNote", async () => {
+    const tool = await loadAndRegister()
+    ;(mockClient.deleteNote as any).mockResolvedValue({
+      title: "old-note",
+      permalink: "notes/old-note",
+      file_path: "notes/old-note.md",
+    })
+
+    await tool.execute("call-1", {
+      identifier: "notes/old-note",
+      project: "other-project",
+    })
+    expect(mockClient.deleteNote).toHaveBeenCalledWith(
+      "notes/old-note",
+      "other-project",
+    )
+  })
+
   it("should handle delete failure", async () => {
     const tool = await loadAndRegister()
     ;(mockClient.deleteNote as any).mockRejectedValue(new Error("not found"))

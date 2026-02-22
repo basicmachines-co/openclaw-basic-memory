@@ -12,11 +12,13 @@ The plugin composes memory from three places:
 
 `memory_search` merges these into one response so agents can reason over current context and durable notes together.
 
+> **Note on MEMORY.md role:** OpenClaw's default convention treats `MEMORY.md` as [long-term curated memory](https://docs.openclaw.ai/concepts/memory) — decisions, preferences, and durable facts. This plugin **flips that role**: because Basic Memory provides a full knowledge graph for durable storage (`memory/**/*.md`), `MEMORY.md` serves as short-horizon working memory instead. Long-lived knowledge belongs in the knowledge graph where it gets indexed, linked, and searchable. `MEMORY.md` stays concise and focused on current session context.
+
 ## End-to-End Flow
 
 1. Agent/user writes notes with `bm_write` (or manually edits markdown files).
-2. Plugin service runs `bm watch --project <name>`.
-3. File changes are indexed into Basic Memory automatically.
+2. The MCP session monitors file changes and indexes them automatically.
+3. Updated notes become searchable in the knowledge graph.
 4. Agent calls `memory_search`:
    - searches `MEMORY.md` for matching lines with context
    - queries BM graph for top knowledge results
@@ -27,7 +29,7 @@ The plugin composes memory from three places:
 
 ```mermaid
 flowchart TD
-    A["Agent/User updates notes (bm_write, bm_edit, markdown files)"] --> B["Plugin service: bm watch --project <name>"]
+    A["Agent/User updates notes (bm_write, bm_edit, markdown files)"] --> B["MCP session monitors file changes"]
     B --> C["Basic Memory index refresh"]
     C --> D["Agent calls memory_search(query)"]
 
@@ -132,7 +134,7 @@ Use `bm_edit` (`find_replace`) to change `status: active` to `status: done`.
 1. Keep `MEMORY.md` concise and current; move durable details to notes under `memory/`.
 2. Prefer one task note per workstream; update it incrementally instead of rewriting.
 3. Ensure `memoryDir` points to the directory that contains your `tasks/` folder.
-4. If task search looks wrong, verify `bm watch` is running and notes exist in expected paths.
+4. If task search looks wrong, verify the MCP session is connected and notes exist in expected paths.
 
 ## Bundled Skills
 
