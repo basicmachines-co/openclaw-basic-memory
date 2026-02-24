@@ -1,6 +1,6 @@
 {
   "name": "@basicmemory/openclaw-basic-memory",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "type": "module",
   "description": "Basic Memory plugin for OpenClaw — local-first knowledge graph for agent memory",
   "license": "MIT",
