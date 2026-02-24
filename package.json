@@ -4,6 +4,10 @@
   "type": "module",
   "description": "Basic Memory plugin for OpenClaw — local-first knowledge graph for agent memory",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/basicmachines-co/openclaw-basic-memory"
+  },
   "files": [
     "index.ts",
     "bm-client.ts",
