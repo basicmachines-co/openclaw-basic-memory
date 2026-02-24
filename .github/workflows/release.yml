@@ -56,11 +56,11 @@ jobs:
 
           if [[ "$VERSION_INPUT" =~ ^(patch|minor|major)$ ]]; then
             npm version "$VERSION_INPUT" -m "chore(release): %s"
-          elif [[ "$VERSION_INPUT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          elif [[ "$VERSION_INPUT" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-.+)?$ ]]; then
             npm version "$VERSION_INPUT" -m "chore(release): %s"
           else
             echo "Unsupported version input: $VERSION_INPUT" >&2
-            echo "Use patch|minor|major or explicit semver like 0.2.0" >&2
+            echo "Use patch|minor|major or explicit semver like 0.2.0 or 0.2.0-alpha.1" >&2
             exit 1
           fi
 
