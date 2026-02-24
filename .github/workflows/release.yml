@@ -34,7 +34,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -76,7 +75,9 @@ jobs:
           git push origin "${{ steps.bump.outputs.tag }}"
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm publish --provenance --access public
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
