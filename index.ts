@@ -30,7 +30,7 @@ import { registerSearchTool } from "./tools/search-notes.ts"
 import { registerWriteTool } from "./tools/write-note.ts"
 
 export default {
-  id: "basic-memory",
+  id: "openclaw-basic-memory",
   name: "Basic Memory",
   description:
     "Local-first knowledge graph for OpenClaw — persistent memory with graph search and composited memory_search",
@@ -81,7 +81,7 @@ export default {
 
     // --- Service lifecycle ---
     api.registerService({
-      id: "basic-memory",
+      id: "openclaw-basic-memory",
       start: async (ctx: { config?: unknown; workspaceDir?: string }) => {
         log.info("starting...")
 

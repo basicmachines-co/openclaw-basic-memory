@@ -37,7 +37,7 @@ For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
 openclaw plugins install @basicmemory/openclaw-basic-memory
 
 # Enable and assign to the memory slot
-openclaw plugins enable basic-memory --slot memory
+openclaw plugins enable openclaw-basic-memory --slot memory
 
 # Restart the gateway
 openclaw gateway restart
@@ -46,7 +46,7 @@ openclaw gateway restart
 Verify:
 ```bash
 openclaw plugins list
-openclaw plugins info basic-memory
+openclaw plugins info openclaw-basic-memory
 ```
 
 If `uv` is not installed, the `bm` CLI setup is skipped gracefully during install. Install `uv` first, then re-run the postinstall script:
@@ -64,7 +64,7 @@ git clone https://github.com/basicmachines-co/openclaw-basic-memory.git
 cd openclaw-basic-memory
 bun install
 openclaw plugins install -l "$PWD"
-openclaw plugins enable basic-memory --slot memory
+openclaw plugins enable openclaw-basic-memory --slot memory
 openclaw gateway restart
 ```
 
@@ -77,12 +77,12 @@ Or load directly from a path in your OpenClaw config:
       paths: ["~/dev/openclaw-basic-memory"]
     },
     entries: {
-      "basic-memory": {
+      "openclaw-basic-memory": {
         enabled: true
       }
     },
     slots: {
-      memory: "basic-memory"
+      memory: "openclaw-basic-memory"
     }
   }
 }
@@ -120,7 +120,7 @@ This installs to the same `skills/` directory the plugin reads from, so updated 
 ### Minimal (zero-config)
 ```json5
 {
-  "basic-memory": {
+  "openclaw-basic-memory": {
     enabled: true
   }
 }
@@ -131,7 +131,7 @@ This uses sensible defaults: auto-generated project name, maps Basic Memory to y
 ### Full configuration
 ```json5
 {
-  "basic-memory": {
+  "openclaw-basic-memory": {
     enabled: true,
     config: {
       project: "my-agent",                          // BM project name (default: "openclaw-{hostname}")
@@ -499,7 +499,7 @@ bun run test:int      # Real BM MCP integration tests
 
 ## Publish to npm
 
-This package is published as `@openclaw/basic-memory`.
+This package is published as `@basicmemory/openclaw-basic-memory`.
 
 ```bash
 # 1) Verify release readiness (types + tests + npm pack dry run)
