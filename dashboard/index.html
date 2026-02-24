@@ -127,9 +127,9 @@ async function refresh() {
   document.getElementById('refresh').textContent = '🔄';
 
   const [tasks, activity, stats] = await Promise.all([
-    fetchJson(API + '/api/tasks'),
-    fetchJson(API + '/api/activity'),
-    fetchJson(API + '/api/stats'),
+    fetchJson(`${API}/api/tasks`),
+    fetchJson(`${API}/api/activity`),
+    fetchJson(`${API}/api/stats`),
   ]);
 
   // Stats
@@ -150,7 +150,7 @@ async function refresh() {
     }
   }
   for (const [key, items] of Object.entries(cols)) {
-    const container = document.getElementById('col-' + key);
+    const container = document.getElementById(`col-${key}`);
     container.innerHTML = '';
     for (const el of items) container.appendChild(el);
     container.parentElement.querySelector('.col-count').textContent = `(${items.length})`;
@@ -159,7 +159,7 @@ async function refresh() {
   // Activity
   const feed = document.getElementById('activity-feed');
   feed.innerHTML = '';
-  if (activity && activity.length) {
+  if (activity?.length) {
     for (const a of activity.slice(0, 30)) {
       const div = document.createElement('div');
       div.className = 'activity-item';

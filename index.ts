@@ -9,6 +9,7 @@ import {
   parseConfig,
   resolveProjectPath,
 } from "./config.ts"
+import { createDashboardServer } from "./dashboard/server.ts"
 import { buildCaptureHandler } from "./hooks/capture.ts"
 import { buildRecallHandler } from "./hooks/recall.ts"
 import { initLogger, log } from "./logger.ts"
@@ -29,7 +30,6 @@ import { registerSchemaInferTool } from "./tools/schema-infer.ts"
 import { registerSchemaValidateTool } from "./tools/schema-validate.ts"
 import { registerSearchTool } from "./tools/search-notes.ts"
 import { registerWriteTool } from "./tools/write-note.ts"
-import { createDashboardServer } from "./dashboard/server.ts"
 
 export default {
   id: "openclaw-basic-memory",
@@ -119,7 +119,9 @@ export default {
             client,
           })
           dashboardServer.listen(cfg.dashboard.port, () => {
-            log.info(`dashboard running at http://localhost:${cfg.dashboard.port}`)
+            log.info(
+              `dashboard running at http://localhost:${cfg.dashboard.port}`,
+            )
           })
         }
 
@@ -128,7 +130,9 @@ export default {
       stop: async () => {
         log.info("stopping BM MCP session...")
         if (dashboardServer) {
-          await new Promise<void>((resolve) => dashboardServer!.close(() => resolve()))
+          await new Promise<void>((resolve) =>
+            dashboardServer?.close(() => resolve()),
+          )
           dashboardServer = undefined
           log.info("dashboard stopped")
         }

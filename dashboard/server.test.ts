@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from "bun:test"
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "bun:test"
 import type { Server } from "node:http"
 import type { BmClient } from "../bm-client.ts"
 import { createDashboardServer } from "./server.ts"
@@ -17,7 +25,12 @@ describe("dashboard server", () => {
         permalink: "test",
         content: "",
         file_path: "test.md",
-        frontmatter: { status: "active", current_step: 1, total_steps: 3, assigned_to: "claw" },
+        frontmatter: {
+          status: "active",
+          current_step: 1,
+          total_steps: 3,
+          assigned_to: "claw",
+        },
       }),
     } as any
 
@@ -55,7 +68,12 @@ describe("dashboard server", () => {
 
   it("GET /api/tasks calls search with type:Task", async () => {
     ;(mockClient.search as any).mockResolvedValue([
-      { title: "My Task", permalink: "tasks/my-task", content: "do stuff", file_path: "tasks/my-task.md" },
+      {
+        title: "My Task",
+        permalink: "tasks/my-task",
+        content: "do stuff",
+        file_path: "tasks/my-task.md",
+      },
     ])
 
     const res = await fetch(`${baseUrl}/api/tasks`)
@@ -73,7 +91,12 @@ describe("dashboard server", () => {
 
   it("GET /api/activity calls recentActivity", async () => {
     ;(mockClient.recentActivity as any).mockResolvedValue([
-      { title: "Daily Note", permalink: "2026-02-24", file_path: "memory/2026-02-24.md", created_at: "2026-02-24T12:00:00Z" },
+      {
+        title: "Daily Note",
+        permalink: "2026-02-24",
+        file_path: "memory/2026-02-24.md",
+        created_at: "2026-02-24T12:00:00Z",
+      },
     ])
 
     const res = await fetch(`${baseUrl}/api/activity`)
@@ -89,15 +112,25 @@ describe("dashboard server", () => {
 
     const res = await fetch(`${baseUrl}/api/explorations`)
     expect(res.status).toBe(200)
-    expect(mockClient.search).toHaveBeenCalledWith("type:Exploration", 50, undefined, {
-      filters: { type: "Exploration" },
-    })
+    expect(mockClient.search).toHaveBeenCalledWith(
+      "type:Exploration",
+      50,
+      undefined,
+      {
+        filters: { type: "Exploration" },
+      },
+    )
   })
 
   it("GET /api/notes/daily searches for today's date", async () => {
     const today = new Date().toISOString().split("T")[0]
     ;(mockClient.search as any).mockResolvedValue([
-      { title: today, permalink: today, content: "daily stuff", file_path: `memory/${today}.md` },
+      {
+        title: today,
+        permalink: today,
+        content: "daily stuff",
+        file_path: `memory/${today}.md`,
+      },
     ])
 
     const res = await fetch(`${baseUrl}/api/notes/daily`)
@@ -110,15 +143,28 @@ describe("dashboard server", () => {
   it("GET /api/stats returns counts", async () => {
     ;(mockClient.recentActivity as any).mockResolvedValue([{}, {}, {}])
     ;(mockClient.search as any).mockImplementation(async (query: string) => {
-      if (query === "type:Task") return [
-        { title: "T1", permalink: "t1", content: "", file_path: "t1.md" },
-        { title: "T2", permalink: "t2", content: "", file_path: "t2.md" },
-      ]
+      if (query === "type:Task")
+        return [
+          { title: "T1", permalink: "t1", content: "", file_path: "t1.md" },
+          { title: "T2", permalink: "t2", content: "", file_path: "t2.md" },
+        ]
       return [{ title: "E1", permalink: "e1", content: "", file_path: "e1.md" }]
     })
     ;(mockClient.readNote as any)
-      .mockResolvedValueOnce({ title: "T1", permalink: "t1", content: "", file_path: "t1.md", frontmatter: { status: "active" } })
-      .mockResolvedValueOnce({ title: "T2", permalink: "t2", content: "", file_path: "t2.md", frontmatter: { status: "done" } })
+      .mockResolvedValueOnce({
+        title: "T1",
+        permalink: "t1",
+        content: "",
+        file_path: "t1.md",
+        frontmatter: { status: "active" },
+      })
+      .mockResolvedValueOnce({
+        title: "T2",
+        permalink: "t2",
+        content: "",
+        file_path: "t2.md",
+        frontmatter: { status: "done" },
+      })
 
     const res = await fetch(`${baseUrl}/api/stats`)
     expect(res.status).toBe(200)
