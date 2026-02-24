@@ -76,7 +76,15 @@ jobs:
           git push origin "${{ steps.bump.outputs.tag }}"
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          if [[ "$VERSION" == *-* ]]; then
+            DIST_TAG="${VERSION##*-}"   # e.g. alpha.6 -> alpha
+            DIST_TAG="${DIST_TAG%%.*}"  # strip .N suffix
+            npm publish --provenance --access public --tag "$DIST_TAG"
+          else
+            npm publish --provenance --access public
+          fi
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
