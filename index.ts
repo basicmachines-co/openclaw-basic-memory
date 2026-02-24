@@ -1,3 +1,4 @@
+import type { Server } from "node:http"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import { BmClient } from "./bm-client.ts"
 import { registerCli } from "./commands/cli.ts"
@@ -8,6 +9,7 @@ import {
   parseConfig,
   resolveProjectPath,
 } from "./config.ts"
+import { createDashboardServer } from "./dashboard/server.ts"
 import { buildCaptureHandler } from "./hooks/capture.ts"
 import { buildRecallHandler } from "./hooks/recall.ts"
 import { initLogger, log } from "./logger.ts"
@@ -80,6 +82,8 @@ export default {
     registerCli(api, client, cfg)
 
     // --- Service lifecycle ---
+    let dashboardServer: Server | undefined
+
     api.registerService({
       id: "openclaw-basic-memory",
       start: async (ctx: { config?: unknown; workspaceDir?: string }) => {
@@ -108,10 +112,30 @@ export default {
 
         setWorkspaceDir(workspace)
 
+        // Start dashboard if enabled
+        if (cfg.dashboard.enabled) {
+          dashboardServer = createDashboardServer({
+            port: cfg.dashboard.port,
+            client,
+          })
+          dashboardServer.listen(cfg.dashboard.port, () => {
+            log.info(
+              `dashboard running at http://localhost:${cfg.dashboard.port}`,
+            )
+          })
+        }
+
         log.info("connected — BM MCP stdio session running")
       },
       stop: async () => {
         log.info("stopping BM MCP session...")
+        if (dashboardServer) {
+          await new Promise<void>((resolve) =>
+            dashboardServer?.close(() => resolve()),
+          )
+          dashboardServer = undefined
+          log.info("dashboard stopped")
+        }
         await client.stop()
         log.info("stopped")
       },

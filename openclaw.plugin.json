@@ -56,6 +56,11 @@
       "label": "Cloud Backend",
       "help": "Optional cloud backend config (url + api_key). If present, uses cloud instead of local BM.",
       "advanced": true
+    },
+    "dashboard": {
+      "label": "Dashboard",
+      "help": "Web dashboard for visualizing the knowledge graph (enabled, port)",
+      "advanced": true
     }
   },
   "configSchema": {
@@ -75,6 +80,13 @@
         "properties": {
           "url": { "type": "string" },
           "api_key": { "type": "string" }
+        }
+      },
+      "dashboard": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "port": { "type": "number", "minimum": 1, "maximum": 65535 }
         }
       }
     },
