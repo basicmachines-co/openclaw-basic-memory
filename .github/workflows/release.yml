@@ -76,9 +76,7 @@ jobs:
           git push origin "${{ steps.bump.outputs.tag }}"
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+        run: npm publish --provenance --access public
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
