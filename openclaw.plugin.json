@@ -5,7 +5,9 @@
     "skills/memory-tasks",
     "skills/memory-reflect",
     "skills/memory-defrag",
-    "skills/memory-schema"
+    "skills/memory-schema",
+    "skills/memory-metadata-search",
+    "skills/memory-notes"
   ],
   "uiHints": {
     "project": {

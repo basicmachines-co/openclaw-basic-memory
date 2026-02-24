@@ -13,16 +13,16 @@ describe("schema-diff tool", () => {
   })
 
   describe("registerSchemaDiffTool", () => {
-    it("should register bm_schema_diff tool", () => {
+    it("should register schema_diff tool", () => {
       registerSchemaDiffTool(mockApi, mockClient)
 
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: "bm_schema_diff",
+          name: "schema_diff",
           label: "Schema Diff",
           execute: expect.any(Function),
         }),
-        { name: "bm_schema_diff" },
+        { name: "schema_diff" },
       )
     })
   })
@@ -90,7 +90,7 @@ describe("schema-diff tool", () => {
       const result = await execute("call-1", { noteType: "unknown" })
 
       expect(result.content[0].text).toContain("No schema found")
-      expect(result.content[0].text).toContain("bm_schema_infer")
+      expect(result.content[0].text).toContain("schema_infer")
     })
 
     it("should pass project to client.schemaDiff", async () => {

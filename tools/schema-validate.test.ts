@@ -13,16 +13,16 @@ describe("schema-validate tool", () => {
   })
 
   describe("registerSchemaValidateTool", () => {
-    it("should register bm_schema_validate tool", () => {
+    it("should register schema_validate tool", () => {
       registerSchemaValidateTool(mockApi, mockClient)
 
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: "bm_schema_validate",
+          name: "schema_validate",
           label: "Schema Validate",
           execute: expect.any(Function),
         }),
-        { name: "bm_schema_validate" },
+        { name: "schema_validate" },
       )
     })
   })

@@ -19,56 +19,56 @@ For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
 
 ## Requirements
 
-1. **Basic Memory CLI** (`bm`) — installed automatically by `bun install` when [uv](https://docs.astral.sh/uv/) is available. Manual install:
+1. **[uv](https://docs.astral.sh/uv/)** — Python package manager used to install Basic Memory CLI
    ```bash
-   # Latest main branch (recommended during pre-release):
-   bash scripts/setup-bm.sh
+   # macOS
+   brew install uv
 
-   # Or pin a specific ref:
-   BM_REF=v0.18.4 bash scripts/setup-bm.sh
+   # macOS / Linux
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
-   If `uv` is not installed, the postinstall step is skipped gracefully. Install `uv` first, then re-run `bash scripts/setup-bm.sh`.
 
-2. **OpenClaw** with plugin support
+2. **[OpenClaw](https://docs.openclaw.ai)** with plugin support
 
 ## Installation
 
-### Install in OpenClaw (local directory)
+```bash
+# Install the plugin (automatically installs the bm CLI via uv)
+openclaw plugins install @basicmemory/openclaw-basic-memory
+
+# Enable and assign to the memory slot
+openclaw plugins enable basic-memory --slot memory
+
+# Restart the gateway
+openclaw gateway restart
+```
+
+Verify:
+```bash
+openclaw plugins list
+openclaw plugins info basic-memory
+```
+
+If `uv` is not installed, the `bm` CLI setup is skipped gracefully during install. Install `uv` first, then re-run the postinstall script:
+
+```bash
+bash ~/.openclaw/extensions/openclaw-basic-memory/scripts/setup-bm.sh
+```
+
+### Development (local directory)
+
+For plugin development, clone and link locally:
 
 ```bash
 git clone https://github.com/basicmachines-co/openclaw-basic-memory.git
 cd openclaw-basic-memory
 bun install
 openclaw plugins install -l "$PWD"
+openclaw plugins enable basic-memory --slot memory
+openclaw gateway restart
 ```
 
-Then set this plugin as the memory slot owner in your OpenClaw config:
-
-```json5
-{
-  plugins: {
-    entries: {
-      "basic-memory": {
-        enabled: true
-      }
-    },
-    slots: {
-      memory: "basic-memory"
-    }
-  }
-}
-```
-
-Restart OpenClaw gateway after install/config changes, then verify:
-
-```bash
-openclaw plugins list
-openclaw plugins info basic-memory
-```
-
-### Manual Load Path (Dev Alternative)
-
-If you prefer loading directly from a path in config instead of `plugins install`:
+Or load directly from a path in your OpenClaw config:
 
 ```json5
 {
@@ -90,12 +90,14 @@ If you prefer loading directly from a path in config instead of `plugins install
 
 ### Bundled Skills
 
-This plugin ships with four skills that are automatically available when the plugin is enabled — no manual installation needed:
+This plugin ships with six skills that are automatically available when the plugin is enabled — no manual installation needed:
 
 - **`memory-tasks`** — structured task tracking that survives context compaction
 - **`memory-reflect`** — periodic consolidation of recent notes into durable memory
 - **`memory-defrag`** — periodic cleanup/reorganization of memory files
 - **`memory-schema`** — schema lifecycle management (infer, create, validate, diff, evolve)
+- **`memory-metadata-search`** — structured metadata search by custom frontmatter fields (status, priority, etc.)
+- **`memory-notes`** — guidance for writing well-structured notes with observations and relations
 
 Skills are loaded from the plugin's `skills/` directory. See the upstream source at [`basic-memory-skills`](https://github.com/basicmachines-co/basic-memory-skills).
 
@@ -211,13 +213,13 @@ This plugin works best if you treat memory as three lanes:
 
 Typical loop:
 
-1. Capture or update notes/tasks with `bm_write` / `bm_edit`.
+1. Capture or update notes/tasks with `write_note` / `edit_note`.
 2. The persistent BM MCP process syncs markdown updates into the BM project index.
 3. `memory_search` queries:
    - `MEMORY.md` text snippets
    - BM search results (semantic + FTS)
    - active tasks
-4. Drill into one result with `memory_get` or `bm_read`.
+4. Drill into one result with `memory_get` or `read_note`.
 5. Advance tasks by updating `current_step`, checkboxes, and context.
 6. Complete tasks by setting `status: done` (done tasks are excluded from active task results).
 
@@ -231,7 +233,7 @@ flowchart LR
     D --> G["Composited result"]
     E --> G
     F --> G
-    G --> H["memory_get / bm_read"]
+    G --> H["memory_get / read_note"]
     H --> A
 ```
 
@@ -300,99 +302,99 @@ Cloud extends local-first — still plain markdown, still yours. Start with a [7
 
 All content tools accept an optional `project` parameter to operate on a different project than the default (cross-project operations).
 
-### `bm_workspace_list`
+### `list_workspaces`
 List all workspaces (personal and organization) accessible to this user.
-```typescript
-bm_workspace_list({})
+```
+list_workspaces()
 ```
 
-### `bm_project_list`
+### `list_memory_projects`
 List all projects, optionally filtered by workspace.
-```typescript
-bm_project_list({})
-bm_project_list({ workspace: "my-org" })
+```
+list_memory_projects()
+list_memory_projects(workspace="my-org")
 ```
 
-### `bm_search`
+### `search_notes`
 Search the knowledge graph.
-```typescript
-bm_search({ query: "API design", limit: 5 })
-bm_search({ query: "API design", project: "other-project" })  // cross-project
+```
+search_notes(query="API design", limit=5)
+search_notes(query="API design", project="other-project")  # cross-project
 ```
 
-### `bm_read`
+### `read_note`
 Read a note by title, permalink, or `memory://` URL.
-```typescript
-bm_read({ identifier: "memory://projects/api-redesign" })
-bm_read({ identifier: "memory://projects/api-redesign", include_frontmatter: true }) // raw markdown + YAML
-bm_read({ identifier: "notes/readme", project: "docs" })  // cross-project
+```
+read_note(identifier="memory://projects/api-redesign")
+read_note(identifier="memory://projects/api-redesign", include_frontmatter=true)  # raw markdown + YAML
+read_note(identifier="notes/readme", project="docs")  # cross-project
 ```
 
-### `bm_write`
+### `write_note`
 Create a new note.
-```typescript
-bm_write({ title: "Auth Strategy", content: "## Overview\n...", folder: "decisions" })
-bm_write({ title: "Shared Note", content: "...", folder: "shared", project: "team" })  // cross-project
+```
+write_note(title="Auth Strategy", content="## Overview\n...", folder="decisions")
+write_note(title="Shared Note", content="...", folder="shared", project="team")  # cross-project
 ```
 
-### `bm_edit`
+### `edit_note`
 Edit an existing note (`append`, `prepend`, `find_replace`, `replace_section`).
-```typescript
-bm_edit({ identifier: "weekly-review", operation: "append", content: "\n## Update\nDone." })
-bm_edit({
-  identifier: "weekly-review",
-  operation: "find_replace",
-  find_text: "status: active",
-  content: "status: done",
-  expected_replacements: 1,
-})
-bm_edit({
-  identifier: "weekly-review",
-  operation: "replace_section",
-  section: "## This Week",
-  content: "- Done\n- Next",
-})
+```
+edit_note(identifier="weekly-review", operation="append", content="\n## Update\nDone.")
+edit_note(
+  identifier="weekly-review",
+  operation="find_replace",
+  find_text="status: active",
+  content="status: done",
+  expected_replacements=1,
+)
+edit_note(
+  identifier="weekly-review",
+  operation="replace_section",
+  section="## This Week",
+  content="- Done\n- Next",
+)
 ```
 
-### `bm_delete`
+### `delete_note`
 Delete a note.
-```typescript
-bm_delete({ identifier: "notes/old-draft" })
-bm_delete({ identifier: "notes/old-draft", project: "archive" })  // cross-project
+```
+delete_note(identifier="notes/old-draft")
+delete_note(identifier="notes/old-draft", project="archive")  # cross-project
 ```
 
-### `bm_move`
+### `move_note`
 Move a note to a different folder.
-```typescript
-bm_move({ identifier: "notes/my-note", newFolder: "archive" })
+```
+move_note(identifier="notes/my-note", newFolder="archive")
 ```
 
-### `bm_context`
+### `build_context`
 Navigate the knowledge graph — get a note with its observations and relations.
-```typescript
-bm_context({ url: "memory://projects/api-redesign", depth: 2 })
-bm_context({ url: "memory://decisions", depth: 1, project: "team" })  // cross-project
+```
+build_context(url="memory://projects/api-redesign", depth=2)
+build_context(url="memory://decisions", depth=1, project="team")  # cross-project
 ```
 
-### `bm_schema_validate`
+### `schema_validate`
 Validate notes against their Picoschema definitions.
-```typescript
-bm_schema_validate({ noteType: "person" })
-bm_schema_validate({ identifier: "notes/john-doe" })
-bm_schema_validate({ noteType: "person", project: "contacts" })  // cross-project
+```
+schema_validate(noteType="person")
+schema_validate(identifier="notes/john-doe")
+schema_validate(noteType="person", project="contacts")  # cross-project
 ```
 
-### `bm_schema_infer`
+### `schema_infer`
 Analyze existing notes and suggest a Picoschema definition.
-```typescript
-bm_schema_infer({ noteType: "meeting" })
-bm_schema_infer({ noteType: "person", threshold: 0.5 })
+```
+schema_infer(noteType="meeting")
+schema_infer(noteType="person", threshold=0.5)
 ```
 
-### `bm_schema_diff`
+### `schema_diff`
 Detect drift between a schema definition and actual note usage.
-```typescript
-bm_schema_diff({ noteType: "person" })
+```
+schema_diff(noteType="person")
 ```
 
 ## Slash Commands
@@ -441,7 +443,7 @@ bm mcp --help         # Verify MCP server command exists
 ```
 If `bm mcp` doesn't exist, update Basic Memory to a newer version.
 
-### `bm_edit` says `edit-note` is required
+### `edit_note` says `edit-note` is required
 Your installed `basic-memory` version is missing native `tool edit-note`.
 Upgrade `basic-memory` and rerun.
 
@@ -539,20 +541,20 @@ openclaw-basic-memory/
 ├── index.ts              # Plugin entry — manages MCP lifecycle, registers tools
 ├── config.ts             # Configuration parsing
 ├── bm-client.ts          # Persistent Basic Memory MCP stdio client
-├── tools/                # Agent tools
-│   ├── search.ts         # bm_search
-│   ├── read.ts           # bm_read
-│   ├── write.ts          # bm_write
-│   ├── edit.ts           # bm_edit
-│   ├── delete.ts         # bm_delete
-│   ├── move.ts           # bm_move
-│   ├── context.ts        # bm_context
-│   ├── project-list.ts   # bm_project_list
-│   ├── workspace-list.ts # bm_workspace_list
-│   ├── schema-validate.ts # bm_schema_validate
-│   ├── schema-infer.ts   # bm_schema_infer
-│   ├── schema-diff.ts    # bm_schema_diff
-│   └── memory-provider.ts # Composited memory_search + memory_get
+├── tools/                       # Agent tools
+│   ├── search-notes.ts          # search_notes
+│   ├── read-note.ts             # read_note
+│   ├── write-note.ts            # write_note
+│   ├── edit-note.ts             # edit_note
+│   ├── delete-note.ts           # delete_note
+│   ├── move-note.ts             # move_note
+│   ├── build-context.ts         # build_context
+│   ├── list-memory-projects.ts  # list_memory_projects
+│   ├── list-workspaces.ts       # list_workspaces
+│   ├── schema-validate.ts       # schema_validate
+│   ├── schema-infer.ts          # schema_infer
+│   ├── schema-diff.ts           # schema_diff
+│   └── memory-provider.ts       # Composited memory_search + memory_get
 ├── commands/
 │   ├── slash.ts          # /remember, /recall
 │   ├── skills.ts         # /tasks, /reflect, /defrag, /schema

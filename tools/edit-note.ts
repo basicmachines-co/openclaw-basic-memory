@@ -9,7 +9,7 @@ export function registerEditTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_edit",
+      name: "edit_note",
       label: "Edit Note",
       description:
         "Incrementally edit an existing note in the Basic Memory knowledge graph. " +
@@ -70,7 +70,7 @@ export function registerEditTool(
           project?: string
         },
       ) {
-        log.debug(`bm_edit: id="${params.identifier}" op=${params.operation}`)
+        log.debug(`edit_note: id="${params.identifier}" op=${params.operation}`)
 
         try {
           const note = await client.editNote(
@@ -101,7 +101,7 @@ export function registerEditTool(
             },
           }
         } catch (err) {
-          log.error("bm_edit failed", err)
+          log.error("edit_note failed", err)
           return {
             content: [
               {
@@ -113,6 +113,6 @@ export function registerEditTool(
         }
       },
     },
-    { name: "bm_edit" },
+    { name: "edit_note" },
   )
 }

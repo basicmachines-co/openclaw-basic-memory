@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import { registerWriteTool } from "./write.ts"
+import { registerWriteTool } from "./write-note.ts"
 
 describe("write tool", () => {
   let mockApi: OpenClawPluginApi
@@ -18,12 +18,12 @@ describe("write tool", () => {
   })
 
   describe("registerWriteTool", () => {
-    it("should register bm_write tool with correct configuration", () => {
+    it("should register write_note tool with correct configuration", () => {
       registerWriteTool(mockApi, mockClient)
 
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: "bm_write",
+          name: "write_note",
           label: "Write Note",
           description: expect.stringContaining(
             "Create or update a note in the Basic Memory knowledge graph",
@@ -50,7 +50,7 @@ describe("write tool", () => {
           }),
           execute: expect.any(Function),
         }),
-        { name: "bm_write" },
+        { name: "write_note" },
       )
     })
   })

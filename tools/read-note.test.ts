@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import { registerReadTool } from "./read.ts"
+import { registerReadTool } from "./read-note.ts"
 
 describe("read tool", () => {
   let mockApi: OpenClawPluginApi
@@ -18,12 +18,12 @@ describe("read tool", () => {
   })
 
   describe("registerReadTool", () => {
-    it("registers bm_read with include_frontmatter parameter", () => {
+    it("registers read_note with include_frontmatter parameter", () => {
       registerReadTool(mockApi, mockClient)
 
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: "bm_read",
+          name: "read_note",
           parameters: expect.objectContaining({
             type: "object",
             properties: expect.objectContaining({
@@ -34,7 +34,7 @@ describe("read tool", () => {
           }),
           execute: expect.any(Function),
         }),
-        { name: "bm_read" },
+        { name: "read_note" },
       )
     })
   })

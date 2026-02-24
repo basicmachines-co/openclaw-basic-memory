@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import { registerSearchTool } from "./search.ts"
+import { registerSearchTool } from "./search-notes.ts"
 
 describe("search tool", () => {
   let mockApi: OpenClawPluginApi
@@ -18,12 +18,12 @@ describe("search tool", () => {
   })
 
   describe("registerSearchTool", () => {
-    it("should register bm_search tool with correct configuration", () => {
+    it("should register search_notes tool with correct configuration", () => {
       registerSearchTool(mockApi, mockClient)
 
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: "bm_search",
+          name: "search_notes",
           label: "Knowledge Search",
           description: expect.stringContaining(
             "Search the Basic Memory knowledge graph",
@@ -46,7 +46,7 @@ describe("search tool", () => {
           }),
           execute: expect.any(Function),
         }),
-        { name: "bm_search" },
+        { name: "search_notes" },
       )
     })
   })

@@ -13,16 +13,16 @@ describe("schema-infer tool", () => {
   })
 
   describe("registerSchemaInferTool", () => {
-    it("should register bm_schema_infer tool", () => {
+    it("should register schema_infer tool", () => {
       registerSchemaInferTool(mockApi, mockClient)
 
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: "bm_schema_infer",
+          name: "schema_infer",
           label: "Schema Infer",
           execute: expect.any(Function),
         }),
-        { name: "bm_schema_infer" },
+        { name: "schema_infer" },
       )
     })
   })

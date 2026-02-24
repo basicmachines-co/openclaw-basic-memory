@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import { registerProjectListTool } from "./project-list.ts"
+import { registerProjectListTool } from "./list-memory-projects.ts"
 
 describe("project list tool", () => {
   let mockApi: OpenClawPluginApi
@@ -17,12 +17,12 @@ describe("project list tool", () => {
     } as any
   })
 
-  it("registers bm_project_list with expected shape", () => {
+  it("registers list_memory_projects with expected shape", () => {
     registerProjectListTool(mockApi, mockClient)
 
     expect(mockApi.registerTool).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: "bm_project_list",
+        name: "list_memory_projects",
         label: "List Projects",
         description: "List all Basic Memory projects accessible to this agent",
         parameters: expect.objectContaining({
@@ -33,7 +33,7 @@ describe("project list tool", () => {
         }),
         execute: expect.any(Function),
       }),
-      { name: "bm_project_list" },
+      { name: "list_memory_projects" },
     )
   })
 

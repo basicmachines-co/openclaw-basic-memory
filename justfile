@@ -25,6 +25,10 @@ lint-fix:
 fix:
     npx @biomejs/biome check --write --unsafe .
 
+# Run tests
+test:
+    bun test
+
 # Run all checks
 check: check-types lint
 

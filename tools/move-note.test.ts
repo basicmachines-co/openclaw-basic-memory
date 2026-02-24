@@ -18,15 +18,15 @@ describe("move tool", () => {
   })
 
   async function loadAndRegister() {
-    const { registerMoveTool } = await import("./move.ts")
+    const { registerMoveTool } = await import("./move-note.ts")
     registerMoveTool(mockApi as any, mockClient as any)
     return registeredTool!
   }
 
-  it("should register bm_move tool", async () => {
+  it("should register move_note tool", async () => {
     await loadAndRegister()
     expect(registeredTool).not.toBeNull()
-    expect(registeredTool?.name).toBe("bm_move")
+    expect(registeredTool?.name).toBe("move_note")
   })
 
   it("should move a note successfully", async () => {

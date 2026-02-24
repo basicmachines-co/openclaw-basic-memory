@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import { registerContextTool } from "./context.ts"
+import { registerContextTool } from "./build-context.ts"
 
 describe("context tool", () => {
   let mockApi: OpenClawPluginApi
@@ -18,12 +18,12 @@ describe("context tool", () => {
   })
 
   describe("registerContextTool", () => {
-    it("should register bm_context tool with correct configuration", () => {
+    it("should register build_context tool with correct configuration", () => {
       registerContextTool(mockApi, mockClient)
 
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: "bm_context",
+          name: "build_context",
           label: "Build Context",
           description: expect.stringContaining(
             "Navigate the Basic Memory knowledge graph via memory:// URLs",
@@ -46,7 +46,7 @@ describe("context tool", () => {
           }),
           execute: expect.any(Function),
         }),
-        { name: "bm_context" },
+        { name: "build_context" },
       )
     })
   })

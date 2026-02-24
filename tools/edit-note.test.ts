@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import { registerEditTool } from "./edit.ts"
+import { registerEditTool } from "./edit-note.ts"
 
 describe("edit tool", () => {
   let mockApi: OpenClawPluginApi
@@ -18,12 +18,12 @@ describe("edit tool", () => {
   })
 
   describe("registerEditTool", () => {
-    it("registers bm_edit with MCP-shaped parameters", () => {
+    it("registers edit_note with MCP-shaped parameters", () => {
       registerEditTool(mockApi, mockClient)
 
       expect(mockApi.registerTool).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: "bm_edit",
+          name: "edit_note",
           parameters: expect.objectContaining({
             type: "object",
             properties: expect.objectContaining({
@@ -40,7 +40,7 @@ describe("edit tool", () => {
           }),
           execute: expect.any(Function),
         }),
-        { name: "bm_edit" },
+        { name: "edit_note" },
       )
     })
   })

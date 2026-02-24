@@ -9,7 +9,7 @@ export function registerSchemaInferTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_schema_infer",
+      name: "schema_infer",
       label: "Schema Infer",
       description:
         "Analyze existing notes of a given type and suggest a Picoschema definition. " +
@@ -36,7 +36,7 @@ export function registerSchemaInferTool(
         params: { noteType: string; threshold?: number; project?: string },
       ) {
         log.debug(
-          `bm_schema_infer: noteType="${params.noteType}" threshold=${params.threshold ?? 0.25}`,
+          `schema_infer: noteType="${params.noteType}" threshold=${params.threshold ?? 0.25}`,
         )
 
         try {
@@ -86,7 +86,7 @@ export function registerSchemaInferTool(
             details: result,
           }
         } catch (err) {
-          log.error("bm_schema_infer failed", err)
+          log.error("schema_infer failed", err)
           return {
             content: [
               {
@@ -98,6 +98,6 @@ export function registerSchemaInferTool(
         }
       },
     },
-    { name: "bm_schema_infer" },
+    { name: "schema_infer" },
   )
 }

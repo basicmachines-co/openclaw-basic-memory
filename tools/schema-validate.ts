@@ -9,7 +9,7 @@ export function registerSchemaValidateTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_schema_validate",
+      name: "schema_validate",
       label: "Schema Validate",
       description:
         "Validate notes against their Picoschema definitions. " +
@@ -38,7 +38,7 @@ export function registerSchemaValidateTool(
         params: { noteType?: string; identifier?: string; project?: string },
       ) {
         log.debug(
-          `bm_schema_validate: noteType="${params.noteType ?? ""}" identifier="${params.identifier ?? ""}"`,
+          `schema_validate: noteType="${params.noteType ?? ""}" identifier="${params.identifier ?? ""}"`,
         )
 
         try {
@@ -83,7 +83,7 @@ export function registerSchemaValidateTool(
             details: result,
           }
         } catch (err) {
-          log.error("bm_schema_validate failed", err)
+          log.error("schema_validate failed", err)
           return {
             content: [
               {
@@ -95,6 +95,6 @@ export function registerSchemaValidateTool(
         }
       },
     },
-    { name: "bm_schema_validate" },
+    { name: "schema_validate" },
   )
 }

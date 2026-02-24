@@ -18,7 +18,7 @@ Find notes by their structured frontmatter fields instead of (or in addition to)
 
 ## Tool
 
-Use the `bm_search` tool with the optional `metadata_filters`, `tags`, and `status` parameters.
+Use the `search_notes` tool with the optional `metadata_filters`, `tags`, and `status` parameters.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -92,31 +92,31 @@ Numeric values use numeric comparison; strings use lexicographic comparison.
 ### Metadata-only search (empty query)
 
 ```
-bm_search(query="", metadata_filters={"status": "in-progress", "type": "spec"})
+search_notes(query="", metadata_filters={"status": "in-progress", "type": "spec"})
 ```
 
 ### Text search narrowed by metadata
 
 ```
-bm_search(query="authentication", metadata_filters={"status": "draft"})
+search_notes(query="authentication", metadata_filters={"status": "draft"})
 ```
 
 ### Filter by tags
 
 ```
-bm_search(query="", tags=["security", "oauth"])
+search_notes(query="", tags=["security", "oauth"])
 ```
 
 ### Filter by status shortcut
 
 ```
-bm_search(query="planning", status="active")
+search_notes(query="planning", status="active")
 ```
 
 ### Combined text + metadata + tags
 
 ```
-bm_search(
+search_notes(
     query="oauth flow",
     metadata_filters={"confidence": {"$gt": 0.7}},
     tags=["security"],
@@ -127,7 +127,7 @@ bm_search(
 ### High-priority notes in a specific project
 
 ```
-bm_search(
+search_notes(
     query="",
     metadata_filters={"priority": {"$in": ["high", "critical"]}},
     project="research",
@@ -138,7 +138,7 @@ bm_search(
 ### Numeric range query
 
 ```
-bm_search(query="", metadata_filters={"score": {"$between": [0.3, 0.8]}})
+search_notes(query="", metadata_filters={"score": {"$between": [0.3, 0.8]}})
 ```
 
 ## Tag Search Shorthand
@@ -147,11 +147,11 @@ The `tag:` prefix in a query converts to a tag filter automatically:
 
 ```
 # These are equivalent:
-bm_search(query="tag:tier1")
-bm_search(query="", tags=["tier1"])
+search_notes(query="tag:tier1")
+search_notes(query="", tags=["tier1"])
 
 # Multiple tags (comma or space separated) — all must match:
-bm_search(query="tag:tier1,alpha")
+search_notes(query="tag:tier1,alpha")
 ```
 
 ## Example: Custom Frontmatter in Practice
@@ -182,19 +182,19 @@ Queries that find it:
 
 ```
 # By status and type
-bm_search(query="", metadata_filters={"status": "in-progress", "type": "spec"})
+search_notes(query="", metadata_filters={"status": "in-progress", "type": "spec"})
 
 # By numeric threshold
-bm_search(query="", metadata_filters={"confidence": {"$gt": 0.7}})
+search_notes(query="", metadata_filters={"confidence": {"$gt": 0.7}})
 
 # By priority set
-bm_search(query="", metadata_filters={"priority": {"$in": ["high", "critical"]}})
+search_notes(query="", metadata_filters={"priority": {"$in": ["high", "critical"]}})
 
 # By tag shorthand
-bm_search(query="tag:security")
+search_notes(query="tag:security")
 
 # Combined text + metadata
-bm_search(query="OAuth", metadata_filters={"status": "in-progress"})
+search_notes(query="OAuth", metadata_filters={"status": "in-progress"})
 ```
 
 ## Guidelines

@@ -18,15 +18,15 @@ describe("delete tool", () => {
   })
 
   async function loadAndRegister() {
-    const { registerDeleteTool } = await import("./delete.ts")
+    const { registerDeleteTool } = await import("./delete-note.ts")
     registerDeleteTool(mockApi as any, mockClient as any)
     return registeredTool!
   }
 
-  it("should register bm_delete tool", async () => {
+  it("should register delete_note tool", async () => {
     await loadAndRegister()
     expect(registeredTool).not.toBeNull()
-    expect(registeredTool?.name).toBe("bm_delete")
+    expect(registeredTool?.name).toBe("delete_note")
   })
 
   it("should delete a note successfully", async () => {

@@ -9,7 +9,7 @@ export function registerReadTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_read",
+      name: "read_note",
       label: "Read Note",
       description:
         "Read a specific note from the Basic Memory knowledge graph by title or permalink. " +
@@ -38,7 +38,7 @@ export function registerReadTool(
           project?: string
         },
       ) {
-        log.debug(`bm_read: identifier="${params.identifier}"`)
+        log.debug(`read_note: identifier="${params.identifier}"`)
 
         try {
           const note = await client.readNote(
@@ -62,7 +62,7 @@ export function registerReadTool(
             },
           }
         } catch (err) {
-          log.error("bm_read failed", err)
+          log.error("read_note failed", err)
           return {
             content: [
               {
@@ -74,6 +74,6 @@ export function registerReadTool(
         }
       },
     },
-    { name: "bm_read" },
+    { name: "read_note" },
   )
 }

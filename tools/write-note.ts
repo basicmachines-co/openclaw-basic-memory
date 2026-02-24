@@ -9,7 +9,7 @@ export function registerWriteTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_write",
+      name: "write_note",
       label: "Write Note",
       description:
         "Create or update a note in the Basic Memory knowledge graph. " +
@@ -36,7 +36,7 @@ export function registerWriteTool(
           project?: string
         },
       ) {
-        log.debug(`bm_write: title=${params.title} folder=${params.folder}`)
+        log.debug(`write_note: title=${params.title} folder=${params.folder}`)
 
         try {
           const note = await client.writeNote(
@@ -61,7 +61,7 @@ export function registerWriteTool(
             },
           }
         } catch (err) {
-          log.error("bm_write failed", err)
+          log.error("write_note failed", err)
           return {
             content: [
               {
@@ -73,6 +73,6 @@ export function registerWriteTool(
         }
       },
     },
-    { name: "bm_write" },
+    { name: "write_note" },
   )
 }

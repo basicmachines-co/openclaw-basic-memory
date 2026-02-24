@@ -72,22 +72,20 @@ bm project bisync
 
 All plugin tools accept an optional `project` parameter to operate on a different project:
 
-```typescript
-bm_search({ query: "authentication", project: "other-project" })
-bm_read({ identifier: "notes/api-design", project: "docs" })
-bm_write({ title: "New Note", content: "...", folder: "notes", project: "research" })
+```
+search_notes(query="authentication", project="other-project")
+read_note(identifier="notes/api-design", project="docs")
+write_note(title="New Note", content="...", folder="notes", project="research")
 ```
 
 ## Workspace Support
 
 Workspaces group projects by owner (personal or organization):
 
-```typescript
-// List all workspaces (personal + org)
-bm_workspace_list()
+```
+list_workspaces()
 
-// List projects in a specific workspace
-bm_project_list({ workspace: "my-org" })
+list_memory_projects(workspace="my-org")
 ```
 
 ## Auto-Recall

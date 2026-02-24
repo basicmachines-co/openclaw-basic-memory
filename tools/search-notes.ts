@@ -9,7 +9,7 @@ export function registerSearchTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_search",
+      name: "search_notes",
       label: "Knowledge Search",
       description:
         "Search the Basic Memory knowledge graph for relevant notes, concepts, and connections. " +
@@ -55,7 +55,7 @@ export function registerSearchTool(
       ) {
         const limit = params.limit ?? 10
         log.debug(
-          `bm_search: query="${params.query}" limit=${limit} project="${params.project ?? "default"}"`,
+          `search_notes: query="${params.query}" limit=${limit} project="${params.project ?? "default"}"`,
         )
 
         const metadata =
@@ -113,7 +113,7 @@ export function registerSearchTool(
             },
           }
         } catch (err) {
-          log.error("bm_search failed", err)
+          log.error("search_notes failed", err)
           return {
             content: [
               {
@@ -125,6 +125,6 @@ export function registerSearchTool(
         }
       },
     },
-    { name: "bm_search" },
+    { name: "search_notes" },
   )
 }

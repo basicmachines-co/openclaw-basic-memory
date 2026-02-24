@@ -9,7 +9,7 @@ export function registerSchemaDiffTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_schema_diff",
+      name: "schema_diff",
       label: "Schema Diff",
       description:
         "Detect drift between a Picoschema definition and actual note usage. " +
@@ -30,7 +30,7 @@ export function registerSchemaDiffTool(
         _toolCallId: string,
         params: { noteType: string; project?: string },
       ) {
-        log.debug(`bm_schema_diff: noteType="${params.noteType}"`)
+        log.debug(`schema_diff: noteType="${params.noteType}"`)
 
         try {
           const result = await client.schemaDiff(
@@ -43,7 +43,7 @@ export function registerSchemaDiffTool(
               content: [
                 {
                   type: "text" as const,
-                  text: `No schema found for type "${params.noteType}". Use bm_schema_infer to generate one.`,
+                  text: `No schema found for type "${params.noteType}". Use schema_infer to generate one.`,
                 },
               ],
             }
@@ -87,7 +87,7 @@ export function registerSchemaDiffTool(
             details: result,
           }
         } catch (err) {
-          log.error("bm_schema_diff failed", err)
+          log.error("schema_diff failed", err)
           return {
             content: [
               {
@@ -99,6 +99,6 @@ export function registerSchemaDiffTool(
         }
       },
     },
-    { name: "bm_schema_diff" },
+    { name: "schema_diff" },
   )
 }

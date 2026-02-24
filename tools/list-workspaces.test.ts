@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
-import { registerWorkspaceListTool } from "./workspace-list.ts"
+import { registerWorkspaceListTool } from "./list-workspaces.ts"
 
 describe("workspace list tool", () => {
   let mockApi: OpenClawPluginApi
@@ -17,12 +17,12 @@ describe("workspace list tool", () => {
     } as any
   })
 
-  it("registers bm_workspace_list with expected shape", () => {
+  it("registers list_workspaces with expected shape", () => {
     registerWorkspaceListTool(mockApi, mockClient)
 
     expect(mockApi.registerTool).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: "bm_workspace_list",
+        name: "list_workspaces",
         label: "List Workspaces",
         description:
           "List all Basic Memory workspaces (personal and organization) accessible to this user",
@@ -32,7 +32,7 @@ describe("workspace list tool", () => {
         }),
         execute: expect.any(Function),
       }),
-      { name: "bm_workspace_list" },
+      { name: "list_workspaces" },
     )
   })
 

@@ -16,20 +16,20 @@ The plugin composes memory from three places:
 
 ## End-to-End Flow
 
-1. Agent/user writes notes with `bm_write` (or manually edits markdown files).
+1. Agent/user writes notes with `write_note` (or manually edits markdown files).
 2. The MCP session monitors file changes and indexes them automatically.
 3. Updated notes become searchable in the knowledge graph.
 4. Agent calls `memory_search`:
    - searches `MEMORY.md` for matching lines with context
    - queries BM graph for top knowledge results
    - resolves active tasks (graph query first, filesystem fallback)
-5. Agent calls `memory_get` or `bm_read` for full note content.
-6. Agent updates notes/tasks via `bm_edit`.
+5. Agent calls `memory_get` or `read_note` for full note content.
+6. Agent updates notes/tasks via `edit_note`.
 7. Completed tasks are excluded from active task results when `status: done`.
 
 ```mermaid
 flowchart TD
-    A["Agent/User updates notes (bm_write, bm_edit, markdown files)"] --> B["MCP session monitors file changes"]
+    A["Agent/User updates notes (write_note, edit_note, markdown files)"] --> B["MCP session monitors file changes"]
     B --> C["Basic Memory index refresh"]
     C --> D["Agent calls memory_search(query)"]
 
@@ -45,7 +45,7 @@ flowchart TD
     F --> H
     G3 --> H
 
-    H --> I["Agent drills into result (memory_get or bm_read)"]
+    H --> I["Agent drills into result (memory_get or read_note)"]
     I --> J["Agent updates task state (current_step, checkboxes, status)"]
     J --> D
 ```
@@ -100,11 +100,11 @@ This fallback behavior keeps tasks discoverable even if the graph index is stale
 
 ### Create a task
 
-```typescript
-bm_write({
-  title: "migrate-auth-routes",
-  folder: "tasks",
-  content: `---
+```
+write_note(
+  title="migrate-auth-routes",
+  folder="tasks",
+  content="""---
 title: migrate-auth-routes
 type: Task
 status: active
@@ -116,18 +116,18 @@ Starting auth route migration.
 
 ## Plan
 - [ ] Implement middleware
-- [ ] Add tests`
-})
+- [ ] Add tests"""
+)
 ```
 
 ### Advance a task
 
-- Update plan checkboxes with `bm_edit` + `replace_section`
-- Bump step with `bm_edit` + `find_replace` (for `current_step`)
+- Update plan checkboxes with `edit_note` + `replace_section`
+- Bump step with `edit_note` + `find_replace` (for `current_step`)
 
 ### Complete a task
 
-Use `bm_edit` (`find_replace`) to change `status: active` to `status: done`.
+Use `edit_note` (`find_replace`) to change `status: active` to `status: done`.
 
 ## Operational Tips
 
@@ -144,6 +144,8 @@ This plugin ships with workflow-oriented skills that are automatically loaded wh
 - **`memory-reflect`** — periodic memory consolidation from recent notes
 - **`memory-defrag`** — periodic cleanup/reorganization of memory files
 - **`memory-schema`** — schema lifecycle management (infer, create, validate, diff, evolve)
+- **`memory-metadata-search`** — structured metadata search by custom frontmatter fields (status, priority, etc.)
+- **`memory-notes`** — guidance for writing well-structured notes with observations and relations
 
 No manual installation needed. To update skills or install new ones as they become available:
 

@@ -22,7 +22,7 @@ export function registerProjectListTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_project_list",
+      name: "list_memory_projects",
       label: "List Projects",
       description: "List all Basic Memory projects accessible to this agent",
       parameters: Type.Object({
@@ -33,7 +33,7 @@ export function registerProjectListTool(
         ),
       }),
       async execute(_toolCallId: string, params: { workspace?: string }) {
-        log.debug(`bm_project_list: workspace="${params.workspace ?? ""}"`)
+        log.debug(`list_memory_projects: workspace="${params.workspace ?? ""}"`)
 
         try {
           const projects = await client.listProjects(params.workspace)
@@ -77,7 +77,7 @@ export function registerProjectListTool(
             },
           }
         } catch (err) {
-          log.error("bm_project_list failed", err)
+          log.error("list_memory_projects failed", err)
           return {
             content: [
               {
@@ -89,6 +89,6 @@ export function registerProjectListTool(
         }
       },
     },
-    { name: "bm_project_list" },
+    { name: "list_memory_projects" },
   )
 }

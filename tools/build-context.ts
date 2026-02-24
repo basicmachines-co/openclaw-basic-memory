@@ -9,7 +9,7 @@ export function registerContextTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_context",
+      name: "build_context",
       label: "Build Context",
       description:
         "Navigate the Basic Memory knowledge graph via memory:// URLs. " +
@@ -36,7 +36,7 @@ export function registerContextTool(
         params: { url: string; depth?: number; project?: string },
       ) {
         const depth = params.depth ?? 1
-        log.debug(`bm_context: url="${params.url}" depth=${depth}`)
+        log.debug(`build_context: url="${params.url}" depth=${depth}`)
 
         try {
           const ctx = await client.buildContext(
@@ -106,7 +106,7 @@ export function registerContextTool(
             },
           }
         } catch (err) {
-          log.error("bm_context failed", err)
+          log.error("build_context failed", err)
           return {
             content: [
               {
@@ -118,6 +118,6 @@ export function registerContextTool(
         }
       },
     },
-    { name: "bm_context" },
+    { name: "build_context" },
   )
 }

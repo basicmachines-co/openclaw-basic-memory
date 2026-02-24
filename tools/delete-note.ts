@@ -3,24 +3,20 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
 import { log } from "../logger.ts"
 
-export function registerMoveTool(
+export function registerDeleteTool(
   api: OpenClawPluginApi,
   client: BmClient,
 ): void {
   api.registerTool(
     {
-      name: "bm_move",
-      label: "Move Note",
+      name: "delete_note",
+      label: "Delete Note",
       description:
-        "Move a note to a different folder in the Basic Memory knowledge graph. " +
-        "The note content is preserved; only the location changes.",
+        "Delete a note from the Basic Memory knowledge graph. " +
+        "The note is permanently removed from the filesystem and the search index.",
       parameters: Type.Object({
         identifier: Type.String({
-          description: "Note title, permalink, or memory:// URL to move",
-        }),
-        newFolder: Type.String({
-          description:
-            "Destination folder (e.g., 'archive', 'projects/completed')",
+          description: "Note title, permalink, or memory:// URL to delete",
         }),
         project: Type.Optional(
           Type.String({
@@ -30,16 +26,13 @@ export function registerMoveTool(
       }),
       async execute(
         _toolCallId: string,
-        params: { identifier: string; newFolder: string; project?: string },
+        params: { identifier: string; project?: string },
       ) {
-        log.debug(
-          `bm_move: identifier="${params.identifier}" → folder="${params.newFolder}"`,
-        )
+        log.debug(`delete_note: identifier="${params.identifier}"`)
 
         try {
-          const result = await client.moveNote(
+          const result = await client.deleteNote(
             params.identifier,
-            params.newFolder,
             params.project,
           )
 
@@ -47,7 +40,7 @@ export function registerMoveTool(
             content: [
               {
                 type: "text" as const,
-                text: `Moved: ${result.title} → ${result.file_path}`,
+                text: `Deleted: ${result.title} (${result.permalink})`,
               },
             ],
             details: {
@@ -57,18 +50,18 @@ export function registerMoveTool(
             },
           }
         } catch (err) {
-          log.error("bm_move failed", err)
+          log.error("delete_note failed", err)
           return {
             content: [
               {
                 type: "text" as const,
-                text: `Failed to move "${params.identifier}". It may not exist.`,
+                text: `Failed to delete "${params.identifier}". It may not exist.`,
               },
             ],
           }
         }
       },
     },
-    { name: "bm_move" },
+    { name: "delete_note" },
   )
 }

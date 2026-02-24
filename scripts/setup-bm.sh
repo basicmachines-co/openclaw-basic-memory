@@ -9,7 +9,8 @@ BM_REF="${BM_REF:-main}"
 # ── check for uv ──────────────────────────────────────────────────
 if ! command -v uv >/dev/null 2>&1; then
   echo "⚠  uv not found — skipping basic-memory install."
-  echo "   Install uv:  curl -LsSf https://astral.sh/uv/install.sh | sh"
+  echo "   Install uv:  brew install uv"
+  echo "            or:  curl -LsSf https://astral.sh/uv/install.sh | sh"
   echo "   Then re-run:  bash scripts/setup-bm.sh"
   exit 0
 fi

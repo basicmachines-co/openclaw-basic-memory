@@ -12,22 +12,22 @@ import { buildCaptureHandler } from "./hooks/capture.ts"
 import { buildRecallHandler } from "./hooks/recall.ts"
 import { initLogger, log } from "./logger.ts"
 import { TASK_SCHEMA_CONTENT } from "./schema/task-schema.ts"
-import { registerContextTool } from "./tools/context.ts"
-import { registerDeleteTool } from "./tools/delete.ts"
-import { registerEditTool } from "./tools/edit.ts"
+import { registerContextTool } from "./tools/build-context.ts"
+import { registerDeleteTool } from "./tools/delete-note.ts"
+import { registerEditTool } from "./tools/edit-note.ts"
+import { registerProjectListTool } from "./tools/list-memory-projects.ts"
+import { registerWorkspaceListTool } from "./tools/list-workspaces.ts"
 import {
   registerMemoryProvider,
   setWorkspaceDir,
 } from "./tools/memory-provider.ts"
-import { registerMoveTool } from "./tools/move.ts"
-import { registerProjectListTool } from "./tools/project-list.ts"
-import { registerReadTool } from "./tools/read.ts"
+import { registerMoveTool } from "./tools/move-note.ts"
+import { registerReadTool } from "./tools/read-note.ts"
 import { registerSchemaDiffTool } from "./tools/schema-diff.ts"
 import { registerSchemaInferTool } from "./tools/schema-infer.ts"
 import { registerSchemaValidateTool } from "./tools/schema-validate.ts"
-import { registerSearchTool } from "./tools/search.ts"
-import { registerWorkspaceListTool } from "./tools/workspace-list.ts"
-import { registerWriteTool } from "./tools/write.ts"
+import { registerSearchTool } from "./tools/search-notes.ts"
+import { registerWriteTool } from "./tools/write-note.ts"
 
 export default {
   id: "basic-memory",

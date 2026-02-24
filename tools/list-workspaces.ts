@@ -17,13 +17,13 @@ export function registerWorkspaceListTool(
 ): void {
   api.registerTool(
     {
-      name: "bm_workspace_list",
+      name: "list_workspaces",
       label: "List Workspaces",
       description:
         "List all Basic Memory workspaces (personal and organization) accessible to this user",
       parameters: Type.Object({}),
       async execute(_toolCallId: string, _params: Record<string, never>) {
-        log.debug("bm_workspace_list")
+        log.debug("list_workspaces")
 
         try {
           const workspaces = await client.listWorkspaces()
@@ -58,7 +58,7 @@ export function registerWorkspaceListTool(
             },
           }
         } catch (err) {
-          log.error("bm_workspace_list failed", err)
+          log.error("list_workspaces failed", err)
           return {
             content: [
               {
@@ -70,6 +70,6 @@ export function registerWorkspaceListTool(
         }
       },
     },
-    { name: "bm_workspace_list" },
+    { name: "list_workspaces" },
   )
 }
