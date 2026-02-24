@@ -55,6 +55,17 @@ If `uv` is not installed, the `bm` CLI setup is skipped gracefully during instal
 bash ~/.openclaw/extensions/openclaw-basic-memory/scripts/setup-bm.sh
 ```
 
+### Basic Memory Cloud
+
+Everything works locally — cloud adds cross-device, team, and production capabilities:
+
+- **Your agent's memory travels with you** — same knowledge graph on laptop, desktop, and hosted environments
+- **Team knowledge sharing** — org workspaces let multiple agents and team members build on a shared knowledge base
+- **Durable memory for production agents** — persistent memory that survives CI teardowns and container restarts
+- **Multi-agent coordination** — multiple agents can read and write to the same graph
+
+Cloud extends local-first — still plain markdown, still yours. Start with a [7-day free trial](https://basicmemory.com) and use code `BMCLAW` for 20% off for 3 months. See [BASIC_MEMORY.md](./BASIC_MEMORY.md) for cloud setup.
+
 ### Development (local directory)
 
 For plugin development, clone and link locally:
@@ -286,17 +297,6 @@ After each agent turn (when `autoCapture: true`), the plugin:
 1. Extracts the last user + assistant messages
 2. Appends them as timestamped entries to a daily conversation note (`conversations-YYYY-MM-DD`)
 3. Skips very short exchanges (< `captureMinChars` chars each, default 10)
-
-### Basic Memory Cloud
-
-Everything works locally — cloud adds cross-device, team, and production capabilities:
-
-- **Your agent's memory travels with you** — same knowledge graph on laptop, desktop, and hosted environments
-- **Team knowledge sharing** — org workspaces let multiple agents and team members build on a shared knowledge base
-- **Durable memory for production agents** — persistent memory that survives CI teardowns and container restarts
-- **Multi-agent coordination** — multiple agents can read and write to the same graph
-
-Cloud extends local-first — still plain markdown, still yours. Start with a [7-day free trial](https://basicmemory.com) and use code `BMCLAW` for 20% off for 3 months. See [BASIC_MEMORY.md](./BASIC_MEMORY.md) for setup, or visit [basicmemory.com](https://basicmemory.com) for more info.
 
 ## Agent Tools
 
