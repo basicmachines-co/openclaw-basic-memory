@@ -8,7 +8,7 @@ Give your OpenClaw agent persistent, searchable memory — in plain text files y
 
 It does three things that work together:
 
-- **Stores knowledge in plain Markdown** — everything lives on your computer, not in a cloud database
+- **Stores knowledge in plain Markdown** — everything lives in plain text files on your computer, not locked inside a database you can't read
 - **Creates connections automatically** — notes link to each other through a searchable, traversable knowledge graph
 - **Enables two-way collaboration** — both you and the AI read and write the same files
 
