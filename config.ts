@@ -6,11 +6,6 @@ export type CloudConfig = {
   api_key: string
 }
 
-export type DashboardConfig = {
-  enabled: boolean
-  port: number
-}
-
 export type BasicMemoryConfig = {
   project: string
   bmPath: string
@@ -23,7 +18,6 @@ export type BasicMemoryConfig = {
   recallPrompt: string
   debug: boolean
   cloud?: CloudConfig
-  dashboard: DashboardConfig
 }
 
 const ALLOWED_KEYS = [
@@ -43,7 +37,6 @@ const ALLOWED_KEYS = [
   "recall_prompt",
   "debug",
   "cloud",
-  "dashboard",
 ]
 
 function assertAllowedKeys(
@@ -113,22 +106,6 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
     }
   }
 
-  let dashboard: DashboardConfig = { enabled: false, port: 3838 }
-  if (
-    cfg.dashboard &&
-    typeof cfg.dashboard === "object" &&
-    !Array.isArray(cfg.dashboard)
-  ) {
-    const d = cfg.dashboard as Record<string, unknown>
-    dashboard = {
-      enabled: typeof d.enabled === "boolean" ? d.enabled : false,
-      port:
-        typeof d.port === "number" && d.port > 0 && d.port < 65536
-          ? d.port
-          : 3838,
-    }
-  }
-
   return {
     project:
       typeof cfg.project === "string" && cfg.project.length > 0
@@ -167,7 +144,6 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
           : "Check for active tasks and recent activity. Summarize anything relevant to the current session.",
     debug: typeof cfg.debug === "boolean" ? cfg.debug : false,
     cloud,
-    dashboard,
   }
 }
 
