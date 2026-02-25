@@ -121,9 +121,9 @@ On each session start, the plugin loads active tasks and recently modified notes
 
 After each conversation turn, the plugin records the exchange as a timestamped entry in a daily note. This builds a searchable history of everything your agent has discussed.
 
-### Persistent MCP session
+### Persistent connection
 
-The plugin maintains one long-lived MCP connection to Basic Memory over stdio. No cold starts per tool call. The connection auto-reconnects if it drops.
+The plugin keeps a long-lived Basic Memory process running over standard I/O. No cold starts per tool call. The connection auto-reconnects if it drops.
 
 ## Agent tools
 
@@ -222,7 +222,7 @@ Cloud extends local-first — still plain Markdown, still yours. [Start a free t
 
 **`bm` not found** — Install uv, then restart the gateway. Or install manually: `uv tool install basic-memory`
 
-**Search returns nothing** — Check that the MCP session connected (look for `connected to BM MCP stdio` in logs). Verify files exist in the project directory.
+**Search returns nothing** — Check that Basic Memory connected (look for `connected to BM` in logs). Verify files exist in the project directory.
 
 **Jiti cache issues** — `rm -rf /tmp/jiti/ "$TMPDIR/jiti/"` then restart the gateway.
 
