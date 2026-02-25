@@ -6,7 +6,11 @@ import {
   type ServerResponse,
 } from "node:http"
 import { join } from "node:path"
-import type { BmClient, SearchResult } from "../bm-client.ts"
+import type {
+  BmClient,
+  MetadataSearchResult,
+  SearchResult,
+} from "../bm-client.ts"
 
 export interface DashboardServerOptions {
   port: number
@@ -34,10 +38,11 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
         }
 
         if (path === "/api/tasks" && req.method === "GET") {
-          const results = await client.search("type:Task", 50, undefined, {
-            filters: { type: "Task" },
-          })
-          const tasks = await enrichWithFrontmatter(client, results)
+          const metaResults = await client.searchByMetadata(
+            { type: "Task" },
+            50,
+          )
+          const tasks = await enrichMetadataResults(client, metaResults)
           json(res, tasks)
           return
         }
@@ -49,15 +54,11 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
         }
 
         if (path === "/api/explorations" && req.method === "GET") {
-          const results = await client.search(
-            "type:Exploration",
+          const metaResults = await client.searchByMetadata(
+            { type: "Exploration" },
             50,
-            undefined,
-            {
-              filters: { type: "Exploration" },
-            },
           )
-          json(res, results)
+          json(res, metaResults.results)
           return
         }
 
@@ -70,21 +71,17 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
         }
 
         if (path === "/api/stats" && req.method === "GET") {
-          const [allNotes, tasks, explorations] = await Promise.all([
+          const [allNotes, tasksMeta, explorationsMeta] = await Promise.all([
             client.recentActivity("720h").catch(() => []),
             client
-              .search("type:Task", 100, undefined, {
-                filters: { type: "Task" },
-              })
-              .catch(() => []),
+              .searchByMetadata({ type: "Task" }, 100)
+              .catch(() => ({ results: [] }) as MetadataSearchResult),
             client
-              .search("type:Exploration", 100, undefined, {
-                filters: { type: "Exploration" },
-              })
-              .catch(() => []),
+              .searchByMetadata({ type: "Exploration" }, 100)
+              .catch(() => ({ results: [] }) as MetadataSearchResult),
           ])
 
-          const tasksWithFm = await enrichWithFrontmatter(client, tasks)
+          const tasksWithFm = await enrichMetadataResults(client, tasksMeta)
           const active = tasksWithFm.filter(
             (t) => t.frontmatter?.status === "active",
           ).length
@@ -98,7 +95,7 @@ export function createDashboardServer(options: DashboardServerOptions): Server {
             totalNotes: allNotes.length,
             activeTasks: active,
             completedTasks: completed,
-            explorations: explorations.length,
+            explorations: explorationsMeta.results.length,
           })
           return
         }
@@ -134,6 +131,32 @@ async function enrichWithFrontmatter(
     results.map(async (r) => {
       try {
         const note = await client.readNote(r.permalink, {
+          includeFrontmatter: true,
+        })
+        return { ...r, frontmatter: note.frontmatter ?? null }
+      } catch {
+        return { ...r, frontmatter: null }
+      }
+    }),
+  )
+  return enriched
+}
+
+async function enrichMetadataResults(
+  client: BmClient,
+  metaResults: MetadataSearchResult,
+): Promise<
+  Array<
+    Record<string, unknown> & {
+      frontmatter?: Record<string, unknown> | null
+    }
+  >
+> {
+  const enriched = await Promise.all(
+    metaResults.results.map(async (r: Record<string, unknown>) => {
+      const permalink = (r.permalink ?? r.entity ?? "") as string
+      try {
+        const note = await client.readNote(permalink, {
           includeFrontmatter: true,
         })
         return { ...r, frontmatter: note.frontmatter ?? null }

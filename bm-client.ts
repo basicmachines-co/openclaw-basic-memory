@@ -659,11 +659,12 @@ export class BmClient {
       identifier,
       operation,
       content,
-      find_text: options.find_text,
-      section: options.section,
-      expected_replacements: options.expected_replacements,
       output_format: "json",
     }
+    if (options.find_text) args.find_text = options.find_text
+    if (options.section) args.section = options.section
+    if (options.expected_replacements != null)
+      args.expected_replacements = options.expected_replacements
     if (project) args.project = project
 
     const payload = await this.callTool("edit_note", args)
