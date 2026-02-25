@@ -10,6 +10,8 @@ It does three things that work together:
 
 - **Stores knowledge in plain Markdown** — everything lives in plain text files on your computer, not locked inside a database you can't read
 - **Creates connections automatically** — notes link to each other through a searchable, traversable knowledge graph
+- **Searches by meaning, not just keywords** — vector search finds relevant context even when the exact words don't match
+- **Keeps notes consistent** — dynamic schemas and validation ensure your knowledge base stays structured and useful as it grows
 - **Enables two-way collaboration** — both you and the AI read and write the same files
 
 Over time, your agent builds a knowledge base that grows with you. Context that survives across sessions. Memory that belongs to you.
