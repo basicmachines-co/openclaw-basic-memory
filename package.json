@@ -9,6 +9,7 @@
     "url": "https://github.com/basicmachines-co/openclaw-basic-memory"
   },
   "files": [
+    "analytics.ts",
     "index.ts",
     "bm-client.ts",
     "config.ts",

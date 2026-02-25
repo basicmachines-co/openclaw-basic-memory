@@ -15,11 +15,10 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 0
 fi
 
-# ── install basic-memory[semantic] ────────────────────────────────
+# ── install basic-memory ────────────────────────────────
 echo "Installing basic-memory from ${BM_REPO}@${BM_REF} ..."
 uv tool install \
-  "basic-memory[semantic] @ git+${BM_REPO}@${BM_REF}" \
-  --with 'onnxruntime<1.24; platform_system == "Darwin" and platform_machine == "x86_64"' \
+  "basic-memory @ git+${BM_REPO}@${BM_REF}" \
   --force
 
 # ── verify ────────────────────────────────────────────────────────

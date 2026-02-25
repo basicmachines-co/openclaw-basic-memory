@@ -137,7 +137,7 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
     projectPath:
       typeof cfg.projectPath === "string" && cfg.projectPath.length > 0
         ? cfg.projectPath
-        : memoryDir,
+        : ".",
     bmPath:
       typeof cfg.bmPath === "string" && cfg.bmPath.length > 0
         ? cfg.bmPath

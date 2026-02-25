@@ -137,7 +137,7 @@ This installs to the same `skills/` directory the plugin reads from, so updated 
 }
 ```
 
-This uses sensible defaults: auto-generated project name, maps Basic Memory to your workspace `memory/` directory, and captures conversations.
+This uses sensible defaults: auto-generated project name, maps Basic Memory to your workspace root, sets it as the default BM project, and captures conversations.
 
 ### Full configuration
 ```json5
@@ -147,7 +147,7 @@ This uses sensible defaults: auto-generated project name, maps Basic Memory to y
     config: {
       project: "my-agent",                          // BM project name (default: "openclaw-{hostname}")
       bmPath: "bm",                                 // Path to BM CLI binary
-      projectPath: "~/.openclaw/workspace/memory/",   // Optional override; supports absolute, ~/..., or workspace-relative paths
+      projectPath: ".",                                  // Defaults to workspace root; supports absolute, ~/..., or workspace-relative paths
       memoryDir: "memory/",                          // Relative memory dir for task scanning
       memoryFile: "MEMORY.md",                       // Working memory file for grep search
       autoCapture: true,                             // Index conversations automatically
@@ -166,7 +166,7 @@ This uses sensible defaults: auto-generated project name, maps Basic Memory to y
 |--------|------|---------|-------------|
 | `project` | string | `"openclaw-{hostname}"` | Basic Memory project name |
 | `bmPath` | string | `"bm"` | Path to Basic Memory CLI binary |
-| `projectPath` | string | `"memory/"` | Directory for BM project data (resolved from workspace unless absolute) |
+| `projectPath` | string | `"."` | Directory for BM project data (defaults to workspace root; resolved from workspace unless absolute) |
 | `memoryDir` | string | `"memory/"` | Relative path for task scanning |
 | `memoryFile` | string | `"MEMORY.md"` | Working memory file (grep-searched) |
 | `autoCapture` | boolean | `true` | Auto-index agent conversations |
@@ -179,7 +179,7 @@ Snake_case aliases (`memory_dir`, `memory_file`, `auto_recall`, `recall_prompt`,
 
 Cloud sync is optional — see [BASIC_MEMORY.md](./BASIC_MEMORY.md) for cloud configuration.
 
-On startup, the plugin ensures the configured BM project exists at `projectPath` via MCP `create_memory_project` in idempotent mode.
+On startup, the plugin ensures the configured BM project exists at `projectPath` via MCP `create_memory_project` in idempotent mode, and sets it as the default Basic Memory project.
 
 ## How It Works
 
@@ -453,6 +453,17 @@ rm -rf /tmp/jiti/ "$TMPDIR/jiti/"
 openclaw gateway stop && openclaw gateway start
 ```
 
+### Disabling semantic search
+If you want to run without vector/embedding dependencies (faster startup, less memory), set the environment variable before launching:
+```bash
+BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED=false
+```
+Or in `~/.basic-memory/config.json`:
+```json
+{ "semantic_search_enabled": false }
+```
+Search will fall back to full-text search only.
+
 ### Search returns no results
 1. Check that the MCP session is connected (look for `connected to BM MCP stdio` in logs)
 2. Verify files exist in the project directory
@@ -531,9 +542,7 @@ just release patch   # or: minor, major, 0.2.0, etc.
   4. publish to npm
   5. create a GitHub release
 
-Repository secret required:
-
-- `NPM_TOKEN` (npm publish token with package publish permissions)
+Publishing uses npm OIDC trusted publishing — no secrets required. The trusted publisher is configured on npmjs.com to accept provenance from this repo's `release.yml` workflow.
 
 ### Project Structure
 ```
@@ -562,6 +571,33 @@ openclaw-basic-memory/
 └── hooks/
     ├── capture.ts        # Auto-capture conversations
     └── recall.ts         # Auto-recall (active tasks + recent activity)
+```
+
+## Telemetry
+
+This plugin collects anonymous, minimal usage events to understand plugin adoption and tool usage patterns. This helps us prioritize features and improve the product.
+
+**What we collect:**
+- Plugin registration and startup events
+- First use of each tool per session (deduplicated — not every call)
+- Plugin version with each event
+
+**What we do NOT collect:**
+- No file contents, note titles, search queries, or conversation text
+- No personally identifiable information (PII)
+- No IP address tracking or fingerprinting
+- No per-command tracking beyond first-use-per-session
+
+Events are sent to our [Umami Cloud](https://umami.is) instance, an open-source, privacy-focused analytics platform. Events are fire-and-forget with a 3-second timeout — analytics never blocks or slows the plugin.
+
+**Opt out** by setting either environment variable:
+
+```bash
+# Plugin-specific opt-out
+export OPENCLAW_BASIC_MEMORY_TELEMETRY=0
+
+# Or use the shared Basic Memory opt-out (also disables BM CLI telemetry)
+export BASIC_MEMORY_NO_PROMOS=1
 ```
 
 ## License

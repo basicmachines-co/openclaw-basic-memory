@@ -16,7 +16,7 @@ describe("config", () => {
       expect(config.recallPrompt).toContain("Check for active tasks")
       expect(config.debug).toBe(false)
       expect(config.project).toMatch(/^openclaw-/)
-      expect(config.projectPath).toBe("memory/")
+      expect(config.projectPath).toBe(".")
       expect(config.cloud).toBeUndefined()
     })
 
@@ -71,9 +71,9 @@ describe("config", () => {
       expect(config.projectPath).toBe("/custom/project/path")
     })
 
-    it("should default projectPath to memoryDir", () => {
+    it("should default projectPath to workspace root", () => {
       const config = parseConfig({ memoryDir: "notes/" })
-      expect(config.projectPath).toBe("notes/")
+      expect(config.projectPath).toBe(".")
     })
 
     it("should use provided autoCapture", () => {
