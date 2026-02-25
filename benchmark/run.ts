@@ -83,11 +83,17 @@ interface BenchmarkSummary {
 
 const BENCHMARK_DIR = dirname(new URL(import.meta.url).pathname)
 const RESULTS_DIR = resolve(BENCHMARK_DIR, "results")
-const QUERIES_PATH = resolve(BENCHMARK_DIR, "queries.json")
 
 const CORPUS_SIZE =
   process.argv.find((a) => a.startsWith("--corpus="))?.split("=")[1] || "small"
-const BM_PROJECT = "benchmark"
+const BM_PROJECT =
+  process.argv.find((a) => a.startsWith("--project="))?.split("=")[1] || "benchmark"
+const QUERIES_PATH =
+  process.argv.find((a) => a.startsWith("--queries="))?.split("=")[1] ||
+  resolve(BENCHMARK_DIR, "queries.json")
+const QUERY_LIMIT = Number.parseInt(
+  process.argv.find((a) => a.startsWith("--limit="))?.split("=")[1] || "0",
+) || 0
 
 // ---------------------------------------------------------------------------
 // MCP Client
@@ -225,8 +231,9 @@ async function main() {
   console.log()
 
   // Load queries
-  const queriesRaw = await readFile(QUERIES_PATH, "utf-8")
-  const queries: Query[] = JSON.parse(queriesRaw)
+  const queriesRaw = await readFile(resolve(QUERIES_PATH), "utf-8")
+  let queries: Query[] = JSON.parse(queriesRaw)
+  if (QUERY_LIMIT > 0) queries = queries.slice(0, QUERY_LIMIT)
   console.log(
     `Loaded ${queries.length} queries across ${new Set(queries.map((q) => q.category)).size} categories`,
   )

@@ -142,3 +142,5 @@ vite.config.ts.timestamp-*
 bun.lock
 
 .idea/
+benchmark/datasets/
+benchmark/corpus-locomo/
