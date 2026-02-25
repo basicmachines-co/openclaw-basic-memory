@@ -131,7 +131,7 @@ async function mcpSearch(query: string, limit = 10): Promise<SearchResult[]> {
       file_path: r.file_path || r.permalink || "",
       title: r.title || "",
       score: r.score || r.similarity || 0,
-      content: r.content || r.snippet || "",
+      content: r.matched_chunk || r.content || r.snippet || "",
     }))
   } catch (err) {
     console.error(`  MCP search failed for: "${query}"`, err)

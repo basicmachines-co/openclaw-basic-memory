@@ -1,3 +1,9 @@
+---
+title: MEMORY
+type: note
+permalink: benchmark/memory
+---
+
 # MEMORY.md - Long-Term Memory
 
 ## About Me
