@@ -572,22 +572,9 @@ openclaw-basic-memory/
 
 ## Telemetry
 
-Basic Memory collects anonymous, minimal usage events to understand how the CLI-to-cloud conversion funnel performs. This helps us prioritize features and improve the product.
+This plugin itself does not collect any telemetry. However, the **Basic Memory CLI** (`bm`) that the plugin spawns may send anonymous usage analytics. See the [Basic Memory documentation](https://github.com/basicmachines-co/basic-memory) for details.
 
-**What we collect:**
-- Cloud promo impressions (when the promo banner is shown)
-- Cloud login attempts and outcomes
-- Promo opt-out events
-
-**What we do NOT collect:**
-- No file contents, note titles, or knowledge base data
-- No personally identifiable information (PII)
-- No IP address tracking or fingerprinting
-- No per-command or per-tool-call tracking
-
-Events are sent to our [Umami Cloud](https://umami.is) instance, an open-source, privacy-focused analytics platform. Events are fire-and-forget on a background thread — analytics never blocks or slows the CLI.
-
-**Opt out** by setting the environment variable:
+To opt out of Basic Memory CLI telemetry:
 
 ```bash
 export BASIC_MEMORY_NO_PROMOS=1

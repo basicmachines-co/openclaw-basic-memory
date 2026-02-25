@@ -1,7 +1,6 @@
 import { setTimeout as delay } from "node:timers/promises"
 import { Client } from "@modelcontextprotocol/sdk/client"
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
-import { trackToolCall } from "./analytics.ts"
 import { log } from "./logger.ts"
 
 const DEFAULT_RETRY_DELAYS_MS = [500, 1000, 2000]
@@ -450,7 +449,6 @@ export class BmClient {
     name: string,
     args: Record<string, unknown>,
   ): Promise<unknown> {
-    trackToolCall(name)
     const result = await this.callToolRaw(name, args)
 
     if (!isRecord(result) || result.structuredContent === undefined) {

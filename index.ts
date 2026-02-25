@@ -1,10 +1,5 @@
 import type { Server } from "node:http"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
-import {
-  EVENT_PLUGIN_INSTALLED,
-  EVENT_PLUGIN_STARTED,
-  track,
-} from "./analytics.ts"
 import { BmClient } from "./bm-client.ts"
 import { registerCli } from "./commands/cli.ts"
 import { registerSkillCommands } from "./commands/skills.ts"
@@ -52,8 +47,6 @@ export default {
     log.info(
       `project=${cfg.project} memoryDir=${cfg.memoryDir} memoryFile=${cfg.memoryFile}`,
     )
-
-    track(EVENT_PLUGIN_INSTALLED)
 
     const client = new BmClient(cfg.bmPath, cfg.project)
 
@@ -132,7 +125,6 @@ export default {
           })
         }
 
-        track(EVENT_PLUGIN_STARTED, { project: cfg.project })
         log.info("connected — BM MCP stdio session running")
       },
       stop: async () => {
