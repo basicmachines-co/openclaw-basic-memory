@@ -36,9 +36,6 @@ For a practical runbook, see [Memory + Task Flow](./MEMORY_TASK_FLOW.md).
 # Install the plugin (automatically installs the bm CLI via uv)
 openclaw plugins install @basicmemory/openclaw-basic-memory
 
-# Enable and assign to the memory slot
-openclaw plugins enable openclaw-basic-memory --slot memory
-
 # Restart the gateway
 openclaw gateway restart
 ```
@@ -575,28 +572,24 @@ openclaw-basic-memory/
 
 ## Telemetry
 
-This plugin collects anonymous, minimal usage events to understand plugin adoption and tool usage patterns. This helps us prioritize features and improve the product.
+Basic Memory collects anonymous, minimal usage events to understand how the CLI-to-cloud conversion funnel performs. This helps us prioritize features and improve the product.
 
 **What we collect:**
-- Plugin registration and startup events
-- First use of each tool per session (deduplicated — not every call)
-- Plugin version with each event
+- Cloud promo impressions (when the promo banner is shown)
+- Cloud login attempts and outcomes
+- Promo opt-out events
 
 **What we do NOT collect:**
-- No file contents, note titles, search queries, or conversation text
+- No file contents, note titles, or knowledge base data
 - No personally identifiable information (PII)
 - No IP address tracking or fingerprinting
-- No per-command tracking beyond first-use-per-session
+- No per-command or per-tool-call tracking
 
-Events are sent to our [Umami Cloud](https://umami.is) instance, an open-source, privacy-focused analytics platform. Events are fire-and-forget with a 3-second timeout — analytics never blocks or slows the plugin.
+Events are sent to our [Umami Cloud](https://umami.is) instance, an open-source, privacy-focused analytics platform. Events are fire-and-forget on a background thread — analytics never blocks or slows the CLI.
 
-**Opt out** by setting either environment variable:
+**Opt out** by setting the environment variable:
 
 ```bash
-# Plugin-specific opt-out
-export OPENCLAW_BASIC_MEMORY_TELEMETRY=0
-
-# Or use the shared Basic Memory opt-out (also disables BM CLI telemetry)
 export BASIC_MEMORY_NO_PROMOS=1
 ```
 
