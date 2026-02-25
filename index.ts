@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process"
 import type { Server } from "node:http"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import { BmClient } from "./bm-client.ts"
@@ -88,6 +89,40 @@ export default {
       id: "openclaw-basic-memory",
       start: async (ctx: { config?: unknown; workspaceDir?: string }) => {
         log.info("starting...")
+
+        // Auto-install bm CLI if not found
+        const bmBin = cfg.bmPath || "bm"
+        try {
+          execSync(`command -v ${bmBin}`, { stdio: "ignore" })
+        } catch {
+          log.info("bm CLI not found on PATH — attempting auto-install...")
+          try {
+            execSync("command -v uv", { stdio: "ignore" })
+            log.info(
+              "installing basic-memory via uv (this may take a minute)...",
+            )
+            const result = execSync(
+              'uv tool install "basic-memory @ git+https://github.com/basicmachines-co/basic-memory.git@main" --force',
+              { encoding: "utf-8", timeout: 120_000, stdio: "pipe" },
+            )
+            log.info(`basic-memory installed: ${result.trim().split("\n").pop()}`)
+            // Verify it worked
+            try {
+              execSync(`command -v ${bmBin}`, { stdio: "ignore" })
+              log.info("bm CLI now available on PATH")
+            } catch {
+              log.error(
+                "bm installed but not found on PATH. You may need to add uv's bin directory to your PATH (typically ~/.local/bin).",
+              )
+            }
+          } catch (uvErr) {
+            log.error(
+              "Cannot auto-install basic-memory: uv not found. " +
+                "Install uv first (brew install uv, or curl -LsSf https://astral.sh/uv/install.sh | sh), " +
+                "then restart the gateway.",
+            )
+          }
+        }
 
         const workspace = ctx.workspaceDir ?? process.cwd()
         const projectPath = resolveProjectPath(cfg.projectPath, workspace)
