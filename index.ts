@@ -15,6 +15,7 @@ import { buildCaptureHandler } from "./hooks/capture.ts"
 import { buildRecallHandler } from "./hooks/recall.ts"
 import { initLogger, log } from "./logger.ts"
 import { TASK_SCHEMA_CONTENT } from "./schema/task-schema.ts"
+import { CONVERSATION_SCHEMA_CONTENT } from "./schema/conversation-schema.ts"
 import { registerContextTool } from "./tools/build-context.ts"
 import { registerDeleteTool } from "./tools/delete-note.ts"
 import { registerEditTool } from "./tools/edit-note.ts"
@@ -130,16 +131,21 @@ export default {
         await client.ensureProject(projectPath)
         log.debug(`project "${cfg.project}" at ${projectPath}`)
 
-        // Seed Task schema if not already present
-        try {
-          await client.readNote("schema/Task")
-          log.debug("Task schema already exists, skipping seed")
-        } catch {
+        // Seed schemas if not already present
+        for (const [name, content] of [
+          ["Task", TASK_SCHEMA_CONTENT],
+          ["Conversation", CONVERSATION_SCHEMA_CONTENT],
+        ] as const) {
           try {
-            await client.writeNote("Task", TASK_SCHEMA_CONTENT, "schema")
-            log.debug("seeded Task schema note")
-          } catch (err) {
-            log.debug("Task schema seed failed (non-fatal)", err)
+            await client.readNote(`schema/${name}`)
+            log.debug(`${name} schema already exists, skipping seed`)
+          } catch {
+            try {
+              await client.writeNote(name, content, "schema")
+              log.debug(`seeded ${name} schema note`)
+            } catch (err) {
+              log.debug(`${name} schema seed failed (non-fatal)`, err)
+            }
           }
         }
 

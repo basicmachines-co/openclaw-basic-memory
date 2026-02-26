@@ -33,6 +33,7 @@
     "tools/write-note.ts",
     "types/openclaw.d.ts",
     "schema/task-schema.ts",
+"schema/conversation-schema.ts",
     "skills/",
     "scripts/setup-bm.sh",
     "openclaw.plugin.json",
