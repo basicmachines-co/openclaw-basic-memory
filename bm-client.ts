@@ -196,7 +196,7 @@ function isRecoverableConnectionError(err: unknown): boolean {
   )
 }
 
-function isNoteNotFoundError(err: unknown): boolean {
+function _isNoteNotFoundError(err: unknown): boolean {
   const msg = getErrorMessage(err).toLowerCase()
   return (
     msg.includes("entity not found") ||
@@ -828,10 +828,6 @@ export class BmClient {
     }
 
     return payload as unknown as MetadataSearchResult
-  }
-
-  private isNoteNotFoundError(err: unknown): boolean {
-    return isNoteNotFoundError(err)
   }
 
   async indexConversation(

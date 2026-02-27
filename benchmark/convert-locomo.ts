@@ -78,15 +78,24 @@ function parseDateTime(dateStr: string): { date: string; time: string } | null {
   )
   if (!match) return null
 
-  let [, hour, min, ampm, day, month, year] = match
+  const [, hour, min, ampm, day, month, year] = match
   let h = Number.parseInt(hour)
   if (ampm.toLowerCase() === "pm" && h !== 12) h += 12
   if (ampm.toLowerCase() === "am" && h === 12) h = 0
 
   const months: Record<string, string> = {
-    January: "01", February: "02", March: "03", April: "04",
-    May: "05", June: "06", July: "07", August: "08",
-    September: "09", October: "10", November: "11", December: "12",
+    January: "01",
+    February: "02",
+    March: "03",
+    April: "04",
+    May: "05",
+    June: "06",
+    July: "07",
+    August: "08",
+    September: "09",
+    October: "10",
+    November: "11",
+    December: "12",
   }
 
   const m = months[month]
@@ -138,7 +147,10 @@ type: Person
 - [role] Conversation participant
 - [relationship] Regularly chats with ${speakerB}
 `
-  files.set(`people/${speakerA.toLowerCase().replace(/\s+/g, "-")}.md`, speakerANote)
+  files.set(
+    `people/${speakerA.toLowerCase().replace(/\s+/g, "-")}.md`,
+    speakerANote,
+  )
 
   const speakerBNote = `---
 title: ${speakerB}
@@ -151,16 +163,19 @@ type: Person
 - [role] Conversation participant
 - [relationship] Regularly chats with ${speakerA}
 `
-  files.set(`people/${speakerB.toLowerCase().replace(/\s+/g, "-")}.md`, speakerBNote)
+  files.set(
+    `people/${speakerB.toLowerCase().replace(/\s+/g, "-")}.md`,
+    speakerBNote,
+  )
 
   // Build a MEMORY.md with key facts that accumulate
-  let memoryLines: string[] = [
-    `# Long-Term Memory`,
+  const memoryLines: string[] = [
+    "# Long-Term Memory",
     "",
-    `## People`,
+    "## People",
     `- ${speakerA} and ${speakerB} are close friends who chat regularly`,
     "",
-    `## Key Events`,
+    "## Key Events",
   ]
 
   // Convert each session to a dated note
@@ -170,7 +185,8 @@ type: Person
     const dateTimeStr = c[`${sessionKey}_date_time`]
     const parsed = dateTimeStr ? parseDateTime(dateTimeStr) : null
 
-    const date = parsed?.date || `2023-01-${String(sessionNum).padStart(2, "0")}`
+    const date =
+      parsed?.date || `2023-01-${String(sessionNum).padStart(2, "0")}`
     const time = parsed?.time || "12:00"
 
     // Get session summary and observations if available
@@ -184,7 +200,8 @@ type: Person
         if (Array.isArray(obs)) {
           for (const item of obs) {
             const text = Array.isArray(item) ? item[0] : item
-            if (typeof text === "string") lines.push(`- [${speaker.toLowerCase()}] ${text}`)
+            if (typeof text === "string")
+              lines.push(`- [${speaker.toLowerCase()}] ${text}`)
           }
         }
       }
@@ -213,20 +230,21 @@ date: ${date}
     }
 
     // Add conversation
-    content += `## Conversation\n`
+    content += "## Conversation\n"
     for (const turn of turns) {
       const text = turn.text.replace(/\n/g, "\n> ")
       content += `**${turn.speaker}:** ${text}\n\n`
     }
 
     // Add relations
-    content += `## Relations\n`
+    content += "## Relations\n"
     content += `- mentions [[${speakerA}]]\n`
     content += `- mentions [[${speakerB}]]\n`
 
     // Add to memory summary
     if (observation) {
-      const firstObs = observation.split("\n")[0]?.replace(/^- \[\w+\] /, "") || ""
+      const firstObs =
+        observation.split("\n")[0]?.replace(/^- \[\w+\] /, "") || ""
       if (firstObs) memoryLines.push(`- [${date}] ${firstObs}`)
     }
 
@@ -234,7 +252,7 @@ date: ${date}
   }
 
   // Write MEMORY.md
-  files.set("MEMORY.md", memoryLines.join("\n") + "\n")
+  files.set("MEMORY.md", `${memoryLines.join("\n")}\n`)
 
   // Convert QA to benchmark queries
   const queries: BenchmarkQuery[] = []
@@ -253,7 +271,8 @@ date: ${date}
       // Find the session's date
       const dateTimeStr = c[`session_${sessionNum}_date_time`]
       const parsed = dateTimeStr ? parseDateTime(dateTimeStr) : null
-      const date = parsed?.date || `2023-01-${String(sessionNum).padStart(2, "0")}`
+      const date =
+        parsed?.date || `2023-01-${String(sessionNum).padStart(2, "0")}`
       groundTruth.add(`conversations/${date}-session-${sessionNum}.md`)
     }
 
@@ -266,8 +285,14 @@ date: ${date}
       query: qa.question,
       category,
       ground_truth: [...groundTruth],
-      expected_content: isAdversarial ? undefined : answer.length < 100 ? answer : undefined,
-      note: isAdversarial ? `Adversarial: correct answer is "${answer}"` : undefined,
+      expected_content: isAdversarial
+        ? undefined
+        : answer.length < 100
+          ? answer
+          : undefined,
+      note: isAdversarial
+        ? `Adversarial: correct answer is "${answer}"`
+        : undefined,
     })
   }
 
@@ -303,7 +328,9 @@ async function main() {
     const convDir = `corpus-locomo/conv-${idx}`
     const outDir = resolve(BENCHMARK_DIR, convDir)
 
-    console.log(`\nConverting conversation ${idx} (${conv.conversation.speaker_a} & ${conv.conversation.speaker_b})...`)
+    console.log(
+      `\nConverting conversation ${idx} (${conv.conversation.speaker_a} & ${conv.conversation.speaker_b})...`,
+    )
 
     const { files, queries } = convertConversation(conv, idx)
 
@@ -332,8 +359,10 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ Total: ${totalFiles} files, ${totalQueries} queries across ${indices.length} conversations`)
-  console.log(`   Output: benchmark/corpus-locomo/`)
+  console.log(
+    `\n✅ Total: ${totalFiles} files, ${totalQueries} queries across ${indices.length} conversations`,
+  )
+  console.log("   Output: benchmark/corpus-locomo/")
 }
 
 main().catch((err) => {
