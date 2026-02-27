@@ -152,6 +152,7 @@ All tools accept an optional `project` parameter for cross-project operations.
 
 | Command | Description |
 |---------|-------------|
+| `/bm-setup` | Install or update the Basic Memory CLI |
 | `/remember <text>` | Save a quick note |
 | `/recall <query>` | Search the knowledge graph |
 | `/tasks [args]` | Create, track, resume structured tasks |

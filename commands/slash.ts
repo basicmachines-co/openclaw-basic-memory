@@ -1,11 +1,43 @@
+import { execSync } from "node:child_process"
+import { dirname, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
 import { log } from "../logger.ts"
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export function registerCommands(
   api: OpenClawPluginApi,
   client: BmClient,
 ): void {
+  api.registerCommand({
+    name: "bm-setup",
+    description: "Install or update the Basic Memory CLI (requires uv)",
+    requireAuth: true,
+    handler: async () => {
+      const scriptPath = resolve(__dirname, "..", "scripts", "setup-bm.sh")
+      log.info(`/bm-setup: running ${scriptPath}`)
+
+      try {
+        const output = execSync(`bash "${scriptPath}"`, {
+          encoding: "utf-8",
+          timeout: 180_000,
+          stdio: "pipe",
+          env: { ...process.env },
+        })
+        return { text: output.trim() }
+      } catch (err: unknown) {
+        const execErr = err as { stderr?: string; stdout?: string }
+        const detail = execErr.stderr || execErr.stdout || String(err)
+        log.error("/bm-setup failed", err)
+        return {
+          text: `Setup failed:\n${detail.trim()}`,
+        }
+      }
+    },
+  })
+
   api.registerCommand({
     name: "remember",
     description: "Save something to the Basic Memory knowledge graph",
