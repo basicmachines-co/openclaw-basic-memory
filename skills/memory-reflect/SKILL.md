@@ -61,3 +61,18 @@ Append a brief entry to today's daily note:
 - **Flag uncertainty.** If something seems important but you're not sure, add it with a note like "(needs confirmation)" rather than skipping it entirely.
 - **Restructure over time.** If MEMORY.md is a chronological dump, restructure it into topical sections during reflection. Curated knowledge > raw logs.
 - **Check for filesystem issues.** Look for recursive nesting (memory/memory/memory/...), orphaned files, or bloat while gathering material.
+
+## ⚠️ Safe Writing Pattern
+
+**Never use `write_note` on daily notes or MEMORY.md.** These files accumulate content throughout the day. `write_note` replaces the entire file — use `edit_note` instead:
+
+```
+# ✅ Update a section in MEMORY.md
+edit_note(identifier="MEMORY", operation="replace_section", section="About Me", content="...")
+
+# ✅ Append reflection log to today's daily note
+edit_note(identifier="2026-02-26", operation="append", content="\n## Reflection (22:00)\n...")
+
+# ❌ NEVER do this — destroys the existing file
+write_note(title="2026-02-26", folder="memory", content="...")
+```

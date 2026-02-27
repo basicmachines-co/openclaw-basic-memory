@@ -248,3 +248,28 @@ edit_note(
 6. **Link related concepts.** The value of a knowledge graph compounds with connections. A note with zero relations is an island — useful, but not as powerful as a connected one.
 
 7. **Let the graph grow naturally.** Don't try to design a perfect taxonomy upfront. Write notes as you work, add relations as connections emerge, and periodically use `/reflect` or `/defrag` to consolidate.
+
+## ⚠️ write_note vs edit_note — Avoiding Data Loss
+
+**`write_note` is destructive.** If a note with the same title already exists, `write_note` silently replaces it. This will destroy accumulated content in daily notes, logs, or any file that grows over time.
+
+### Rules
+
+- **New notes**: Use `write_note` — it creates the file and frontmatter correctly.
+- **Existing notes**: Use `edit_note` — it modifies without replacing.
+  - `operation: "append"` — add content to the end
+  - `operation: "prepend"` — add content to the beginning
+  - `operation: "find_replace"` — surgical text replacement
+  - `operation: "replace_section"` — replace a specific heading section
+
+### Common Mistake
+
+```
+# ❌ WRONG — destroys existing daily note content
+write_note(title="2026-02-26", folder="memory", content="## New Section\n...")
+
+# ✅ RIGHT — appends to existing daily note
+edit_note(identifier="2026-02-26", operation="append", content="\n## New Section\n...")
+```
+
+**When in doubt, use `edit_note`.** It's always safe. `write_note` is only safe when you're certain the note doesn't exist yet or you intentionally want to replace it entirely.
