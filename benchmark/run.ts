@@ -87,13 +87,15 @@ const RESULTS_DIR = resolve(BENCHMARK_DIR, "results")
 const CORPUS_SIZE =
   process.argv.find((a) => a.startsWith("--corpus="))?.split("=")[1] || "small"
 const BM_PROJECT =
-  process.argv.find((a) => a.startsWith("--project="))?.split("=")[1] || "benchmark"
+  process.argv.find((a) => a.startsWith("--project="))?.split("=")[1] ||
+  "benchmark"
 const QUERIES_PATH =
   process.argv.find((a) => a.startsWith("--queries="))?.split("=")[1] ||
   resolve(BENCHMARK_DIR, "queries.json")
-const QUERY_LIMIT = Number.parseInt(
-  process.argv.find((a) => a.startsWith("--limit="))?.split("=")[1] || "0",
-) || 0
+const QUERY_LIMIT =
+  Number.parseInt(
+    process.argv.find((a) => a.startsWith("--limit="))?.split("=")[1] || "0",
+  ) || 0
 
 // ---------------------------------------------------------------------------
 // MCP Client

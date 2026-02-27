@@ -14,6 +14,7 @@ import {
 import { buildCaptureHandler } from "./hooks/capture.ts"
 import { buildRecallHandler } from "./hooks/recall.ts"
 import { initLogger, log } from "./logger.ts"
+import { CONVERSATION_SCHEMA_CONTENT } from "./schema/conversation-schema.ts"
 import { TASK_SCHEMA_CONTENT } from "./schema/task-schema.ts"
 import { registerContextTool } from "./tools/build-context.ts"
 import { registerDeleteTool } from "./tools/delete-note.ts"
@@ -103,7 +104,9 @@ export default {
               'uv tool install "basic-memory @ git+https://github.com/basicmachines-co/basic-memory.git@main" --force',
               { encoding: "utf-8", timeout: 120_000, stdio: "pipe" },
             )
-            log.info(`basic-memory installed: ${result.trim().split("\n").pop()}`)
+            log.info(
+              `basic-memory installed: ${result.trim().split("\n").pop()}`,
+            )
             // Verify it worked
             try {
               execSync(`command -v ${bmBin}`, { stdio: "ignore" })
@@ -113,7 +116,7 @@ export default {
                 "bm installed but not found on PATH. You may need to add uv's bin directory to your PATH (typically ~/.local/bin).",
               )
             }
-          } catch (uvErr) {
+          } catch (_uvErr) {
             log.error(
               "Cannot auto-install basic-memory: uv not found. " +
                 "Install uv first (brew install uv, or curl -LsSf https://astral.sh/uv/install.sh | sh), " +
@@ -130,16 +133,21 @@ export default {
         await client.ensureProject(projectPath)
         log.debug(`project "${cfg.project}" at ${projectPath}`)
 
-        // Seed Task schema if not already present
-        try {
-          await client.readNote("schema/Task")
-          log.debug("Task schema already exists, skipping seed")
-        } catch {
+        // Seed schemas if not already present
+        for (const [name, content] of [
+          ["Task", TASK_SCHEMA_CONTENT],
+          ["Conversation", CONVERSATION_SCHEMA_CONTENT],
+        ] as const) {
           try {
-            await client.writeNote("Task", TASK_SCHEMA_CONTENT, "schema")
-            log.debug("seeded Task schema note")
-          } catch (err) {
-            log.debug("Task schema seed failed (non-fatal)", err)
+            await client.readNote(`schema/${name}`)
+            log.debug(`${name} schema already exists, skipping seed`)
+          } catch {
+            try {
+              await client.writeNote(name, content, "schema")
+              log.debug(`seeded ${name} schema note`)
+            } catch (err) {
+              log.debug(`${name} schema seed failed (non-fatal)`, err)
+            }
           }
         }
 
