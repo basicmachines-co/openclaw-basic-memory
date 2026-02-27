@@ -196,7 +196,7 @@ function isRecoverableConnectionError(err: unknown): boolean {
   )
 }
 
-function isNoteNotFoundError(err: unknown): boolean {
+function _isNoteNotFoundError(err: unknown): boolean {
   const msg = getErrorMessage(err).toLowerCase()
   return (
     msg.includes("entity not found") ||
@@ -830,10 +830,6 @@ export class BmClient {
     return payload as unknown as MetadataSearchResult
   }
 
-  private isNoteNotFoundError(err: unknown): boolean {
-    return isNoteNotFoundError(err)
-  }
-
   async indexConversation(
     userMessage: string,
     assistantResponse: string,
@@ -855,22 +851,33 @@ export class BmClient {
       "---",
     ].join("\n")
 
+    // Try append first — if it fails for ANY reason, fall through to create
     try {
       await this.editNote(title, "append", entry)
       log.debug(`appended conversation to: ${title}`)
+      return
     } catch (err) {
-      if (!this.isNoteNotFoundError(err)) {
-        log.error("conversation append failed", err)
-        return
-      }
+      log.debug(`append failed, will create: ${getErrorMessage(err)}`)
+    }
 
-      const content = [`# Conversations ${dateStr}`, "", entry].join("\n")
-      try {
-        await this.writeNote(title, content, "conversations")
-        log.debug(`created conversation note: ${title}`)
-      } catch (createErr) {
-        log.error("conversation index failed", createErr)
-      }
+    // Create the note with frontmatter and first entry
+    const content = [
+      "---",
+      `title: Conversations ${dateStr}`,
+      "type: Conversation",
+      `date: "${dateStr}"`,
+      "---",
+      "",
+      `# Conversations ${dateStr}`,
+      "",
+      entry,
+    ].join("\n")
+
+    try {
+      await this.writeNote(title, content, "conversations")
+      log.debug(`created conversation note: ${title}`)
+    } catch (err) {
+      log.error("conversation index failed", err)
     }
   }
 

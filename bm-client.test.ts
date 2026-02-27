@@ -523,18 +523,23 @@ describe("BmClient MCP behavior", () => {
     expect(result.file_path).toBe("archive/my-note.md")
   })
 
-  it("indexConversation does not create fallback note on non-not-found edit errors", async () => {
+  it("indexConversation falls through to writeNote on any editNote error", async () => {
     ;(client as any).editNote = jest
       .fn()
       .mockRejectedValue(new Error("validation failed"))
-    ;(client as any).writeNote = jest.fn()
+    ;(client as any).writeNote = jest.fn().mockResolvedValue({
+      title: "conversations",
+      permalink: "conversations",
+      content: "x",
+      file_path: "conversations/x.md",
+    })
 
     await client.indexConversation(
       "user message long enough",
       "assistant reply long enough",
     )
 
-    expect((client as any).writeNote).not.toHaveBeenCalled()
+    expect((client as any).writeNote).toHaveBeenCalledTimes(1)
   })
 
   it("indexConversation creates fallback note only on note-not-found errors", async () => {
