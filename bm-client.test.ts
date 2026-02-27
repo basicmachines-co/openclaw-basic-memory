@@ -460,7 +460,7 @@ describe("BmClient MCP behavior", () => {
     expect(result.new_fields).toHaveLength(1)
   })
 
-  it("searchByMetadata calls search_by_metadata with filters", async () => {
+  it("search with note_types and status filters (no query)", async () => {
     const callTool = jest.fn().mockResolvedValue(
       mcpResult({
         results: [
@@ -472,27 +472,27 @@ describe("BmClient MCP behavior", () => {
             score: 0.9,
           },
         ],
-        current_page: 1,
-        page_size: 20,
       }),
     )
     setConnected(client, callTool)
 
-    const result = await client.searchByMetadata(
-      { type: "task", status: "active" },
-      10,
-    )
+    const result = await client.search(undefined, 10, undefined, {
+      note_types: ["task"],
+      status: "active",
+    })
 
     expect(callTool).toHaveBeenCalledWith({
-      name: "search_by_metadata",
+      name: "search_notes",
       arguments: {
-        filters: { type: "task", status: "active" },
-        limit: 10,
+        page: 1,
+        page_size: 10,
+        note_types: ["task"],
+        status: "active",
         output_format: "json",
       },
     })
-    expect(result.results).toHaveLength(1)
-    expect(result.results[0].title).toBe("Task 1")
+    expect(result).toHaveLength(1)
+    expect(result[0].title).toBe("Task 1")
   })
 
   it("moveNote calls move_note with destination_folder in a single MCP call", async () => {

@@ -1,26 +1,18 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
-import type {
-  BmClient,
-  MetadataSearchResult,
-  RecentResult,
-} from "../bm-client.ts"
+import type { BmClient, RecentResult, SearchResult } from "../bm-client.ts"
 import type { BasicMemoryConfig } from "../config.ts"
 import { buildRecallHandler, formatRecallContext } from "./recall.ts"
 
 const DEFAULT_PROMPT =
   "Check for active tasks and recent activity. Summarize anything relevant to the current session."
 
-function makeTasks(titles: string[]): MetadataSearchResult {
-  return {
-    results: titles.map((title) => ({
-      title,
-      permalink: title.toLowerCase().replace(/\s+/g, "-"),
-      content: `Description of ${title}`,
-      file_path: `memory/tasks/${title.toLowerCase().replace(/\s+/g, "-")}.md`,
-    })),
-    current_page: 1,
-    page_size: 5,
-  }
+function makeTasks(titles: string[]): SearchResult[] {
+  return titles.map((title) => ({
+    title,
+    permalink: title.toLowerCase().replace(/\s+/g, "-"),
+    content: `Description of ${title}`,
+    file_path: `memory/tasks/${title.toLowerCase().replace(/\s+/g, "-")}.md`,
+  }))
 }
 
 function makeRecent(titles: string[]): RecentResult[] {
@@ -77,18 +69,14 @@ describe("recall hook", () => {
     })
 
     it("should truncate long task content", () => {
-      const tasks: MetadataSearchResult = {
-        results: [
-          {
-            title: "Long Task",
-            permalink: "long-task",
-            content: "A".repeat(200),
-            file_path: "memory/tasks/long-task.md",
-          },
-        ],
-        current_page: 1,
-        page_size: 5,
-      }
+      const tasks: SearchResult[] = [
+        {
+          title: "Long Task",
+          permalink: "long-task",
+          content: "A".repeat(200),
+          file_path: "memory/tasks/long-task.md",
+        },
+      ]
 
       const result = formatRecallContext(tasks, [], DEFAULT_PROMPT)
       expect(result).toContain("...")
@@ -111,14 +99,14 @@ describe("recall hook", () => {
 
   describe("buildRecallHandler", () => {
     let mockClient: {
-      searchByMetadata: jest.Mock
+      search: jest.Mock
       recentActivity: jest.Mock
     }
     let mockConfig: BasicMemoryConfig
 
     beforeEach(() => {
       mockClient = {
-        searchByMetadata: jest.fn().mockResolvedValue(makeTasks([])),
+        search: jest.fn().mockResolvedValue(makeTasks([])),
         recentActivity: jest.fn().mockResolvedValue([]),
       }
       mockConfig = {
@@ -151,10 +139,10 @@ describe("recall hook", () => {
 
       await handler({})
 
-      expect(mockClient.searchByMetadata).toHaveBeenCalledWith(
-        { entity_type: "Task", status: "active" },
-        5,
-      )
+      expect(mockClient.search).toHaveBeenCalledWith(undefined, 5, undefined, {
+        note_types: ["Task"],
+        status: "active",
+      })
       expect(mockClient.recentActivity).toHaveBeenCalledWith("1d")
     })
 
@@ -169,9 +157,7 @@ describe("recall hook", () => {
     })
 
     it("should return context when tasks are found", async () => {
-      mockClient.searchByMetadata.mockResolvedValue(
-        makeTasks(["Fix login bug"]),
-      )
+      mockClient.search.mockResolvedValue(makeTasks(["Fix login bug"]))
 
       const handler = buildRecallHandler(
         mockClient as unknown as BmClient,
@@ -199,7 +185,7 @@ describe("recall hook", () => {
     })
 
     it("should handle errors gracefully", async () => {
-      mockClient.searchByMetadata.mockRejectedValue(new Error("BM down"))
+      mockClient.search.mockRejectedValue(new Error("BM down"))
 
       const handler = buildRecallHandler(
         mockClient as unknown as BmClient,
@@ -215,7 +201,7 @@ describe("recall hook", () => {
         ...mockConfig,
         recallPrompt: "Focus on blocked tasks.",
       }
-      mockClient.searchByMetadata.mockResolvedValue(makeTasks(["Task A"]))
+      mockClient.search.mockResolvedValue(makeTasks(["Task A"]))
 
       const handler = buildRecallHandler(
         mockClient as unknown as BmClient,

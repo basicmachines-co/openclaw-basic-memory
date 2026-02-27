@@ -7,7 +7,6 @@ const DEFAULT_RETRY_DELAYS_MS = [500, 1000, 2000]
 
 const REQUIRED_TOOLS = [
   "search_notes",
-  "search_by_metadata",
   "read_note",
   "write_note",
   "edit_note",
@@ -151,12 +150,6 @@ export interface SchemaDiffResult {
   }>
   dropped_fields: Array<{ name: string; source: string; declared_in?: string }>
   cardinality_changes: string[]
-}
-
-export interface MetadataSearchResult {
-  results: SearchResult[]
-  current_page: number
-  page_size: number
 }
 
 function getErrorMessage(err: unknown): string {
@@ -502,25 +495,29 @@ export class BmClient {
   }
 
   async search(
-    query: string,
+    query?: string,
     limit = 10,
     project?: string,
     metadata?: {
       filters?: Record<string, unknown>
       tags?: string[]
       status?: string
+      note_types?: string[]
+      entity_types?: string[]
     },
   ): Promise<SearchResult[]> {
     const args: Record<string, unknown> = {
-      query,
       page: 1,
       page_size: limit,
       output_format: "json",
     }
+    if (query) args.query = query
     if (project) args.project = project
     if (metadata?.filters) args.metadata_filters = metadata.filters
     if (metadata?.tags) args.tags = metadata.tags
     if (metadata?.status) args.status = metadata.status
+    if (metadata?.note_types) args.note_types = metadata.note_types
+    if (metadata?.entity_types) args.entity_types = metadata.entity_types
 
     const payload = await this.callTool("search_notes", args)
 
@@ -807,27 +804,6 @@ export class BmClient {
     }
 
     return payload as unknown as SchemaDiffResult
-  }
-
-  async searchByMetadata(
-    filters: Record<string, unknown>,
-    limit = 20,
-    project?: string,
-  ): Promise<MetadataSearchResult> {
-    const args: Record<string, unknown> = {
-      filters,
-      limit,
-      output_format: "json",
-    }
-    if (project) args.project = project
-
-    const payload = await this.callTool("search_by_metadata", args)
-
-    if (!isRecord(payload) || !Array.isArray(payload.results)) {
-      throw new Error("invalid search_by_metadata response")
-    }
-
-    return payload as unknown as MetadataSearchResult
   }
 
   async indexConversation(

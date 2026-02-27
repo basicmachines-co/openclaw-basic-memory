@@ -1,8 +1,4 @@
-import type {
-  BmClient,
-  MetadataSearchResult,
-  RecentResult,
-} from "../bm-client.ts"
+import type { BmClient, RecentResult, SearchResult } from "../bm-client.ts"
 import type { BasicMemoryConfig } from "../config.ts"
 import { log } from "../logger.ts"
 
@@ -11,14 +7,14 @@ import { log } from "../logger.ts"
  * Returns empty string if nothing was found.
  */
 export function formatRecallContext(
-  tasks: MetadataSearchResult,
+  tasks: SearchResult[],
   recent: RecentResult[],
   prompt: string,
 ): string {
   const sections: string[] = []
 
-  if (tasks.results.length > 0) {
-    const taskLines = tasks.results.map((t) => {
+  if (tasks.length > 0) {
+    const taskLines = tasks.map((t) => {
       const preview =
         t.content.length > 120 ? `${t.content.slice(0, 120)}...` : t.content
       return `- **${t.title}** — ${preview}`
@@ -46,7 +42,10 @@ export function buildRecallHandler(client: BmClient, cfg: BasicMemoryConfig) {
   return async (_event: Record<string, unknown>) => {
     try {
       const [tasks, recent] = await Promise.all([
-        client.searchByMetadata({ entity_type: "Task", status: "active" }, 5),
+        client.search(undefined, 5, undefined, {
+          note_types: ["Task"],
+          status: "active",
+        }),
         client.recentActivity("1d"),
       ])
 
@@ -54,7 +53,7 @@ export function buildRecallHandler(client: BmClient, cfg: BasicMemoryConfig) {
       if (!context) return {}
 
       log.debug(
-        `recall: ${tasks.results.length} active tasks, ${recent.length} recent items`,
+        `recall: ${tasks.length} active tasks, ${recent.length} recent items`,
       )
 
       return { context }

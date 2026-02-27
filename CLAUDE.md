@@ -57,7 +57,7 @@ Central orchestration layer that:
 - Implements reconnection with bounded retries (500ms, 1s, 2s exponential backoff)
 - Distinguishes recoverable errors (broken pipe, transport closed) from fatal errors
 - All tool calls require `output_format: "json"` and extract `structuredContent.result`
-- Public methods: `search`, `readNote`, `writeNote`, `editNote`, `deleteNote`, `moveNote`, `buildContext`, `recentActivity`, `indexConversation`, `ensureProject`, `listProjects`, `listWorkspaces`, `schemaValidate`, `schemaInfer`, `schemaDiff`, `searchByMetadata`
+- Public methods: `search`, `readNote`, `writeNote`, `editNote`, `deleteNote`, `moveNote`, `buildContext`, `recentActivity`, `indexConversation`, `ensureProject`, `listProjects`, `listWorkspaces`, `schemaValidate`, `schemaInfer`, `schemaDiff`
 - All content methods accept an optional `project` parameter for cross-project operations
 - `listProjects` accepts an optional `workspace` parameter for workspace-scoped listing
 
