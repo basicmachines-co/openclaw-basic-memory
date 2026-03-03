@@ -109,6 +109,49 @@ describe("BmClient MCP behavior", () => {
     expect(result.action).toBe("created")
   })
 
+  it("writeNote passes overwrite flag when provided", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({
+        title: "Note",
+        permalink: "notes/note",
+        file_path: "notes/note.md",
+        action: "updated",
+      }),
+    )
+    setConnected(client, callTool)
+
+    await client.writeNote("Note", "hello", "notes", undefined, true)
+
+    expect(callTool).toHaveBeenCalledWith({
+      name: "write_note",
+      arguments: {
+        title: "Note",
+        content: "hello",
+        directory: "notes",
+        output_format: "json",
+        overwrite: true,
+      },
+    })
+  })
+
+  it("writeNote throws NoteAlreadyExistsError on conflict response", async () => {
+    const callTool = jest.fn().mockResolvedValue(
+      mcpResult({
+        title: "Existing",
+        permalink: "notes/existing",
+        file_path: null,
+        checksum: null,
+        action: "conflict",
+        error: "NOTE_ALREADY_EXISTS",
+      }),
+    )
+    setConnected(client, callTool)
+
+    await expect(
+      client.writeNote("Existing", "content", "notes"),
+    ).rejects.toThrow("Note already exists")
+  })
+
   it("editNote calls edit_note with MCP argument names", async () => {
     const callTool = jest.fn().mockResolvedValue(
       mcpResult({
@@ -540,6 +583,9 @@ describe("BmClient MCP behavior", () => {
     )
 
     expect((client as any).writeNote).toHaveBeenCalledTimes(1)
+    const args = (client as any).writeNote.mock.calls[0]
+    expect(args[3]).toBeUndefined() // project
+    expect(args[4]).toBe(true) // overwrite
   })
 
   it("indexConversation creates fallback note only on note-not-found errors", async () => {

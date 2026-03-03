@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
+import { NoteAlreadyExistsError } from "../bm-client.ts"
 import { registerWriteTool } from "./write-note.ts"
 
 describe("write tool", () => {
@@ -26,7 +27,7 @@ describe("write tool", () => {
           name: "write_note",
           label: "Write Note",
           description: expect.stringContaining(
-            "Create or update a note in the Basic Memory knowledge graph",
+            "Create a note in the Basic Memory knowledge graph",
           ),
           parameters: expect.objectContaining({
             type: "object",
@@ -45,6 +46,9 @@ describe("write tool", () => {
               }),
               project: expect.objectContaining({
                 type: "string",
+              }),
+              overwrite: expect.objectContaining({
+                type: "boolean",
               }),
             }),
           }),
@@ -88,6 +92,7 @@ describe("write tool", () => {
         "This is test content",
         "notes",
         undefined,
+        undefined,
       )
 
       expect(result).toEqual({
@@ -128,6 +133,7 @@ describe("write tool", () => {
         "Root level note",
         "",
         undefined,
+        undefined,
       )
     })
 
@@ -153,6 +159,7 @@ describe("write tool", () => {
         "Nested Note",
         "Nested folder note",
         "projects/subfolder",
+        undefined,
         undefined,
       )
     })
@@ -197,6 +204,7 @@ const code = "example";
         markdownContent,
         "notes",
         undefined,
+        undefined,
       )
     })
 
@@ -223,6 +231,7 @@ const code = "example";
         specialTitle,
         "Content",
         "notes",
+        undefined,
         undefined,
       )
     })
@@ -253,6 +262,7 @@ const code = "example";
         unicodeContent,
         "notes",
         undefined,
+        undefined,
       )
     })
 
@@ -280,6 +290,7 @@ const code = "example";
         longContent,
         "notes",
         undefined,
+        undefined,
       )
     })
 
@@ -306,6 +317,7 @@ const code = "example";
         "",
         "notes",
         undefined,
+        undefined,
       )
     })
 
@@ -329,7 +341,54 @@ const code = "example";
         "content",
         "notes",
         "other-project",
+        undefined,
       )
+    })
+
+    it("should pass overwrite=true to client.writeNote", async () => {
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockResolvedValue({
+        title: "Note",
+        permalink: "note",
+        content: "content",
+        file_path: "notes/note.md",
+        action: "updated",
+      })
+
+      const result = await executeFunction("tool-call-id", {
+        title: "Note",
+        content: "content",
+        folder: "notes",
+        overwrite: true,
+      })
+
+      expect(mockClient.writeNote).toHaveBeenCalledWith(
+        "Note",
+        "content",
+        "notes",
+        undefined,
+        true,
+      )
+
+      expect(result.content[0].text).toContain("Note saved: Note")
+    })
+
+    it("should return helpful hint when note already exists", async () => {
+      ;(mockClient.writeNote as jest.MockedFunction<any>).mockRejectedValue(
+        new NoteAlreadyExistsError("Existing Note", "notes/existing-note"),
+      )
+
+      const result = await executeFunction("tool-call-id", {
+        title: "Existing Note",
+        content: "New content",
+        folder: "notes",
+      })
+
+      const text = result.content[0].text
+      expect(text).toContain('Note already exists: "Existing Note"')
+      expect(text).toContain("notes/existing-note")
+      expect(text).toContain("edit_note")
+      expect(text).toContain("overwrite=true")
+      expect(text).toContain("read_note")
     })
 
     it("should handle write errors gracefully", async () => {
@@ -385,6 +444,7 @@ Normal line
         formattedContent,
         "notes",
         undefined,
+        undefined,
       )
     })
 
@@ -411,6 +471,7 @@ Normal line
         multilineTitle,
         "Content",
         "notes",
+        undefined,
         undefined,
       )
     })

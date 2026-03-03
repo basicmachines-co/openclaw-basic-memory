@@ -1,6 +1,7 @@
 import { Type } from "@sinclair/typebox"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
 import type { BmClient } from "../bm-client.ts"
+import { NoteAlreadyExistsError } from "../bm-client.ts"
 import { log } from "../logger.ts"
 
 export function registerWriteTool(
@@ -12,9 +13,9 @@ export function registerWriteTool(
       name: "write_note",
       label: "Write Note",
       description:
-        "Create or update a note in the Basic Memory knowledge graph. " +
-        "Notes are stored as Markdown files with semantic structure " +
-        "(observations, relations) that build a connected knowledge graph.",
+        "Create a note in the Basic Memory knowledge graph. " +
+        "If the note already exists, returns an error by default. " +
+        "Pass overwrite=true to replace, or use edit_note for incremental updates.",
       parameters: Type.Object({
         title: Type.String({ description: "Note title" }),
         content: Type.String({
@@ -26,6 +27,12 @@ export function registerWriteTool(
             description: "Target project name (defaults to current project)",
           }),
         ),
+        overwrite: Type.Optional(
+          Type.Boolean({
+            description:
+              "Set to true to replace an existing note. Defaults to false.",
+          }),
+        ),
       }),
       async execute(
         _toolCallId: string,
@@ -34,6 +41,7 @@ export function registerWriteTool(
           content: string
           folder: string
           project?: string
+          overwrite?: boolean
         },
       ) {
         log.debug(`write_note: title=${params.title} folder=${params.folder}`)
@@ -44,6 +52,7 @@ export function registerWriteTool(
             params.content,
             params.folder,
             params.project,
+            params.overwrite,
           )
 
           const msg = `Note saved: ${note.title} (${note.permalink})`
@@ -61,6 +70,22 @@ export function registerWriteTool(
             },
           }
         } catch (err) {
+          if (err instanceof NoteAlreadyExistsError) {
+            const hint = [
+              `Note already exists: "${params.title}" (${err.permalink})`,
+              "",
+              "To update this note, use one of:",
+              `  - edit_note("${err.permalink}", operation="append", content="...")`,
+              `  - edit_note("${err.permalink}", operation="replace_section", section="...", content="...")`,
+              `  - write_note("${params.title}", ..., overwrite=true) to fully replace`,
+              `  - read_note("${err.permalink}") to inspect current content first`,
+            ].join("\n")
+
+            return {
+              content: [{ type: "text" as const, text: hint }],
+            }
+          }
+
           log.error("write_note failed", err)
           return {
             content: [

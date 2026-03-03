@@ -5,6 +5,15 @@ import { log } from "./logger.ts"
 
 const DEFAULT_RETRY_DELAYS_MS = [500, 1000, 2000]
 
+export class NoteAlreadyExistsError extends Error {
+  readonly permalink: string
+  constructor(title: string, permalink: string) {
+    super(`Note already exists: "${title}" (${permalink})`)
+    this.name = "NoteAlreadyExistsError"
+    this.permalink = permalink
+  }
+}
+
 const REQUIRED_TOOLS = [
   "search_notes",
   "read_note",
@@ -569,6 +578,7 @@ export class BmClient {
     content: string,
     folder: string,
     project?: string,
+    overwrite?: boolean,
   ): Promise<NoteResult> {
     const args: Record<string, unknown> = {
       title,
@@ -577,11 +587,19 @@ export class BmClient {
       output_format: "json",
     }
     if (project) args.project = project
+    if (overwrite !== undefined) args.overwrite = overwrite
 
     const payload = await this.callTool("write_note", args)
 
     if (!isRecord(payload)) {
       throw new Error("invalid write_note response")
+    }
+
+    if (payload.error === "NOTE_ALREADY_EXISTS") {
+      throw new NoteAlreadyExistsError(
+        asString(payload.title) ?? title,
+        asString(payload.permalink) ?? "",
+      )
     }
 
     const resultTitle = asString(payload.title)
@@ -850,7 +868,7 @@ export class BmClient {
     ].join("\n")
 
     try {
-      await this.writeNote(title, content, "conversations")
+      await this.writeNote(title, content, "conversations", undefined, true)
       log.debug(`created conversation note: ${title}`)
     } catch (err) {
       log.error("conversation index failed", err)
