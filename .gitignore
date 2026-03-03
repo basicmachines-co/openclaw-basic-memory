@@ -144,3 +144,6 @@ bun.lock
 .idea/
 benchmark/datasets/
 benchmark/corpus-locomo/
+
+# Fetched at build time from basicmachines-co/basic-memory-skills
+skills/

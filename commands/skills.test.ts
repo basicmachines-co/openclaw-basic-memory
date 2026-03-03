@@ -10,19 +10,24 @@ describe("skill slash commands", () => {
 
     registerSkillCommands(mockApi)
 
-    expect(mockApi.registerCommand).toHaveBeenCalledTimes(6)
+    expect(mockApi.registerCommand).toHaveBeenCalledTimes(9)
 
     const names = (
       mockApi.registerCommand as jest.MockedFunction<any>
     ).mock.calls.map((call: any[]) => call[0].name)
-    expect(names).toEqual([
-      "tasks",
-      "reflect",
-      "defrag",
-      "schema",
-      "notes",
-      "metadata-search",
-    ])
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "tasks",
+        "reflect",
+        "defrag",
+        "schema",
+        "notes",
+        "metadata-search",
+        "lifecycle",
+        "ingest",
+        "research",
+      ]),
+    )
   })
 
   it("should set correct metadata on each command", () => {
@@ -104,6 +109,15 @@ describe("skill slash commands", () => {
 
       const metadataResult = await commands["metadata-search"].handler({})
       expect(metadataResult.text).toContain("## Filter Syntax")
+
+      const lifecycleResult = await commands.lifecycle.handler({})
+      expect(lifecycleResult.text).toContain("# Memory Lifecycle")
+
+      const ingestResult = await commands.ingest.handler({})
+      expect(ingestResult.text).toContain("# Memory Ingest")
+
+      const researchResult = await commands.research.handler({})
+      expect(researchResult.text).toContain("# Memory Research")
     })
   })
 })

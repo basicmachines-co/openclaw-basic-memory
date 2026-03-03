@@ -1,9 +1,14 @@
 # OpenClaw Basic Memory Plugin
 
+# Fetch skills from GitHub
+fetch-skills:
+    bun scripts/fetch-skills.ts
+
 # Install dependencies (bun + basic-memory CLI)
 install:
     bun install
     bash scripts/setup-bm.sh
+    bun scripts/fetch-skills.ts
 
 # Setup Basic Memory project
 setup:
