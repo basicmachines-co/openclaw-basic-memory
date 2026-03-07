@@ -10,8 +10,8 @@ describe("skill slash commands", () => {
 
     registerSkillCommands(mockApi)
 
-    const callCount = (mockApi.registerCommand as jest.MockedFunction<any>)
-      .mock.calls.length
+    const callCount = (mockApi.registerCommand as jest.MockedFunction<any>).mock
+      .calls.length
     expect(callCount).toBeGreaterThanOrEqual(9)
 
     const names = (
