@@ -35,6 +35,9 @@ describe("BasicMemoryContextEngine", () => {
     search: jest.Mock
     recentActivity: jest.Mock
     indexConversation: jest.Mock
+    writeNote: jest.Mock
+    editNote: jest.Mock
+    deleteNote: jest.Mock
   }
 
   beforeEach(() => {
@@ -56,6 +59,26 @@ describe("BasicMemoryContextEngine", () => {
         },
       ]),
       indexConversation: jest.fn().mockResolvedValue(undefined),
+      writeNote: jest.fn().mockResolvedValue({
+        title: "subagent-handoff-agent-test-subagent-child-1",
+        permalink: "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
+        file_path:
+          "memory/agent/subagents/subagent-handoff-agent-test-subagent-child-1.md",
+        content: "",
+      }),
+      editNote: jest.fn().mockResolvedValue({
+        title: "subagent-handoff-agent-test-subagent-child-1",
+        permalink: "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
+        file_path:
+          "memory/agent/subagents/subagent-handoff-agent-test-subagent-child-1.md",
+        operation: "append",
+      }),
+      deleteNote: jest.fn().mockResolvedValue({
+        title: "subagent-handoff-agent-test-subagent-child-1",
+        permalink: "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
+        file_path:
+          "memory/agent/subagents/subagent-handoff-agent-test-subagent-child-1.md",
+      }),
     }
   })
 
@@ -205,6 +228,102 @@ describe("BasicMemoryContextEngine", () => {
     )
     expect(first.systemPromptAddition).toContain("[Basic Memory recall truncated]")
     expect(second.systemPromptAddition).toBe(first.systemPromptAddition)
+  })
+
+  it("creates a parent-to-child BM handoff note on subagent spawn", async () => {
+    const engine = new BasicMemoryContextEngine(
+      mockClient as unknown as BmClient,
+      makeConfig(),
+    )
+
+    await engine.bootstrap({
+      sessionId: "parent-session",
+      sessionFile: "/tmp/parent-session.jsonl",
+    })
+
+    const preparation = await engine.prepareSubagentSpawn({
+      parentSessionKey: "parent-session",
+      childSessionKey: "agent:test:subagent:child-1",
+    })
+
+    expect(preparation).toBeDefined()
+    expect(mockClient.writeNote).toHaveBeenCalledWith(
+      "subagent-handoff-agent-test-subagent-child-1",
+      expect.stringContaining("## Parent Basic Memory Context"),
+      "agent/subagents",
+    )
+  })
+
+  it("rolls back the handoff note when subagent spawn fails after preparation", async () => {
+    const engine = new BasicMemoryContextEngine(
+      mockClient as unknown as BmClient,
+      makeConfig(),
+    )
+
+    const preparation = await engine.prepareSubagentSpawn({
+      parentSessionKey: "parent-session",
+      childSessionKey: "agent:test:subagent:child-rollback",
+    })
+
+    expect(preparation).toBeDefined()
+    await preparation?.rollback()
+
+    expect(mockClient.deleteNote).toHaveBeenCalledWith(
+      "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
+    )
+  })
+
+  it("appends completion details to the handoff note when a child session completes", async () => {
+    const engine = new BasicMemoryContextEngine(
+      mockClient as unknown as BmClient,
+      makeConfig(),
+    )
+
+    await engine.prepareSubagentSpawn({
+      parentSessionKey: "parent-session",
+      childSessionKey: "agent:test:subagent:child-complete",
+    })
+
+    await engine.onSubagentEnded({
+      childSessionKey: "agent:test:subagent:child-complete",
+      reason: "completed",
+    })
+
+    expect(mockClient.editNote).toHaveBeenCalledWith(
+      "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
+      "append",
+      expect.stringContaining("Reason: completed"),
+    )
+    expect(mockClient.editNote).toHaveBeenCalledWith(
+      "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
+      "append",
+      expect.stringContaining("Durable conversation capture continues through the normal afterTurn path."),
+    )
+  })
+
+  it("handles deleted, released, and swept child endings without errors", async () => {
+    const reasons = ["deleted", "released", "swept"] as const
+
+    for (const reason of reasons) {
+      const engine = new BasicMemoryContextEngine(
+        mockClient as unknown as BmClient,
+        makeConfig(),
+      )
+
+      await engine.prepareSubagentSpawn({
+        parentSessionKey: "parent-session",
+        childSessionKey: `agent:test:subagent:${reason}`,
+      })
+
+      await expect(
+        engine.onSubagentEnded({
+          childSessionKey: `agent:test:subagent:${reason}`,
+          reason,
+        }),
+      ).resolves.toBeUndefined()
+    }
+
+    expect(mockClient.editNote).toHaveBeenCalledTimes(3)
   })
 
   it("captures only the current turn after prePromptMessageCount", async () => {
