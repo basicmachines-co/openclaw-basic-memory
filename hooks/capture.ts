@@ -66,10 +66,7 @@ export function selectCaptureTurn(
 ): { userText: string; assistantText: string } | null {
   const turn = getLastTurn(messages)
   if (!turn.userText && !turn.assistantText) return null
-  if (
-    turn.userText.length < minChars &&
-    turn.assistantText.length < minChars
-  ) {
+  if (turn.userText.length < minChars && turn.assistantText.length < minChars) {
     return null
   }
 

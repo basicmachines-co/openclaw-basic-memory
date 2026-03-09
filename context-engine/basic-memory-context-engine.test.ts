@@ -7,9 +7,7 @@ import {
   MAX_ASSEMBLE_RECALL_CHARS,
 } from "./basic-memory-context-engine.ts"
 
-function makeConfig(
-  overrides?: Partial<BasicMemoryConfig>,
-): BasicMemoryConfig {
+function makeConfig(overrides?: Partial<BasicMemoryConfig>): BasicMemoryConfig {
   return {
     project: "test-project",
     bmPath: "bm",
@@ -26,7 +24,9 @@ function makeConfig(
   }
 }
 
-function makeMessages(messages: Array<Record<string, unknown>>): AgentMessage[] {
+function makeMessages(
+  messages: Array<Record<string, unknown>>,
+): AgentMessage[] {
   return messages as AgentMessage[]
 }
 
@@ -61,21 +61,24 @@ describe("BasicMemoryContextEngine", () => {
       indexConversation: jest.fn().mockResolvedValue(undefined),
       writeNote: jest.fn().mockResolvedValue({
         title: "subagent-handoff-agent-test-subagent-child-1",
-        permalink: "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
+        permalink:
+          "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
         file_path:
           "memory/agent/subagents/subagent-handoff-agent-test-subagent-child-1.md",
         content: "",
       }),
       editNote: jest.fn().mockResolvedValue({
         title: "subagent-handoff-agent-test-subagent-child-1",
-        permalink: "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
+        permalink:
+          "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
         file_path:
           "memory/agent/subagents/subagent-handoff-agent-test-subagent-child-1.md",
         operation: "append",
       }),
       deleteNote: jest.fn().mockResolvedValue({
         title: "subagent-handoff-agent-test-subagent-child-1",
-        permalink: "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
+        permalink:
+          "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
         file_path:
           "memory/agent/subagents/subagent-handoff-agent-test-subagent-child-1.md",
       }),
@@ -226,7 +229,9 @@ describe("BasicMemoryContextEngine", () => {
     expect(first.systemPromptAddition?.length).toBeLessThanOrEqual(
       MAX_ASSEMBLE_RECALL_CHARS,
     )
-    expect(first.systemPromptAddition).toContain("[Basic Memory recall truncated]")
+    expect(first.systemPromptAddition).toContain(
+      "[Basic Memory recall truncated]",
+    )
     expect(second.systemPromptAddition).toBe(first.systemPromptAddition)
   })
 
@@ -297,7 +302,9 @@ describe("BasicMemoryContextEngine", () => {
     expect(mockClient.editNote).toHaveBeenCalledWith(
       "agent/subagents/subagent-handoff-agent-test-subagent-child-1",
       "append",
-      expect.stringContaining("Durable conversation capture continues through the normal afterTurn path."),
+      expect.stringContaining(
+        "Durable conversation capture continues through the normal afterTurn path.",
+      ),
     )
   })
 

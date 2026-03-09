@@ -144,9 +144,9 @@ export class BasicMemoryContextEngine implements ContextEngine {
 
   private readonly sessionState = new Map<string, SessionMemoryState>()
   private readonly subagentState = new Map<string, SubagentHandoffState>()
-  private legacyContextEnginePromise:
-    | Promise<InstanceType<LegacyContextEngineModule["LegacyContextEngine"]>>
-    | null = null
+  private legacyContextEnginePromise: Promise<
+    InstanceType<LegacyContextEngineModule["LegacyContextEngine"]>
+  > | null = null
 
   constructor(
     private readonly client: BmClient,
