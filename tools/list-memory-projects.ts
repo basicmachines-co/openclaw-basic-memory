@@ -85,6 +85,12 @@ export function registerProjectListTool(
                 text: "Failed to list Basic Memory projects. Is Basic Memory running? Check logs for details.",
               },
             ],
+            details: {
+              count: 0,
+              projects: [],
+              workspace: params.workspace ?? null,
+              error: "list_memory_projects_failed",
+            },
           }
         }
       },

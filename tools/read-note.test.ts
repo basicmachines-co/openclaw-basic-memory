@@ -170,6 +170,11 @@ describe("read tool", () => {
             text: 'Could not read note "missing-note". It may not exist yet.',
           },
         ],
+        details: {
+          identifier: "missing-note",
+          include_frontmatter: false,
+          error: "read_note_failed",
+        },
       })
     })
   })

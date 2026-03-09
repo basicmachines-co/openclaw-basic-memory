@@ -114,6 +114,11 @@ export function registerContextTool(
                 text: `Failed to build context for "${params.url}". Check logs for details.`,
               },
             ],
+            details: {
+              url: params.url,
+              depth,
+              error: "build_context_failed",
+            },
           }
         }
       },

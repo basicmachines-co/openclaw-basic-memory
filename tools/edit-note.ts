@@ -109,6 +109,11 @@ export function registerEditTool(
                 text: `Failed to edit note "${params.identifier}". It may not exist.`,
               },
             ],
+            details: {
+              identifier: params.identifier,
+              operation: params.operation,
+              error: "edit_note_failed",
+            },
           }
         }
       },

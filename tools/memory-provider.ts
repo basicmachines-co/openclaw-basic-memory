@@ -235,6 +235,13 @@ export function registerMemoryProvider(
                 text: "No matches found across memory sources.",
               },
             ],
+            details: {
+              query: params.query,
+              sectionCount: 0,
+              hasMemoryFileMatches: false,
+              hasKnowledgeGraphMatches: false,
+              hasTaskMatches: false,
+            },
           }
         }
 
@@ -245,6 +252,13 @@ export function registerMemoryProvider(
               text: sections.join("\n\n"),
             },
           ],
+          details: {
+            query: params.query,
+            sectionCount: sections.length,
+            hasMemoryFileMatches: memoryMd.length > 0,
+            hasKnowledgeGraphMatches: bmResults.length > 0,
+            hasTaskMatches: taskResults.length > 0,
+          },
         }
       },
     },
@@ -293,6 +307,11 @@ export function registerMemoryProvider(
                 text: `# ${note.title}\n\n${note.content}`,
               },
             ],
+            details: {
+              title: note.title,
+              permalink: note.permalink,
+              file_path: note.file_path,
+            },
           }
         } catch (err) {
           log.error("memory_get failed", err)
@@ -303,6 +322,10 @@ export function registerMemoryProvider(
                 text: `Could not read "${params.path}". It may not exist in the knowledge graph.`,
               },
             ],
+            details: {
+              path: params.path,
+              error: "memory_get_failed",
+            },
           }
         }
       },

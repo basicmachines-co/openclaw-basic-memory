@@ -10,9 +10,7 @@ import {
   parseConfig,
   resolveProjectPath,
 } from "./config.ts"
-
-import { buildCaptureHandler } from "./hooks/capture.ts"
-import { buildRecallHandler } from "./hooks/recall.ts"
+import { BasicMemoryContextEngine } from "./context-engine/basic-memory-context-engine.ts"
 import { initLogger, log } from "./logger.ts"
 import { CONVERSATION_SCHEMA_CONTENT } from "./schema/conversation-schema.ts"
 import { TASK_SCHEMA_CONTENT } from "./schema/task-schema.ts"
@@ -69,14 +67,11 @@ export default {
     // --- Composited memory_search + memory_get (always registered) ---
     registerMemoryProvider(api, client, cfg)
     log.info("registered composited memory_search + memory_get")
-
-    if (cfg.autoCapture) {
-      api.on("agent_end", buildCaptureHandler(client, cfg))
-    }
-
-    if (cfg.autoRecall) {
-      api.on("agent_start", buildRecallHandler(client, cfg))
-    }
+    api.registerContextEngine(
+      "openclaw-basic-memory",
+      () => new BasicMemoryContextEngine(client, cfg),
+    )
+    log.info("registered Basic Memory context engine")
 
     // --- Commands ---
     registerCommands(api, client)

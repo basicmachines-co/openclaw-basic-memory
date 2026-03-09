@@ -5,7 +5,7 @@ import { log } from "../logger.ts"
 /**
  * Extract text content from a message object.
  */
-function extractText(msg: Record<string, unknown>): string {
+export function extractText(msg: Record<string, unknown>): string {
   const content = msg.content
   if (typeof content === "string") return content
 
@@ -27,7 +27,7 @@ function extractText(msg: Record<string, unknown>): string {
 /**
  * Find the last user+assistant turn from the messages array.
  */
-function getLastTurn(messages: unknown[]): {
+export function getLastTurn(messages: unknown[]): {
   userText: string
   assistantText: string
 } {
@@ -60,6 +60,22 @@ function getLastTurn(messages: unknown[]): {
   return { userText, assistantText }
 }
 
+export function selectCaptureTurn(
+  messages: unknown[],
+  minChars: number,
+): { userText: string; assistantText: string } | null {
+  const turn = getLastTurn(messages)
+  if (!turn.userText && !turn.assistantText) return null
+  if (
+    turn.userText.length < minChars &&
+    turn.assistantText.length < minChars
+  ) {
+    return null
+  }
+
+  return turn
+}
+
 /**
  * Build the post-turn capture handler for Mode B.
  *
@@ -77,10 +93,9 @@ export function buildCaptureHandler(client: BmClient, cfg: BasicMemoryConfig) {
       return
     }
 
-    const { userText, assistantText } = getLastTurn(event.messages)
-
-    if (!userText && !assistantText) return
-    if (userText.length < minChars && assistantText.length < minChars) return
+    const turn = selectCaptureTurn(event.messages, minChars)
+    if (!turn) return
+    const { userText, assistantText } = turn
 
     log.debug(
       `capturing conversation: user=${userText.length} chars, assistant=${assistantText.length} chars`,
