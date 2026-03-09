@@ -15,9 +15,26 @@ import { loadRecallState } from "../hooks/recall.ts"
 import { log } from "../logger.ts"
 
 const require = createRequire(import.meta.url)
+export const MAX_ASSEMBLE_RECALL_CHARS = 1200
+const TRUNCATED_RECALL_SUFFIX = "\n\n[Basic Memory recall truncated]"
 
 interface SessionMemoryState {
   recallContext: string
+}
+
+function boundRecallContext(context: string): string {
+  if (context.length <= MAX_ASSEMBLE_RECALL_CHARS) {
+    return context
+  }
+
+  const trimmed = context
+    .slice(
+      0,
+      Math.max(0, MAX_ASSEMBLE_RECALL_CHARS - TRUNCATED_RECALL_SUFFIX.length),
+    )
+    .trimEnd()
+
+  return `${trimmed}${TRUNCATED_RECALL_SUFFIX}`
 }
 
 type LegacyContextEngineModule = {
@@ -85,7 +102,7 @@ export class BasicMemoryContextEngine implements ContextEngine {
       }
 
       this.sessionState.set(params.sessionId, {
-        recallContext: recall.context,
+        recallContext: boundRecallContext(recall.context),
       })
 
       log.debug(
@@ -109,9 +126,12 @@ export class BasicMemoryContextEngine implements ContextEngine {
     messages: AgentMessage[]
     tokenBudget?: number
   }): Promise<AssembleResult> {
+    const state = this.sessionState.get(params.sessionId)
+
     return {
       messages: params.messages,
       estimatedTokens: 0,
+      systemPromptAddition: state?.recallContext,
     }
   }
 

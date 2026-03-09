@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, jest } from "bun:test"
 import type { AgentMessage } from "@mariozechner/pi-agent-core"
 import type { BmClient } from "../bm-client.ts"
 import type { BasicMemoryConfig } from "../config.ts"
-import { BasicMemoryContextEngine } from "./basic-memory-context-engine.ts"
+import {
+  BasicMemoryContextEngine,
+  MAX_ASSEMBLE_RECALL_CHARS,
+} from "./basic-memory-context-engine.ts"
 
 function makeConfig(
   overrides?: Partial<BasicMemoryConfig>,
@@ -102,6 +105,31 @@ describe("BasicMemoryContextEngine", () => {
     })
   })
 
+  it("injects bounded BM recall during assemble when bootstrap found context", async () => {
+    const engine = new BasicMemoryContextEngine(
+      mockClient as unknown as BmClient,
+      makeConfig(),
+    )
+
+    await engine.bootstrap({
+      sessionId: "session-assemble",
+      sessionFile: "/tmp/session-assemble.jsonl",
+    })
+
+    const result = await engine.assemble({
+      sessionId: "session-assemble",
+      messages: makeMessages([{ role: "user", content: "hello" }]),
+    })
+
+    expect(result.messages).toEqual(
+      makeMessages([{ role: "user", content: "hello" }]),
+    )
+    expect(result.systemPromptAddition).toContain("## Active Tasks")
+    expect(result.systemPromptAddition).toContain("Fix auth rollout")
+    expect(result.systemPromptAddition).toContain("## Recent Activity")
+    expect(result.systemPromptAddition).toContain("API review")
+  })
+
   it("returns a no-op bootstrap result when there is no recall context", async () => {
     mockClient.search.mockResolvedValue([])
     mockClient.recentActivity.mockResolvedValue([])
@@ -120,6 +148,63 @@ describe("BasicMemoryContextEngine", () => {
       bootstrapped: false,
       reason: "no recall context found",
     })
+
+    const result = await engine.assemble({
+      sessionId: "session-3",
+      messages: makeMessages([{ role: "user", content: "hello" }]),
+    })
+
+    expect(result).toEqual({
+      messages: makeMessages([{ role: "user", content: "hello" }]),
+      estimatedTokens: 0,
+    })
+  })
+
+  it("keeps assemble recall stable and within the hard bound", async () => {
+    mockClient.search.mockResolvedValue([
+      {
+        title: "Long task",
+        permalink: "long-task",
+        content: "A".repeat(4000),
+        file_path: "memory/tasks/long-task.md",
+      },
+    ])
+    mockClient.recentActivity.mockResolvedValue([
+      {
+        title: "Long recent item",
+        permalink: "long-recent-item",
+        file_path: "memory/long-recent-item.md",
+        created_at: "2026-03-09T12:00:00Z",
+      },
+    ])
+
+    const engine = new BasicMemoryContextEngine(
+      mockClient as unknown as BmClient,
+      makeConfig({
+        recallPrompt: "P".repeat(4000),
+      }),
+    )
+
+    await engine.bootstrap({
+      sessionId: "session-bounded",
+      sessionFile: "/tmp/session-bounded.jsonl",
+    })
+
+    const first = await engine.assemble({
+      sessionId: "session-bounded",
+      messages: makeMessages([{ role: "user", content: "hello" }]),
+    })
+    const second = await engine.assemble({
+      sessionId: "session-bounded",
+      messages: makeMessages([{ role: "user", content: "hello" }]),
+    })
+
+    expect(first.systemPromptAddition).toBeDefined()
+    expect(first.systemPromptAddition?.length).toBeLessThanOrEqual(
+      MAX_ASSEMBLE_RECALL_CHARS,
+    )
+    expect(first.systemPromptAddition).toContain("[Basic Memory recall truncated]")
+    expect(second.systemPromptAddition).toBe(first.systemPromptAddition)
   })
 
   it("captures only the current turn after prePromptMessageCount", async () => {
