@@ -31,7 +31,7 @@ import { registerSchemaValidateTool } from "./tools/schema-validate.ts"
 import { registerSearchTool } from "./tools/search-notes.ts"
 import { registerWriteTool } from "./tools/write-note.ts"
 
-const BASIC_MEMORY_RELEASE_TAG = "v0.19.2"
+const BASIC_MEMORY_RELEASE_TAG = "v0.20.2"
 
 export default {
   id: "openclaw-basic-memory",

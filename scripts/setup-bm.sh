@@ -4,7 +4,7 @@
 set -euo pipefail
 
 BM_REPO="https://github.com/basicmachines-co/basic-memory.git"
-BM_REF="${BM_REF:-v0.19.2}"
+BM_REF="${BM_REF:-v0.20.2}"
 
 # ── check for uv ──────────────────────────────────────────────────
 if ! command -v uv >/dev/null 2>&1; then

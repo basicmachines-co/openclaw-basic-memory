@@ -7,7 +7,7 @@ On first startup, this plugin checks whether the `bm` (Basic Memory) CLI is avai
 ### What happens
 
 1. The plugin checks if `bm` exists on `PATH`
-2. If missing, it executes `uv tool install "basic-memory @ git+https://github.com/basicmachines-co/basic-memory.git@v0.19.2" --force`
+2. If missing, it executes `uv tool install "basic-memory @ git+https://github.com/basicmachines-co/basic-memory.git@v0.20.2" --force`
 3. This installs the Basic Memory CLI into uv's managed tool directory (`~/.local/bin/bm` on most systems)
 
 ### What this means
