@@ -194,6 +194,11 @@ describe("edit tool", () => {
             text: 'Failed to edit note "missing-note". It may not exist.',
           },
         ],
+        details: {
+          identifier: "missing-note",
+          operation: "append",
+          error: "edit_note_failed",
+        },
       })
     })
   })

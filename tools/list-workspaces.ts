@@ -66,6 +66,11 @@ export function registerWorkspaceListTool(
                 text: "Failed to list workspaces. Is Basic Memory running? Check logs for details.",
               },
             ],
+            details: {
+              count: 0,
+              workspaces: [],
+              error: "list_workspaces_failed",
+            },
           }
         }
       },

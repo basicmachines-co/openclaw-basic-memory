@@ -83,6 +83,10 @@ export function registerSearchTool(
                   text: "No matching notes found in the knowledge graph.",
                 },
               ],
+              details: {
+                count: 0,
+                results: [],
+              },
             }
           }
 
@@ -121,6 +125,12 @@ export function registerSearchTool(
                 text: "Search failed. Is Basic Memory running? Check logs for details.",
               },
             ],
+            details: {
+              count: 0,
+              results: [],
+              query: params.query,
+              error: "search_notes_failed",
+            },
           }
         }
       },

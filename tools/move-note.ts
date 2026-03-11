@@ -65,6 +65,11 @@ export function registerMoveTool(
                 text: `Failed to move "${params.identifier}". It may not exist.`,
               },
             ],
+            details: {
+              identifier: params.identifier,
+              newFolder: params.newFolder,
+              error: "move_note_failed",
+            },
           }
         }
       },

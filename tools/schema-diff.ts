@@ -46,6 +46,7 @@ export function registerSchemaDiffTool(
                   text: `No schema found for type "${params.noteType}". Use schema_infer to generate one.`,
                 },
               ],
+              details: result,
             }
           }
 
@@ -95,6 +96,10 @@ export function registerSchemaDiffTool(
                 text: "Schema diff failed. Check logs for details.",
               },
             ],
+            details: {
+              noteType: params.noteType,
+              error: "schema_diff_failed",
+            },
           }
         }
       },

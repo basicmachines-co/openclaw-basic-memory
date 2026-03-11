@@ -70,6 +70,11 @@ export function registerReadTool(
                 text: `Could not read note "${params.identifier}". It may not exist yet.`,
               },
             ],
+            details: {
+              identifier: params.identifier,
+              include_frontmatter: params.include_frontmatter === true,
+              error: "read_note_failed",
+            },
           }
         }
       },

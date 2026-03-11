@@ -58,6 +58,10 @@ export function registerDeleteTool(
                 text: `Failed to delete "${params.identifier}". It may not exist.`,
               },
             ],
+            details: {
+              identifier: params.identifier,
+              error: "delete_note_failed",
+            },
           }
         }
       },

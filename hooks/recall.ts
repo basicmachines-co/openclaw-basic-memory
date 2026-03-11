@@ -2,6 +2,12 @@ import type { BmClient, RecentResult, SearchResult } from "../bm-client.ts"
 import type { BasicMemoryConfig } from "../config.ts"
 import { log } from "../logger.ts"
 
+export interface RecallState {
+  tasks: SearchResult[]
+  recent: RecentResult[]
+  context: string
+}
+
 /**
  * Format recalled context from active tasks and recent activity.
  * Returns empty string if nothing was found.
@@ -32,6 +38,24 @@ export function formatRecallContext(
   return `${sections.join("\n\n")}\n\n---\n${prompt}`
 }
 
+export async function loadRecallState(
+  client: BmClient,
+  cfg: BasicMemoryConfig,
+): Promise<RecallState | null> {
+  const [tasks, recent] = await Promise.all([
+    client.search(undefined, 5, undefined, {
+      note_types: ["Task"],
+      status: "active",
+    }),
+    client.recentActivity("1d"),
+  ])
+
+  const context = formatRecallContext(tasks, recent, cfg.recallPrompt)
+  if (!context) return null
+
+  return { tasks, recent, context }
+}
+
 /**
  * Build the pre-turn recall handler.
  *
@@ -41,22 +65,14 @@ export function formatRecallContext(
 export function buildRecallHandler(client: BmClient, cfg: BasicMemoryConfig) {
   return async (_event: Record<string, unknown>) => {
     try {
-      const [tasks, recent] = await Promise.all([
-        client.search(undefined, 5, undefined, {
-          note_types: ["Task"],
-          status: "active",
-        }),
-        client.recentActivity("1d"),
-      ])
-
-      const context = formatRecallContext(tasks, recent, cfg.recallPrompt)
-      if (!context) return {}
+      const recall = await loadRecallState(client, cfg)
+      if (!recall) return {}
 
       log.debug(
-        `recall: ${tasks.length} active tasks, ${recent.length} recent items`,
+        `recall: ${recall.tasks.length} active tasks, ${recall.recent.length} recent items`,
       )
 
-      return { context }
+      return { context: recall.context }
     } catch (err) {
       log.error("recall failed", err)
       return {}

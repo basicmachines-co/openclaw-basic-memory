@@ -242,6 +242,10 @@ describe("search tool", () => {
             text: "No matching notes found in the knowledge graph.",
           },
         ],
+        details: {
+          count: 0,
+          results: [],
+        },
       })
     })
 
@@ -365,6 +369,12 @@ describe("search tool", () => {
             text: "Search failed. Is Basic Memory running? Check logs for details.",
           },
         ],
+        details: {
+          count: 0,
+          results: [],
+          query: "test",
+          error: "search_notes_failed",
+        },
       })
     })
 

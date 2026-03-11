@@ -83,6 +83,11 @@ export function registerWriteTool(
 
             return {
               content: [{ type: "text" as const, text: hint }],
+              details: {
+                title: params.title,
+                permalink: err.permalink,
+                error: "note_already_exists",
+              },
             }
           }
 
@@ -94,6 +99,11 @@ export function registerWriteTool(
                 text: "Failed to write note. Is Basic Memory running? Check logs for details.",
               },
             ],
+            details: {
+              title: params.title,
+              folder: params.folder,
+              error: "write_note_failed",
+            },
           }
         }
       },

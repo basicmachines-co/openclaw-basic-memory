@@ -410,6 +410,11 @@ const code = "example";
             text: "Failed to write note. Is Basic Memory running? Check logs for details.",
           },
         ],
+        details: {
+          title: "Failed Note",
+          folder: "notes",
+          error: "write_note_failed",
+        },
       })
     })
 

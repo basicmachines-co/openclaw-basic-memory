@@ -9,6 +9,7 @@ install:
     bun install
     bash scripts/setup-bm.sh
     bun scripts/fetch-skills.ts
+    git config core.hooksPath .githooks
 
 # Setup Basic Memory project
 setup:
@@ -16,19 +17,19 @@ setup:
 
 # Type check
 check-types:
-    npx tsc --noEmit
+    bun run check-types
 
 # Lint
 lint:
-    npx @biomejs/biome check .
+    bun run lint
 
 # Lint fix (safe + unsafe)
 lint-fix:
-    npx @biomejs/biome check --write --unsafe .
+    bun run lint:fix
 
 # Format and fix
 fix:
-    npx @biomejs/biome check --write --unsafe .
+    bun run lint:fix
 
 # Run tests
 test:

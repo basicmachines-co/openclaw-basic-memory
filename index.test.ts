@@ -44,6 +44,7 @@ describe("plugin service lifecycle", () => {
       registerTool: jest.fn(),
       registerCommand: jest.fn(),
       registerCli: jest.fn(),
+      registerContextEngine: jest.fn(),
       registerService: jest.fn((service: any) => {
         services.push(service)
       }),
@@ -53,6 +54,11 @@ describe("plugin service lifecycle", () => {
     plugin.register(api as any)
 
     expect(services).toHaveLength(1)
+    expect(api.registerContextEngine).toHaveBeenCalledWith(
+      "openclaw-basic-memory",
+      expect.any(Function),
+    )
+    expect(api.on).not.toHaveBeenCalled()
 
     await services[0].start({ workspaceDir: "/tmp/workspace" })
 

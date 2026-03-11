@@ -94,6 +94,11 @@ export function registerSchemaInferTool(
                 text: "Schema inference failed. Check logs for details.",
               },
             ],
+            details: {
+              noteType: params.noteType,
+              threshold: params.threshold ?? 0.25,
+              error: "schema_infer_failed",
+            },
           }
         }
       },

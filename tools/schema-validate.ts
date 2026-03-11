@@ -53,6 +53,7 @@ export function registerSchemaValidateTool(
           if ("error" in result && typeof resultRecord.error === "string") {
             return {
               content: [{ type: "text" as const, text: resultRecord.error }],
+              details: result,
             }
           }
 
@@ -91,6 +92,11 @@ export function registerSchemaValidateTool(
                 text: "Schema validation failed. Check logs for details.",
               },
             ],
+            details: {
+              noteType: params.noteType ?? null,
+              identifier: params.identifier ?? null,
+              error: "schema_validate_failed",
+            },
           }
         }
       },

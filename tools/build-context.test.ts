@@ -429,6 +429,11 @@ describe("context tool", () => {
             text: 'Failed to build context for "memory://error/test". Check logs for details.',
           },
         ],
+        details: {
+          url: "memory://error/test",
+          depth: 1,
+          error: "build_context_failed",
+        },
       })
     })
 
