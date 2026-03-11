@@ -31,6 +31,8 @@ import { registerSchemaValidateTool } from "./tools/schema-validate.ts"
 import { registerSearchTool } from "./tools/search-notes.ts"
 import { registerWriteTool } from "./tools/write-note.ts"
 
+const BASIC_MEMORY_RELEASE_TAG = "v0.19.2"
+
 export default {
   id: "openclaw-basic-memory",
   name: "Basic Memory",
@@ -96,7 +98,7 @@ export default {
               "installing basic-memory via uv (this may take a minute)...",
             )
             const result = execSync(
-              'uv tool install "basic-memory @ git+https://github.com/basicmachines-co/basic-memory.git@main" --force',
+              `uv tool install "basic-memory @ git+https://github.com/basicmachines-co/basic-memory.git@${BASIC_MEMORY_RELEASE_TAG}" --force`,
               { encoding: "utf-8", timeout: 120_000, stdio: "pipe" },
             )
             log.info(

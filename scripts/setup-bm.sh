@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Install basic-memory CLI via uv from the latest main branch.
+# Install basic-memory CLI via uv from a pinned release tag.
 # Idempotent — safe to re-run. Fails gracefully when uv is absent.
 set -euo pipefail
 
 BM_REPO="https://github.com/basicmachines-co/basic-memory.git"
-BM_REF="${BM_REF:-v0.19.0}"
+BM_REF="${BM_REF:-v0.19.2}"
 
 # ── check for uv ──────────────────────────────────────────────────
 if ! command -v uv >/dev/null 2>&1; then
