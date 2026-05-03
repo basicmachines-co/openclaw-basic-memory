@@ -49,7 +49,7 @@
     "@sinclair/typebox": "0.34.47"
   },
   "peerDependencies": {
-    "openclaw": ">=2026.3.7"
+    "openclaw": ">=2026.5.2"
   },
   "scripts": {
     "postinstall": "bash scripts/setup-bm.sh || true",
