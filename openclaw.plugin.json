@@ -1,6 +1,24 @@
 {
   "id": "openclaw-basic-memory",
   "kind": "memory",
+  "contracts": {
+    "tools": [
+      "build_context",
+      "delete_note",
+      "edit_note",
+      "list_memory_projects",
+      "list_workspaces",
+      "memory_get",
+      "memory_search",
+      "move_note",
+      "read_note",
+      "schema_diff",
+      "schema_infer",
+      "schema_validate",
+      "search_notes",
+      "write_note"
+    ]
+  },
   "skills": [
     "skills/memory-defrag",
     "skills/memory-ingest",
