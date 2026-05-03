@@ -26,10 +26,14 @@ export function registerSearchTool(
           }),
         ),
         metadata_filters: Type.Optional(
-          Type.Record(Type.String(), Type.Unknown(), {
-            description:
-              "Filter by frontmatter fields. Supports equality, $in, $gt/$gte/$lt/$lte, $between, and array-contains operators.",
-          }),
+          Type.Object(
+            {},
+            {
+              additionalProperties: true,
+              description:
+                "Filter by frontmatter fields. Supports equality, $in, $gt/$gte/$lt/$lte, $between, and array-contains operators.",
+            },
+          ),
         ),
         tags: Type.Optional(
           Type.Array(Type.String(), {
