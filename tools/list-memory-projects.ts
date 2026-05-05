@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox"
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry"
 import type { BmClient, ProjectListResult } from "../bm-client.ts"
 import { log } from "../logger.ts"
 

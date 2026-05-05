@@ -23,6 +23,7 @@
     "skills/memory-defrag",
     "skills/memory-ingest",
     "skills/memory-lifecycle",
+    "skills/memory-literary-analysis",
     "skills/memory-metadata-search",
     "skills/memory-notes",
     "skills/memory-reflect",
@@ -52,15 +53,25 @@
       "help": "Path to the basic-memory CLI binary (default: 'bm')",
       "advanced": true
     },
-    "indexInterval": {
-      "label": "Index Interval (seconds)",
-      "placeholder": "300",
-      "help": "Seconds between periodic re-indexing sweeps",
-      "advanced": true
-    },
     "autoCapture": {
       "label": "Auto-Capture",
       "help": "Automatically index conversation content after each turn"
+    },
+    "captureMinChars": {
+      "label": "Capture Min Characters",
+      "placeholder": "10",
+      "help": "Minimum user/assistant text length before auto-capture indexes a turn",
+      "advanced": true
+    },
+    "autoRecall": {
+      "label": "Auto-Recall",
+      "help": "Automatically load relevant Basic Memory context when a session starts"
+    },
+    "recallPrompt": {
+      "label": "Recall Prompt",
+      "placeholder": "Check for active tasks and recent activity...",
+      "help": "Prompt used to gather initial Basic Memory context",
+      "advanced": true
     },
     "debug": {
       "label": "Debug Logging",
@@ -85,18 +96,27 @@
     "properties": {
       "project": { "type": "string" },
       "memoryDir": { "type": "string" },
+      "memory_dir": { "type": "string" },
       "memoryFile": { "type": "string" },
+      "memory_file": { "type": "string" },
       "bmPath": { "type": "string" },
-      "indexInterval": { "type": "number", "minimum": 30, "maximum": 3600 },
       "autoCapture": { "type": "boolean" },
+      "captureMinChars": { "type": "number", "minimum": 0 },
+      "capture_min_chars": { "type": "number", "minimum": 0 },
+      "autoRecall": { "type": "boolean" },
+      "auto_recall": { "type": "boolean" },
+      "recallPrompt": { "type": "string" },
+      "recall_prompt": { "type": "string" },
       "debug": { "type": "boolean" },
       "projectPath": { "type": "string" },
       "cloud": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "url": { "type": "string" },
           "api_key": { "type": "string" }
-        }
+        },
+        "required": ["url", "api_key"]
       }
     },
     "required": []

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry"
 import type { BmClient } from "../bm-client.ts"
 import { NoteAlreadyExistsError } from "../bm-client.ts"
 import { registerWriteTool } from "./write-note.ts"

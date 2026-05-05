@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from "bun:test"
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry"
 import { registerSkillCommands } from "./skills.ts"
 
 describe("skill slash commands", () => {

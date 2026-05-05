@@ -8,6 +8,7 @@ Clone and link locally for plugin development:
 git clone https://github.com/basicmachines-co/openclaw-basic-memory.git
 cd openclaw-basic-memory
 bun install
+bun run fetch-skills
 openclaw plugins install -l "$PWD"
 openclaw plugins enable openclaw-basic-memory --slot memory
 openclaw gateway restart
@@ -37,8 +38,9 @@ Or load directly from a path in your OpenClaw config:
 
 ```bash
 bun run check-types   # Type checking
+bun run build         # Compile package runtime to dist/
 bun run lint          # Linting
-bun test              # Run tests (156 tests)
+bun test              # Run tests
 bun run test:int      # Real BM MCP integration tests
 ```
 
@@ -64,7 +66,7 @@ BASIC_MEMORY_REPO=/absolute/path/to/basic-memory bun run test:int
 This package is published as `@basicmemory/openclaw-basic-memory`.
 
 ```bash
-# Verify release readiness (types + tests + npm pack dry run)
+# Verify release readiness (types + build + tests + npm pack dry run)
 just release-check
 
 # Inspect publish payload

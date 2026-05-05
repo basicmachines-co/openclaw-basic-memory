@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process"
 
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry"
 import { BmClient } from "./bm-client.ts"
 import { registerCli } from "./commands/cli.ts"
 import { registerSkillCommands } from "./commands/skills.ts"
@@ -33,15 +33,14 @@ import { registerWriteTool } from "./tools/write-note.ts"
 
 const BASIC_MEMORY_RELEASE_TAG = "v0.20.2"
 
-export default {
+export default definePluginEntry({
   id: "openclaw-basic-memory",
   name: "Basic Memory",
   description:
     "Local-first knowledge graph for OpenClaw — persistent memory with graph search and composited memory_search",
-  kind: "memory" as const,
   configSchema: basicMemoryConfigSchema,
 
-  register(api: OpenClawPluginApi) {
+  register(api) {
     const cfg = parseConfig(api.pluginConfig)
 
     initLogger(api.logger, cfg.debug)
@@ -159,4 +158,4 @@ export default {
       },
     })
   },
-}
+})

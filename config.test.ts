@@ -147,6 +147,18 @@ describe("config", () => {
       expect(parseConfig({ cloud: null }).cloud).toBeUndefined()
     })
 
+    it("should throw error for unknown cloud config keys", () => {
+      expect(() =>
+        parseConfig({
+          cloud: {
+            url: "https://cloud.basicmemory.com",
+            api_key: "test-key",
+            extra: true,
+          },
+        }),
+      ).toThrow("basic-memory cloud config has unknown keys: extra")
+    })
+
     it("should throw error for unknown config keys", () => {
       expect(() => parseConfig({ unknownKey: "value" })).toThrow(
         "basic-memory config has unknown keys: unknownKey",
