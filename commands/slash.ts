@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry"
 import type { BmClient } from "../bm-client.ts"
 import { log } from "../logger.ts"
 
@@ -16,7 +16,9 @@ export function registerCommands(
     description: "Install or update the Basic Memory CLI (requires uv)",
     requireAuth: true,
     handler: async () => {
-      const scriptPath = resolve(__dirname, "..", "scripts", "setup-bm.sh")
+      const scriptPath = api.resolvePath
+        ? api.resolvePath("scripts/setup-bm.sh")
+        : resolve(__dirname, "..", "scripts", "setup-bm.sh")
       log.info(`/bm-setup: running ${scriptPath}`)
 
       try {

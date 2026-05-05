@@ -1,11 +1,9 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk"
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const SKILLS_DIR = resolve(__dirname, "..", "skills")
-const MANIFEST_PATH = resolve(SKILLS_DIR, "manifest.json")
 
 interface ManifestEntry {
   dir: string
@@ -13,9 +11,22 @@ interface ManifestEntry {
   description: string
 }
 
-function loadManifest(): ManifestEntry[] {
+function resolveSkillsDir(api: OpenClawPluginApi): string {
+  if (api.resolvePath) {
+    return api.resolvePath("skills")
+  }
+
+  const sourceRootSkills = resolve(__dirname, "..", "skills")
+  if (existsSync(sourceRootSkills)) {
+    return sourceRootSkills
+  }
+
+  return resolve(__dirname, "..", "..", "skills")
+}
+
+function loadManifest(skillsDir: string): ManifestEntry[] {
   try {
-    const raw = readFileSync(MANIFEST_PATH, "utf-8")
+    const raw = readFileSync(resolve(skillsDir, "manifest.json"), "utf-8")
     return JSON.parse(raw) as ManifestEntry[]
   } catch {
     throw new Error(
@@ -24,16 +35,17 @@ function loadManifest(): ManifestEntry[] {
   }
 }
 
-function loadSkill(dir: string): string {
-  return readFileSync(resolve(SKILLS_DIR, dir, "SKILL.md"), "utf-8")
+function loadSkill(skillsDir: string, dir: string): string {
+  return readFileSync(resolve(skillsDir, dir, "SKILL.md"), "utf-8")
 }
 
 export function registerSkillCommands(api: OpenClawPluginApi): void {
-  const manifest = loadManifest()
+  const skillsDir = resolveSkillsDir(api)
+  const manifest = loadManifest(skillsDir)
 
   for (const entry of manifest) {
     const commandName = entry.dir.replace(/^memory-/, "")
-    const content = loadSkill(entry.dir)
+    const content = loadSkill(skillsDir, entry.dir)
 
     api.registerCommand({
       name: commandName,

@@ -45,6 +45,7 @@ Then install the plugin:
 
 ```bash
 openclaw plugins install @basicmemory/openclaw-basic-memory
+openclaw plugins enable openclaw-basic-memory --slot memory
 openclaw gateway restart
 ```
 
@@ -54,7 +55,8 @@ Verify:
 
 ```bash
 openclaw plugins list
-openclaw plugins info openclaw-basic-memory
+openclaw plugins inspect openclaw-basic-memory --json
+openclaw plugins doctor
 ```
 
 ## Configuration
@@ -63,8 +65,15 @@ openclaw plugins info openclaw-basic-memory
 
 ```json5
 {
-  "openclaw-basic-memory": {
-    enabled: true
+  plugins: {
+    entries: {
+      "openclaw-basic-memory": {
+        enabled: true
+      }
+    },
+    slots: {
+      memory: "openclaw-basic-memory"
+    }
   }
 }
 ```
@@ -75,16 +84,23 @@ This uses sensible defaults: auto-generated project name, maps to your workspace
 
 ```json5
 {
-  "openclaw-basic-memory": {
-    enabled: true,
-    config: {
-      project: "my-agent",        // BM project name (default: "openclaw-{hostname}")
-      projectPath: ".",            // Project directory (default: workspace root)
-      memoryDir: "memory/",        // Where task notes live
-      memoryFile: "MEMORY.md",     // Working memory file
-      autoCapture: true,           // Record conversations as daily notes
-      autoRecall: true,            // Inject active tasks + recent activity at session start
-      debug: false                 // Verbose logging
+  plugins: {
+    entries: {
+      "openclaw-basic-memory": {
+        enabled: true,
+        config: {
+          project: "my-agent",        // BM project name (default: "openclaw-{hostname}")
+          projectPath: ".",            // Project directory (default: workspace root)
+          memoryDir: "memory/",        // Where task notes live
+          memoryFile: "MEMORY.md",     // Working memory file
+          autoCapture: true,           // Record conversations as daily notes
+          autoRecall: true,            // Inject active tasks + recent activity at session start
+          debug: false                 // Verbose logging
+        }
+      }
+    },
+    slots: {
+      memory: "openclaw-basic-memory"
     }
   }
 }
@@ -172,19 +188,23 @@ openclaw basic-memory status
 
 ## Bundled skills
 
-Six skills ship with the plugin — no installation needed:
+Ten skills ship with the plugin — no installation needed:
 
-- **memory-tasks** — structured task tracking that survives context compaction
-- **memory-reflect** — periodic consolidation of recent notes into durable memory
 - **memory-defrag** — cleanup and reorganization of memory files
-- **memory-schema** — schema lifecycle (infer, create, validate, diff)
+- **memory-ingest** — import existing material into Basic Memory
+- **memory-lifecycle** — manage note/project lifecycle workflows
+- **memory-literary-analysis** — analyze texts and reading notes
 - **memory-metadata-search** — query notes by frontmatter fields
 - **memory-notes** — guidance for writing well-structured notes
+- **memory-reflect** — periodic consolidation of recent notes into durable memory
+- **memory-research** — research synthesis into durable notes
+- **memory-schema** — schema lifecycle (infer, create, validate, diff)
+- **memory-tasks** — structured task tracking that survives context compaction
 
 ### Updating skills
 
 ```bash
-npx skills add basicmachines-co/basic-memory-skills --agent openclaw
+bun run fetch-skills
 ```
 
 ## Task notes

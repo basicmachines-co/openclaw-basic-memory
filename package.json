@@ -2,6 +2,8 @@
   "name": "@basicmemory/openclaw-basic-memory",
   "version": "0.2.3",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "description": "Basic Memory plugin for OpenClaw — local-first knowledge graph for agent memory",
   "license": "MIT",
   "repository": {
@@ -11,7 +13,7 @@
   "files": [
     "index.ts",
     "bm-client.ts",
-    "context-engine/",
+    "context-engine/basic-memory-context-engine.ts",
     "config.ts",
     "logger.ts",
     "commands/cli.ts",
@@ -35,6 +37,7 @@
     "schema/task-schema.ts",
     "schema/conversation-schema.ts",
     "skills/",
+    "dist/",
     "scripts/fetch-skills.ts",
     "scripts/setup-bm.sh",
     "openclaw.plugin.json",
@@ -53,25 +56,40 @@
   },
   "scripts": {
     "postinstall": "bash scripts/setup-bm.sh || true",
+    "build": "tsc -p tsconfig.build.json",
     "check-types": "tsc --noEmit",
     "lint": "bunx @biomejs/biome ci .",
     "lint:fix": "bunx @biomejs/biome check --write .",
     "fetch-skills": "bun scripts/fetch-skills.ts",
-    "prepack": "bun scripts/fetch-skills.ts",
+    "prepack": "bun run fetch-skills && bun run build",
     "test": "bun test",
     "test:int": "BM_INTEGRATION=1 BM_BIN=${BM_BIN:-./scripts/bm-local.sh} bun test integration --timeout 120000",
     "test:coverage": "bun test --coverage",
-    "release:check": "bun run check-types && bun test && npm pack --dry-run"
+    "release:check": "bun run check-types && bun run build && bun test && npm pack --dry-run"
   },
   "openclaw": {
     "extensions": [
       "./index.ts"
-    ]
+    ],
+    "runtimeExtensions": [
+      "./dist/index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.5.2",
+      "minGatewayVersion": "2026.5.2"
+    },
+    "build": {
+      "openclawVersion": "2026.5.4",
+      "pluginSdkVersion": "2026.5.4"
+    },
+    "install": {
+      "minHostVersion": ">=2026.5.2"
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
     "@types/node": "^20.0.0",
-    "openclaw": "^2026.3.8",
+    "openclaw": "^2026.5.4",
     "typescript": "^5.9.3"
   }
 }

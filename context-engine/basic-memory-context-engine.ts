@@ -1,24 +1,51 @@
-import { createRequire } from "node:module"
-import { dirname, resolve } from "node:path"
-import { pathToFileURL } from "node:url"
 import type { AgentMessage } from "@mariozechner/pi-agent-core"
-import type {
-  AssembleResult,
-  BootstrapResult,
-  CompactResult,
-  ContextEngine,
-} from "openclaw/plugin-sdk"
+import { delegateCompactionToRuntime } from "openclaw/plugin-sdk/core"
 import type { BmClient } from "../bm-client.ts"
 import type { BasicMemoryConfig } from "../config.ts"
 import { selectCaptureTurn } from "../hooks/capture.ts"
 import { loadRecallState } from "../hooks/recall.ts"
 import { log } from "../logger.ts"
 
-const require = createRequire(import.meta.url)
 export const MAX_ASSEMBLE_RECALL_CHARS = 1200
 const TRUNCATED_RECALL_SUFFIX = "\n\n[Basic Memory recall truncated]"
 const SUBAGENT_HANDOFF_FOLDER = "agent/subagents"
 const MAX_SUBAGENT_RECALL_CHARS = 800
+
+type AssembleResult = {
+  messages: AgentMessage[]
+  estimatedTokens: number
+  systemPromptAddition?: string
+}
+
+type BootstrapResult = {
+  bootstrapped: boolean
+  importedMessages?: number
+  reason?: string
+}
+
+type CompactResult = {
+  ok: boolean
+  compacted: boolean
+  reason?: string
+  result?: {
+    summary?: string
+    firstKeptEntryId?: string
+    tokensBefore: number
+    tokensAfter?: number
+    details?: unknown
+    sessionId?: string
+    sessionFile?: string
+  }
+}
+
+interface ContextEngine {
+  readonly info: {
+    id: string
+    name: string
+    version?: string
+    ownsCompaction?: boolean
+  }
+}
 
 interface SessionMemoryState {
   recallContext: string
@@ -104,36 +131,6 @@ function buildSubagentCompletionUpdate(params: {
   ].join("\n")
 }
 
-type LegacyContextEngineModule = {
-  LegacyContextEngine: new () => {
-    compact(params: {
-      sessionId: string
-      sessionFile: string
-      tokenBudget?: number
-      force?: boolean
-      currentTokenCount?: number
-      compactionTarget?: "budget" | "threshold"
-      customInstructions?: string
-      runtimeContext?: Record<string, unknown>
-    }): Promise<CompactResult>
-  }
-}
-
-async function loadLegacyContextEngine(): Promise<
-  LegacyContextEngineModule["LegacyContextEngine"]
-> {
-  const pluginSdkPath = require.resolve("openclaw/plugin-sdk")
-  const legacyPath = resolve(
-    dirname(pluginSdkPath),
-    "context-engine",
-    "legacy.js",
-  )
-  const module = (await import(
-    pathToFileURL(legacyPath).href
-  )) as LegacyContextEngineModule
-  return module.LegacyContextEngine
-}
-
 export class BasicMemoryContextEngine implements ContextEngine {
   readonly info = {
     id: "openclaw-basic-memory",
@@ -144,9 +141,6 @@ export class BasicMemoryContextEngine implements ContextEngine {
 
   private readonly sessionState = new Map<string, SessionMemoryState>()
   private readonly subagentState = new Map<string, SubagentHandoffState>()
-  private legacyContextEnginePromise: Promise<
-    InstanceType<LegacyContextEngineModule["LegacyContextEngine"]>
-  > | null = null
 
   constructor(
     private readonly client: BmClient,
@@ -243,8 +237,7 @@ export class BasicMemoryContextEngine implements ContextEngine {
     customInstructions?: string
     runtimeContext?: Record<string, unknown>
   }): Promise<CompactResult> {
-    const legacy = await this.getLegacyContextEngine()
-    return legacy.compact(params)
+    return delegateCompactionToRuntime(params)
   }
 
   async prepareSubagentSpawn(params: {
@@ -314,17 +307,5 @@ export class BasicMemoryContextEngine implements ContextEngine {
   async dispose(): Promise<void> {
     this.sessionState.clear()
     this.subagentState.clear()
-  }
-
-  private async getLegacyContextEngine(): Promise<
-    InstanceType<LegacyContextEngineModule["LegacyContextEngine"]>
-  > {
-    if (!this.legacyContextEnginePromise) {
-      this.legacyContextEnginePromise = loadLegacyContextEngine().then(
-        (LegacyContextEngine) => new LegacyContextEngine(),
-      )
-    }
-
-    return this.legacyContextEnginePromise
   }
 }

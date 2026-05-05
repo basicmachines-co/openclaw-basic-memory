@@ -101,6 +101,7 @@ export function parseConfig(raw: unknown): BasicMemoryConfig {
   let cloud: CloudConfig | undefined
   if (cfg.cloud && typeof cfg.cloud === "object" && !Array.isArray(cfg.cloud)) {
     const c = cfg.cloud as Record<string, unknown>
+    assertAllowedKeys(c, ["url", "api_key"], "basic-memory cloud config")
     if (typeof c.url === "string" && typeof c.api_key === "string") {
       cloud = { url: c.url, api_key: c.api_key }
     }
