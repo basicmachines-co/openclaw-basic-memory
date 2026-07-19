@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process"
+import { execFileSync } from "node:child_process"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry"
@@ -6,6 +6,15 @@ import type { BmClient } from "../bm-client.ts"
 import { log } from "../logger.ts"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+export function runSetupScript(scriptPath: string): string {
+  return execFileSync("bash", [scriptPath], {
+    encoding: "utf-8",
+    timeout: 180_000,
+    stdio: "pipe",
+    env: { ...process.env },
+  })
+}
 
 export function registerCommands(
   api: OpenClawPluginApi,
@@ -22,12 +31,7 @@ export function registerCommands(
       log.info(`/bm-setup: running ${scriptPath}`)
 
       try {
-        const output = execSync(`bash "${scriptPath}"`, {
-          encoding: "utf-8",
-          timeout: 180_000,
-          stdio: "pipe",
-          env: { ...process.env },
-        })
+        const output = runSetupScript(scriptPath)
         return { text: output.trim() }
       } catch (err: unknown) {
         const execErr = err as { stderr?: string; stdout?: string }

@@ -12,7 +12,8 @@ On first startup, this plugin checks whether the `bm` (Basic Memory) CLI is avai
 
 ### What this means
 
-- The plugin uses Node.js `child_process.execSync` to run `uv` as a shell command
+- The plugin uses `execFileSync` with a fixed executable and argument array
+- Command paths are resolved without interpolating configuration into a shell
 - This requires `uv` (the Python package manager from Astral) to be installed on your system
 - The installation pulls from the public `basic-memory` GitHub repository
 - If `uv` is not installed, the step is skipped gracefully — no error, no crash

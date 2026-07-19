@@ -32,6 +32,7 @@ describe("plugin service lifecycle", () => {
 
     const api = {
       pluginConfig: {
+        bmPath: "true",
         project: "test-project",
         projectPath: "memory/",
       },
