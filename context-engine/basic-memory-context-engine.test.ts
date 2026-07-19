@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from "bun:test"
-import type { AgentMessage } from "@mariozechner/pi-agent-core"
 import type { BmClient } from "../bm-client.ts"
 import type { BasicMemoryConfig } from "../config.ts"
 import {
   BasicMemoryContextEngine,
   MAX_ASSEMBLE_RECALL_CHARS,
 } from "./basic-memory-context-engine.ts"
+
+type AgentMessage = Parameters<
+  BasicMemoryContextEngine["assemble"]
+>[0]["messages"][number]
 
 function makeConfig(overrides?: Partial<BasicMemoryConfig>): BasicMemoryConfig {
   return {

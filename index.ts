@@ -1,7 +1,11 @@
-import { execSync } from "node:child_process"
+import { execFileSync } from "node:child_process"
 
-import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry"
+import {
+  definePluginEntry,
+  type OpenClawPluginDefinition,
+} from "openclaw/plugin-sdk/plugin-entry"
 import { BmClient } from "./bm-client.ts"
+import { isCommandAvailable } from "./command.ts"
 import { registerCli } from "./commands/cli.ts"
 import { registerSkillCommands } from "./commands/skills.ts"
 import { registerCommands } from "./commands/slash.ts"
@@ -33,7 +37,7 @@ import { registerWriteTool } from "./tools/write-note.ts"
 
 const BASIC_MEMORY_RELEASE_TAG = "v0.20.2"
 
-export default definePluginEntry({
+const plugin: OpenClawPluginDefinition = definePluginEntry({
   id: "openclaw-basic-memory",
   name: "Basic Memory",
   description:
@@ -87,32 +91,38 @@ export default definePluginEntry({
 
         // Auto-install bm CLI if not found
         const bmBin = cfg.bmPath || "bm"
-        try {
-          execSync(`command -v ${bmBin}`, { stdio: "ignore" })
-        } catch {
+        if (!isCommandAvailable(bmBin)) {
           log.info("bm CLI not found on PATH — attempting auto-install...")
-          try {
-            execSync("command -v uv", { stdio: "ignore" })
-            log.info(
-              "installing basic-memory via uv (this may take a minute)...",
-            )
-            const result = execSync(
-              `uv tool install "basic-memory @ git+https://github.com/basicmachines-co/basic-memory.git@${BASIC_MEMORY_RELEASE_TAG}" --force`,
-              { encoding: "utf-8", timeout: 120_000, stdio: "pipe" },
-            )
-            log.info(
-              `basic-memory installed: ${result.trim().split("\n").pop()}`,
-            )
-            // Verify it worked
+          if (isCommandAvailable("uv")) {
             try {
-              execSync(`command -v ${bmBin}`, { stdio: "ignore" })
-              log.info("bm CLI now available on PATH")
-            } catch {
-              log.error(
-                "bm installed but not found on PATH. You may need to add uv's bin directory to your PATH (typically ~/.local/bin).",
+              log.info(
+                "installing basic-memory via uv (this may take a minute)...",
               )
+              const result = execFileSync(
+                "uv",
+                [
+                  "tool",
+                  "install",
+                  `basic-memory @ git+https://github.com/basicmachines-co/basic-memory.git@${BASIC_MEMORY_RELEASE_TAG}`,
+                  "--force",
+                ],
+                { encoding: "utf-8", timeout: 120_000, stdio: "pipe" },
+              )
+              log.info(
+                `basic-memory installed: ${result.trim().split("\n").pop()}`,
+              )
+              // Verify it worked
+              if (isCommandAvailable(bmBin)) {
+                log.info("bm CLI now available on PATH")
+              } else {
+                log.error(
+                  "bm installed but not found on PATH. You may need to add uv's bin directory to your PATH (typically ~/.local/bin).",
+                )
+              }
+            } catch (err) {
+              log.error("Failed to auto-install basic-memory with uv.", err)
             }
-          } catch (_uvErr) {
+          } else {
             log.error(
               "Cannot auto-install basic-memory: uv not found. " +
                 "Install uv first (brew install uv, or curl -LsSf https://astral.sh/uv/install.sh | sh), " +
@@ -159,3 +169,5 @@ export default definePluginEntry({
     })
   },
 })
+
+export default plugin

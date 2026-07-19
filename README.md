@@ -231,6 +231,39 @@ Rolling JWT middleware to all API routes.
 
 Set `status: done` to mark complete. Done tasks are filtered out of active task results.
 
+## Source notes from other plugins
+
+Basic Memory works well as the durable note layer for research gathered by other OpenClaw plugins. For X/Twitter research, install [TweetClaw](https://github.com/Xquik-dev/tweetclaw) from its verified [ClawHub page](https://clawhub.ai/xquik/plugins/tweetclaw). TweetClaw requires OpenClaw 2026.7.1 or newer. The [npm package](https://www.npmjs.com/package/@xquik/tweetclaw) remains available as a fallback:
+
+```bash
+openclaw plugins install clawhub:@xquik/tweetclaw
+```
+
+Then use TweetClaw to search tweets, search tweet replies, export followers, or look up users, and save the useful results as Basic Memory notes:
+
+```markdown
+---
+title: x-twitter-feedback-openclaw-memory
+type: Research
+source: x-twitter
+captured_with: tweetclaw
+captured_at: 2026-05-14
+---
+
+## Query
+"openclaw memory plugin"
+
+## Findings
+- Users ask for durable task state after context compaction.
+- Source each finding with the tweet URL, tweet ID, author, and capture date.
+
+## Next Steps
+- [ ] Link related findings to the active project note.
+- [ ] Revisit the search before release notes ship.
+```
+
+Keep raw exports, secrets, cookies, direct messages, and private account material out of notes. Save the query, source links, IDs, summary, and next action so future `memory_search` calls can recover the context without replaying the scrape.
+
 ## Basic Memory Cloud
 
 Everything works locally. Cloud adds cross-device sync, team workspaces, and persistent memory for hosted agents.

@@ -1,10 +1,14 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core"
+import type { ContextEngine as OpenClawContextEngine } from "openclaw/plugin-sdk"
 import { delegateCompactionToRuntime } from "openclaw/plugin-sdk/core"
 import type { BmClient } from "../bm-client.ts"
 import type { BasicMemoryConfig } from "../config.ts"
 import { selectCaptureTurn } from "../hooks/capture.ts"
 import { loadRecallState } from "../hooks/recall.ts"
 import { log } from "../logger.ts"
+
+type AgentMessage = Parameters<
+  OpenClawContextEngine["assemble"]
+>[0]["messages"][number]
 
 export const MAX_ASSEMBLE_RECALL_CHARS = 1200
 const TRUNCATED_RECALL_SUFFIX = "\n\n[Basic Memory recall truncated]"

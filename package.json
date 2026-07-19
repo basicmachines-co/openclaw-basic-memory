@@ -12,6 +12,7 @@
   },
   "files": [
     "index.ts",
+    "command.ts",
     "bm-client.ts",
     "context-engine/basic-memory-context-engine.ts",
     "config.ts",
